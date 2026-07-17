@@ -33,7 +33,7 @@ import PersistentWorkOrderDetailWorkspace from './features/work-orders/demo/Pers
 import { demoWorkOrders, DEMO_TECHNICIAN_ID, DEMO_TENANT_ID } from './features/work-orders/demo/demoWorkOrders';
 
 type DemoView = 'dashboard' | 'orders' | 'planning' | 'technician' | 'detail' | 'create' | 'edit';
-type DetailTab = 'detail' | 'tasks' | 'photos' | 'documents' | 'history';
+type DetailTab = 'detail' | 'execution' | 'tasks' | 'photos' | 'documents' | 'history';
 
 const roleNames: Record<DemoRole, string> = {
   admin_cliente: 'Administrador',
