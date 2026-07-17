@@ -19,12 +19,14 @@ import {
   Printer,
   ShieldCheck,
   Upload,
+  Wrench,
 } from 'lucide-react';
 import type { DemoOrderMemory } from '../../demo/demoPersistence';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
 import type { WorkOrderStatus } from '../types/workOrder';
+import TechnicianExecutionPanel from './TechnicianExecutionPanel';
 
-type DetailTab = 'detail' | 'tasks' | 'photos' | 'documents' | 'history';
+type DetailTab = 'detail' | 'execution' | 'tasks' | 'photos' | 'documents' | 'history';
 
 type Props = {
   order: WorkOrderListItem | null;
@@ -67,6 +69,7 @@ const taskDefinitions = [
 
 const tabs: Array<{ id: DetailTab; label: string; icon: typeof FileText }> = [
   { id: 'detail', label: 'Detalle', icon: FileText },
+  { id: 'execution', label: 'Ejecución', icon: Wrench },
   { id: 'tasks', label: 'Tareas', icon: ListChecks },
   { id: 'photos', label: 'Fotos', icon: Camera },
   { id: 'documents', label: 'Documentos', icon: Paperclip },
@@ -82,6 +85,14 @@ function displayDate(value: string | null): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function formatDuration(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remaining = seconds % 60;
+  return [hours, minutes, remaining].map((value) => String(value).padStart(2, '0')).join(':');
 }
 
 function statusClass(status: WorkOrderStatus): string {
@@ -194,14 +205,19 @@ function HistoryContent({ memory }: { memory: DemoOrderMemory }) {
 
 function PrintReport({ order, memory }: { order: WorkOrderListItem; memory: DemoOrderMemory }) {
   const completed = taskDefinitions.filter((task) => memory.tasks[task.id]).length;
+  const execution = memory.execution;
   return (
     <article className="demo-print-report">
       <header><div><strong>IsiVoltPro OT</strong><span>Parte de intervención · Demostración</span></div><b>{order.code}</b></header>
       <h1>{order.title}</h1>
       <dl><div><dt>Instalación</dt><dd>{order.siteName}</dd></div><div><dt>Ubicación</dt><dd>{order.locationName ?? 'Sin ubicación'}</dd></div><div><dt>Técnico</dt><dd>{order.assignedToName ?? 'Sin asignar'}</dd></div><div><dt>Estado</dt><dd>{statusLabels[order.status]}</dd></div><div><dt>Prioridad</dt><dd>{priorityLabels[order.priority]}</dd></div><div><dt>Fecha prevista</dt><dd>{displayDate(order.plannedAt)}</dd></div></dl>
       <section><h2>Descripción</h2><p>{order.description || 'Sin descripción registrada.'}</p></section>
-      <section><h2>Resumen de ejecución</h2><p>{completed} de {taskDefinitions.length} tareas completadas · {memory.initialPhotos} fotos iniciales · {memory.finalPhotos} fotos finales · {memory.documents.length} documentos.</p></section>
-      <footer>Documento generado localmente. No contiene datos de producción ni firma electrónica.</footer>
+      <section><h2>Resultado de la intervención</h2><p>{execution.observations || 'Sin observaciones registradas.'}</p></section>
+      <section><h2>Resumen de ejecución</h2><p>Tiempo: {formatDuration(execution.accumulatedSeconds)} · {completed} de {taskDefinitions.length} tareas · {memory.initialPhotos} fotos iniciales · {memory.finalPhotos} fotos finales · {memory.documents.length} documentos.</p></section>
+      {execution.materials.length > 0 && <section><h2>Materiales</h2><ul>{execution.materials.map((item) => <li key={item.id}>{item.name}: {item.quantity} {item.unit}</li>)}</ul></section>}
+      {execution.measurements.length > 0 && <section><h2>Mediciones</h2><ul>{execution.measurements.map((item) => <li key={item.id}>{item.label}: {item.value}{item.unit ? ` ${item.unit}` : ''}</li>)}</ul></section>}
+      <section className="print-signatures"><div><span>Firma técnico</span><strong>{execution.technicianSignature ?? 'Pendiente'}</strong></div><div><span>Firma responsable</span><strong>{execution.responsibleSignature ?? 'Pendiente'}</strong></div></section>
+      <footer>Documento generado localmente. No contiene datos de producción ni firma electrónica válida.</footer>
     </article>
   );
 }
@@ -228,7 +244,8 @@ export default function PersistentWorkOrderDetailWorkspace({ order, viewerRole, 
   };
 
   let content;
-  if (activeTab === 'tasks') content = <TasksContent memory={memory} onUpdate={onUpdateMemory} />;
+  if (activeTab === 'execution') content = <TechnicianExecutionPanel memory={memory} onAddHistory={addHistory} onUpdateMemory={onUpdateMemory} onUpdateOrder={onUpdateOrder} order={order} viewerRole={viewerRole} />;
+  else if (activeTab === 'tasks') content = <TasksContent memory={memory} onUpdate={onUpdateMemory} />;
   else if (activeTab === 'photos') content = <PhotosContent memory={memory} onUpdate={onUpdateMemory} />;
   else if (activeTab === 'documents') content = <DocumentsContent memory={memory} onUpdate={onUpdateMemory} order={order} />;
   else if (activeTab === 'history') content = <HistoryContent memory={memory} />;
@@ -250,7 +267,7 @@ export default function PersistentWorkOrderDetailWorkspace({ order, viewerRole, 
         <aside className="panel detail-side-card sticky-detail-side">
           <h2>Estado actual</h2>
           <div className="timeline"><div className="done"><i /><span><strong>OT creada</strong><small>{displayDate(order.createdAt)}</small></span></div><div className={order.assignedTo ? 'done' : 'current'}><i /><span><strong>{order.assignedTo ? 'Técnico asignado' : 'Pendiente de asignación'}</strong><small>{order.assignedToName ?? 'Sin técnico'}</small></span></div><div className="current"><i /><span><strong>{statusLabels[order.status]}</strong><small>Actualizada {displayDate(order.updatedAt)}</small></span></div></div>
-          {(canManage || isTechnician) && <div className="demo-status-actions"><strong>Simular avance</strong>{order.status === 'ASIGNADA' && <button onClick={() => changeStatus('ACEPTADA')} type="button"><CheckCircle2 size={16} /> Aceptar OT</button>}{['ASIGNADA', 'ACEPTADA'].includes(order.status) && <button onClick={() => changeStatus('EN_CURSO')} type="button"><Play size={16} /> Iniciar trabajo</button>}{['ACEPTADA', 'EN_CURSO'].includes(order.status) && <button onClick={() => changeStatus('BLOQUEADA')} type="button"><AlertTriangle size={16} /> Bloquear</button>}{['EN_CURSO', 'BLOQUEADA'].includes(order.status) && <button onClick={() => changeStatus('FINALIZADA_TECNICO')} type="button"><ClipboardCheck size={16} /> Finalizar técnico</button>}{canManage && order.status === 'FINALIZADA_TECNICO' && <button className="validate" onClick={() => changeStatus('VALIDADA')} type="button"><Check size={16} /> Validar cierre</button>}</div>}
+          {(canManage || isTechnician) && <div className="demo-status-actions"><strong>Simular avance</strong>{order.status === 'ASIGNADA' && <button onClick={() => changeStatus('ACEPTADA')} type="button"><CheckCircle2 size={16} /> Aceptar OT</button>}{['ASIGNADA', 'ACEPTADA'].includes(order.status) && <button onClick={() => changeStatus('EN_CURSO')} type="button"><Play size={16} /> Iniciar trabajo</button>}{['ACEPTADA', 'EN_CURSO'].includes(order.status) && <button onClick={() => changeStatus('BLOQUEADA')} type="button"><AlertTriangle size={16} /> Bloquear</button>}{['EN_CURSO', 'BLOQUEADA'].includes(order.status) && <button onClick={() => onTabChange('execution')} type="button"><Wrench size={16} /> Completar ejecución</button>}{canManage && order.status === 'FINALIZADA_TECNICO' && <button className="validate" onClick={() => changeStatus('VALIDADA')} type="button"><Check size={16} /> Validar cierre</button>}</div>}
           {viewerRole === 'cliente_lectura' && <p className="read-only-note"><LockKeyhole size={16} /> Este perfil puede consultar e imprimir, pero no editar ni simular cambios.</p>}
         </aside>
       </section>
