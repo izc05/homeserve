@@ -4,7 +4,6 @@ import {
   Camera,
   Check,
   CheckCircle2,
-  ClipboardCheck,
   Clock3,
   Download,
   FileText,
