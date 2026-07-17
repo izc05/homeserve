@@ -19,8 +19,6 @@ import {
   Printer,
   ShieldCheck,
   Upload,
-  UserRound,
-  Wrench,
 } from 'lucide-react';
 import type { DemoOrderMemory } from '../../demo/demoPersistence';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
