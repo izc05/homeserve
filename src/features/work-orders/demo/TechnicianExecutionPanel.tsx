@@ -5,7 +5,7 @@ import {
   Check,
   ClipboardCheck,
   Gauge,
-  MaterialSymbol,
+  Package,
   Pause,
   PenLine,
   Play,
@@ -21,9 +21,6 @@ import type {
   DemoOrderMemory,
 } from '../../demo/demoPersistence';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
-
-// Lucide does not expose a dedicated material icon in every version.
-const MaterialIcon = MaterialSymbol ?? ClipboardCheck;
 
 type Props = {
   order: WorkOrderListItem;
@@ -228,7 +225,7 @@ export default function TechnicianExecutionPanel({
 
       <div className="execution-columns">
         <section className="execution-block">
-          <div className="execution-block-title"><MaterialIcon size={19} /><span><strong>Materiales utilizados</strong><small>{execution.materials.length} registros</small></span></div>
+          <div className="execution-block-title"><Package size={19} /><span><strong>Materiales utilizados</strong><small>{execution.materials.length} registros</small></span></div>
           {canExecute && <div className="execution-inline-form material-form"><input onChange={(event) => setMaterialName(event.target.value)} placeholder="Material o repuesto" value={materialName} /><input min="0.01" onChange={(event) => setMaterialQuantity(event.target.value)} step="0.01" type="number" value={materialQuantity} /><input onChange={(event) => setMaterialUnit(event.target.value)} value={materialUnit} /><button aria-label="Añadir material" onClick={addMaterial} type="button"><Plus size={17} /></button></div>}
           <div className="execution-record-list">{execution.materials.length === 0 ? <p>Sin materiales registrados.</p> : execution.materials.map((item) => <div key={item.id}><span><strong>{item.name}</strong><small>{item.quantity} {item.unit}</small></span>{canExecute && <button aria-label={`Eliminar ${item.name}`} onClick={() => removeMaterial(item.id)} type="button"><Trash2 size={15} /></button>}</div>)}</div>
         </section>
