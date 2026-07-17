@@ -7,6 +7,7 @@ import './styles/real-data.css';
 import './styles/demo-mode.css';
 import './styles/demo-shell.css';
 import './styles/demo-persistence.css';
+import './styles/demo-execution.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
