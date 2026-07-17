@@ -12,3 +12,5 @@ test-results/
 .idea/
 android/
 ios/
+supabase/.temp/
+supabase/.branches/
