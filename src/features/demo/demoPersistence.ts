@@ -174,13 +174,13 @@ export function loadDemoState(fallbackOrders: WorkOrderListItem[]): DemoPersiste
     const raw = window.localStorage.getItem(DEMO_STORAGE_KEY);
     if (!raw) return createInitialDemoState(fallbackOrders);
 
-    const parsed = JSON.parse(raw) as Partial<DemoPersistedState & LegacyDemoPersistedState>;
+    const parsed = JSON.parse(raw) as { version?: number; orders?: unknown; memory?: unknown };
     if (!isWorkOrderArray(parsed.orders) || !parsed.memory || typeof parsed.memory !== 'object') {
       return createInitialDemoState(fallbackOrders);
     }
 
-    if (parsed.version === 1) return migrateLegacyState(parsed as LegacyDemoPersistedState);
-    if (parsed.version === 2) return normalizeCurrentState(parsed as DemoPersistedState);
+    if (parsed.version === 1) return migrateLegacyState(parsed as unknown as LegacyDemoPersistedState);
+    if (parsed.version === 2) return normalizeCurrentState(parsed as unknown as DemoPersistedState);
     return createInitialDemoState(fallbackOrders);
   } catch {
     return createInitialDemoState(fallbackOrders);
