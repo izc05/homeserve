@@ -36,6 +36,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { getSupabaseClient } from './lib/supabase';
+import CreateWorkOrderForm from './features/work-orders/components/CreateWorkOrderForm';
 import {
   listAccessibleWorkOrders,
   type WorkOrderListItem,
@@ -344,8 +345,8 @@ function Detail({ order, back }: { order: WorkOrderListItem | null; back: () => 
   );
 }
 
-function CreateOrder({ cancel }: { cancel: () => void }) {
-  return <section className="panel data-state read-only-screen"><LockKeyhole size={34} /><span className="section-kicker">Escritura protegida</span><h1>Creación de OT pendiente de validación</h1><p>El formulario visual está preparado, pero no se habilitará hasta revisar las RPC de creación, asignación y auditoría contra la base existente.</p><div className="source-checks"><span><CheckCircle2 size={17} /> Lectura real activa</span><span><CheckCircle2 size={17} /> RLS respetado</span><span><Clock3 size={17} /> Escritura pendiente de pruebas SQL</span></div><button className="secondary-button" onClick={cancel} type="button"><ArrowLeft size={17} /> Volver a las órdenes</button></section>;
+function CreateOrder({ tenantId, canManage, cancel, created }: { tenantId: string; canManage: boolean; cancel: () => void; created: () => void }) {
+  return <CreateWorkOrderForm tenantId={tenantId} canManage={canManage} onCancel={cancel} onCreated={created} />;
 }
 
 function Planning({ orders, open }: { orders: WorkOrderListItem[]; open: (id: string) => void }) {
@@ -389,7 +390,7 @@ export default function App({
   else if (query.error) content = <OrdersError message={query.error.message} retry={() => void query.refetch()} />;
   else if (view === 'orders') content = <OrdersPage orders={orders} create={() => setView('create')} open={openDetail} />;
   else if (view === 'detail') content = <Detail order={selectedOrder} back={() => setView('orders')} />;
-  else if (view === 'create') content = <CreateOrder cancel={() => setView('orders')} />;
+  else if (view === 'create') content = <CreateOrder tenantId={tenantId} canManage={viewerRole === 'admin_cliente'} cancel={() => setView('orders')} created={() => setView('orders')} />;
   else if (view === 'planning') content = <Planning orders={orders} open={openDetail} />;
   else if (view === 'technician') content = <Technician orders={orders} viewerId={viewerId} />;
   else content = <Dashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
