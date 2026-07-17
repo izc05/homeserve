@@ -6,6 +6,7 @@ import AuthApp from './AuthApp';
 import './styles/global.css';
 import './styles/auth.css';
 import './styles/real-data.css';
+import './styles/work-order-create.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
