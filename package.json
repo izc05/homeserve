@@ -10,7 +10,13 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "supabase:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-local-supabase.ps1",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:test": "npx supabase test db",
+    "supabase:lint": "npx supabase db lint --level warning"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
