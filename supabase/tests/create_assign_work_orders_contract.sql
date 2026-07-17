@@ -1,79 +1,135 @@
--- Pruebas de contrato para ejecutar después de aplicar
--- 202607171430_create_assign_work_orders_rpc.sql en Supabase local o rama de desarrollo.
+-- Contrato de las RPC de creación y asignación.
+-- Se ejecuta únicamente contra Supabase local mediante `npx supabase test db`.
 
 begin;
 
-do $test$
-declare
-  create_oid oid := to_regprocedure(
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions;
+
+select plan(13);
+
+select ok(
+  to_regprocedure(
     'public.create_work_order(uuid,uuid,text,text,text,text,uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,integer,text,text,text,jsonb)'
-  );
-  assign_oid oid := to_regprocedure(
+  ) is not null,
+  'existe public.create_work_order'
+);
+
+select ok(
+  to_regprocedure(
     'public.assign_work_order(uuid,uuid,timestamp with time zone,text)'
-  );
-begin
-  if create_oid is null then
-    raise exception 'Falta public.create_work_order';
-  end if;
+  ) is not null,
+  'existe public.assign_work_order'
+);
 
-  if assign_oid is null then
-    raise exception 'Falta public.assign_work_order';
-  end if;
+select ok(
+  not (
+    select prosecdef
+    from pg_proc
+    where oid = to_regprocedure(
+      'public.create_work_order(uuid,uuid,text,text,text,text,uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,integer,text,text,text,jsonb)'
+    )
+  ),
+  'create_work_order usa SECURITY INVOKER'
+);
 
-  if (select prosecdef from pg_proc where oid = create_oid) then
-    raise exception 'create_work_order no debe usar SECURITY DEFINER';
-  end if;
+select ok(
+  not (
+    select prosecdef
+    from pg_proc
+    where oid = to_regprocedure(
+      'public.assign_work_order(uuid,uuid,timestamp with time zone,text)'
+    )
+  ),
+  'assign_work_order usa SECURITY INVOKER'
+);
 
-  if (select prosecdef from pg_proc where oid = assign_oid) then
-    raise exception 'assign_work_order no debe usar SECURITY DEFINER';
-  end if;
+select ok(
+  not has_function_privilege(
+    'anon',
+    to_regprocedure(
+      'public.create_work_order(uuid,uuid,text,text,text,text,uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,integer,text,text,text,jsonb)'
+    ),
+    'EXECUTE'
+  ),
+  'anon no puede ejecutar create_work_order'
+);
 
-  if has_function_privilege('anon', create_oid, 'EXECUTE') then
-    raise exception 'anon no debe ejecutar create_work_order';
-  end if;
+select ok(
+  not has_function_privilege(
+    'anon',
+    to_regprocedure(
+      'public.assign_work_order(uuid,uuid,timestamp with time zone,text)'
+    ),
+    'EXECUTE'
+  ),
+  'anon no puede ejecutar assign_work_order'
+);
 
-  if has_function_privilege('anon', assign_oid, 'EXECUTE') then
-    raise exception 'anon no debe ejecutar assign_work_order';
-  end if;
+select ok(
+  has_function_privilege(
+    'authenticated',
+    to_regprocedure(
+      'public.create_work_order(uuid,uuid,text,text,text,text,uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,integer,text,text,text,jsonb)'
+    ),
+    'EXECUTE'
+  ),
+  'authenticated puede ejecutar create_work_order'
+);
 
-  if not has_function_privilege('authenticated', create_oid, 'EXECUTE') then
-    raise exception 'authenticated debe ejecutar create_work_order';
-  end if;
+select ok(
+  has_function_privilege(
+    'authenticated',
+    to_regprocedure(
+      'public.assign_work_order(uuid,uuid,timestamp with time zone,text)'
+    ),
+    'EXECUTE'
+  ),
+  'authenticated puede ejecutar assign_work_order'
+);
 
-  if not has_function_privilege('authenticated', assign_oid, 'EXECUTE') then
-    raise exception 'authenticated debe ejecutar assign_work_order';
-  end if;
+select ok(
+  not has_sequence_privilege('anon', 'public.work_order_code_seq', 'USAGE'),
+  'anon no puede usar la secuencia de códigos'
+);
 
-  if has_sequence_privilege('anon', 'public.work_order_code_seq', 'USAGE') then
-    raise exception 'anon no debe usar work_order_code_seq';
-  end if;
+select ok(
+  has_sequence_privilege('authenticated', 'public.work_order_code_seq', 'USAGE'),
+  'authenticated puede usar la secuencia de códigos'
+);
 
-  if not has_sequence_privilege('authenticated', 'public.work_order_code_seq', 'USAGE') then
-    raise exception 'authenticated necesita USAGE sobre work_order_code_seq';
-  end if;
-
-  if not (
+select ok(
+  (
     select relrowsecurity
     from pg_class
     where oid = 'public.ordenes_trabajo'::regclass
-  ) then
-    raise exception 'ordenes_trabajo debe mantener RLS activado';
-  end if;
+  ),
+  'ordenes_trabajo mantiene RLS activado'
+);
 
-  if position(
+select ok(
+  position(
     'can_manage_work_orders'
-    in pg_get_functiondef(create_oid)
-  ) = 0 then
-    raise exception 'create_work_order debe validar can_manage_work_orders';
-  end if;
+    in pg_get_functiondef(
+      to_regprocedure(
+        'public.create_work_order(uuid,uuid,text,text,text,text,uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,integer,text,text,text,jsonb)'
+      )
+    )
+  ) > 0,
+  'create_work_order valida permisos de gestión'
+);
 
-  if position(
+select ok(
+  position(
     'can_manage_work_orders'
-    in pg_get_functiondef(assign_oid)
-  ) = 0 then
-    raise exception 'assign_work_order debe validar can_manage_work_orders';
-  end if;
-end;
-$test$;
+    in pg_get_functiondef(
+      to_regprocedure(
+        'public.assign_work_order(uuid,uuid,timestamp with time zone,text)'
+      )
+    )
+  ) > 0,
+  'assign_work_order valida permisos de gestión'
+);
 
+select * from finish();
 rollback;
