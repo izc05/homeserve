@@ -1,0 +1,48 @@
+name: Patch demo technician execution
+
+on:
+  push:
+    branches:
+      - feature/demo-technician-execution
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/demo-technician-execution
+      - name: Wire execution tab and compatible icon
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          app = Path('src/DemoApp.tsx')
+          text = app.read_text()
+          text = text.replace(
+              "type DetailTab = 'detail' | 'tasks' | 'photos' | 'documents' | 'history';",
+              "type DetailTab = 'detail' | 'execution' | 'tasks' | 'photos' | 'documents' | 'history';",
+          )
+          app.write_text(text)
+
+          panel = Path('src/features/work-orders/demo/TechnicianExecutionPanel.tsx')
+          text = panel.read_text()
+          text = text.replace('  MaterialSymbol,\n', '  Package,\n')
+          text = text.replace(
+              "// Lucide does not expose a dedicated material icon in every version.\nconst MaterialIcon = MaterialSymbol ?? ClipboardCheck;\n\n",
+              '',
+          )
+          text = text.replace('<MaterialIcon size={19} />', '<Package size={19} />')
+          panel.write_text(text)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/DemoApp.tsx src/features/work-orders/demo/TechnicianExecutionPanel.tsx
+          git diff --cached --quiet || git commit -m "fix: enlazar pestaña de ejecución y icono compatible"
+          git push
