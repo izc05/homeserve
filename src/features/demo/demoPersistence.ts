@@ -9,18 +9,51 @@ export type DemoHistoryEntry = {
   date: string;
 };
 
+export type DemoMaterialEntry = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+};
+
+export type DemoMeasurementEntry = {
+  id: string;
+  label: string;
+  value: string;
+  unit: string;
+};
+
+export type DemoExecutionState = {
+  runningSince: string | null;
+  accumulatedSeconds: number;
+  materials: DemoMaterialEntry[];
+  measurements: DemoMeasurementEntry[];
+  observations: string;
+  technicianSignature: string | null;
+  responsibleSignature: string | null;
+  completedAt: string | null;
+};
+
 export type DemoOrderMemory = {
   tasks: DemoTaskState;
   initialPhotos: number;
   finalPhotos: number;
   documents: string[];
   history: DemoHistoryEntry[];
+  execution: DemoExecutionState;
 };
 
 export type DemoPersistedState = {
-  version: 1;
+  version: 2;
   orders: WorkOrderListItem[];
   memory: Record<string, DemoOrderMemory>;
+};
+
+type LegacyDemoOrderMemory = Omit<DemoOrderMemory, 'execution'>;
+type LegacyDemoPersistedState = {
+  version: 1;
+  orders: WorkOrderListItem[];
+  memory: Record<string, LegacyDemoOrderMemory>;
 };
 
 export const DEMO_STORAGE_KEY = 'isivoltpro.demo.v1';
@@ -32,6 +65,19 @@ const taskDefaults = {
   test: false,
   report: false,
 } satisfies DemoTaskState;
+
+export function createDefaultExecutionState(): DemoExecutionState {
+  return {
+    runningSince: null,
+    accumulatedSeconds: 0,
+    materials: [],
+    measurements: [],
+    observations: '',
+    technicianSignature: null,
+    responsibleSignature: null,
+    completedAt: null,
+  };
+}
 
 export function createDefaultOrderMemory(order: WorkOrderListItem): DemoOrderMemory {
   const progressed = !['BORRADOR', 'ASIGNADA'].includes(order.status);
@@ -59,12 +105,20 @@ export function createDefaultOrderMemory(order: WorkOrderListItem): DemoOrderMem
         date: order.createdAt,
       },
     ],
+    execution: {
+      ...createDefaultExecutionState(),
+      accumulatedSeconds: finished ? Math.max((order.estimatedMinutes ?? 60) * 60, 60) : 0,
+      observations: finished ? 'Intervención completada y comprobada en modo demostración.' : '',
+      technicianSignature: finished ? order.assignedToName ?? 'Técnico demo' : null,
+      completedAt: finished ? order.updatedAt : null,
+      responsibleSignature: validated ? 'Responsable demo' : null,
+    },
   };
 }
 
 export function createInitialDemoState(orders: WorkOrderListItem[]): DemoPersistedState {
   return {
-    version: 1,
+    version: 2,
     orders,
     memory: Object.fromEntries(orders.map((order) => [order.id, createDefaultOrderMemory(order)])),
   };
@@ -81,6 +135,38 @@ function isWorkOrderArray(value: unknown): value is WorkOrderListItem[] {
   });
 }
 
+function migrateLegacyState(state: LegacyDemoPersistedState): DemoPersistedState {
+  const memory = Object.fromEntries(state.orders.map((order) => {
+    const legacy = state.memory[order.id];
+    const fallback = createDefaultOrderMemory(order);
+    return [order.id, {
+      ...fallback,
+      ...legacy,
+      tasks: { ...fallback.tasks, ...(legacy?.tasks ?? {}) },
+      documents: legacy?.documents ?? fallback.documents,
+      history: legacy?.history ?? fallback.history,
+      execution: fallback.execution,
+    } satisfies DemoOrderMemory];
+  }));
+
+  return { version: 2, orders: state.orders, memory };
+}
+
+function normalizeCurrentState(state: DemoPersistedState): DemoPersistedState {
+  const memory = { ...state.memory };
+  for (const order of state.orders) {
+    const fallback = createDefaultOrderMemory(order);
+    const existing = memory[order.id];
+    memory[order.id] = existing ? {
+      ...fallback,
+      ...existing,
+      tasks: { ...fallback.tasks, ...existing.tasks },
+      execution: { ...fallback.execution, ...existing.execution },
+    } : fallback;
+  }
+  return { version: 2, orders: state.orders, memory };
+}
+
 export function loadDemoState(fallbackOrders: WorkOrderListItem[]): DemoPersistedState {
   if (typeof window === 'undefined') return createInitialDemoState(fallbackOrders);
 
@@ -88,17 +174,14 @@ export function loadDemoState(fallbackOrders: WorkOrderListItem[]): DemoPersiste
     const raw = window.localStorage.getItem(DEMO_STORAGE_KEY);
     if (!raw) return createInitialDemoState(fallbackOrders);
 
-    const parsed = JSON.parse(raw) as Partial<DemoPersistedState>;
-    if (parsed.version !== 1 || !isWorkOrderArray(parsed.orders) || !parsed.memory || typeof parsed.memory !== 'object') {
+    const parsed = JSON.parse(raw) as Partial<DemoPersistedState & LegacyDemoPersistedState>;
+    if (!isWorkOrderArray(parsed.orders) || !parsed.memory || typeof parsed.memory !== 'object') {
       return createInitialDemoState(fallbackOrders);
     }
 
-    const memory = { ...parsed.memory } as Record<string, DemoOrderMemory>;
-    for (const order of parsed.orders) {
-      if (!memory[order.id]) memory[order.id] = createDefaultOrderMemory(order);
-    }
-
-    return { version: 1, orders: parsed.orders, memory };
+    if (parsed.version === 1) return migrateLegacyState(parsed as LegacyDemoPersistedState);
+    if (parsed.version === 2) return normalizeCurrentState(parsed as DemoPersistedState);
+    return createInitialDemoState(fallbackOrders);
   } catch {
     return createInitialDemoState(fallbackOrders);
   }
