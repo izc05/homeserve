@@ -12,6 +12,24 @@ No convertir el proyecto en un ERP, inventario general, módulo OCA ni gestor do
 
 El repositorio `izc05/isivolpro-activos` puede estudiarse para adaptar autenticación, Supabase, RLS, checklist, visitas, fotos, firmas, PDF y auditoría. No copiar módulos fuera de alcance, compatibilidad antigua, marcas de terceros ni código sin revisar.
 
+## Supabase oficial
+
+- Proyecto: `izc05's Project`
+- Project ref: `ubfbhzovebrmmjpyygnm`
+- URL: `https://ubfbhzovebrmmjpyygnm.supabase.co`
+- Región: `eu-west-1`
+
+La base contiene datos y tablas heredadas de `isivolpro-activos`. Leer `docs/SUPABASE_PROJECT.md` antes de tocar el esquema.
+
+Reglas obligatorias:
+
+- No borrar, truncar ni reemplazar tablas existentes.
+- No aplicar migraciones destructivas sin aprobación expresa de Isicio.
+- Mantener compatibilidad de lectura con roles y estados heredados durante la transición.
+- Generar tipos TypeScript desde el proyecto después de cada cambio de esquema.
+- Ejecutar advisors de seguridad y rendimiento después de cada DDL.
+- Nunca incluir `service_role`, secret keys o contraseña de base de datos.
+
 ## Roles
 
 - Administrador: control total, usuarios, configuración, auditoría y todas las OT.
@@ -19,6 +37,8 @@ El repositorio `izc05/isivolpro-activos` puede estudiarse para adaptar autentica
 - Técnico: solo ve y ejecuta sus OT asignadas.
 
 Los permisos críticos deben aplicarse en PostgreSQL con RLS y triggers, no solo en React.
+
+La base heredada usa `admin_cliente`, `tecnico`, `tecnico_externo` y `cliente_lectura`. Aplicar el mapeo temporal definido en `docs/SUPABASE_PROJECT.md`; no modificar el constraint hasta disponer de migración y pruebas RLS.
 
 ## Estados oficiales
 
@@ -36,6 +56,8 @@ Transiciones:
 
 No añadir estados sin actualizar documentación, migraciones y pruebas.
 
+La base heredada todavía admite 14 estados. Hasta ejecutar una migración aprobada, usar el adaptador de estados documentado en `docs/SUPABASE_PROJECT.md` y no asumir que todos los registros ya contienen los estados nuevos.
+
 ## Reglas del técnico
 
 - Solo puede leer OT con `assigned_to = auth.uid()`.
@@ -48,7 +70,7 @@ No añadir estados sin actualizar documentación, migraciones y pruebas.
 
 1. React + TypeScript + Vite.
 2. Supabase y variables de entorno.
-3. Migración inicial limpia.
+3. Auditoría del esquema existente y migración compatible.
 4. Autenticación y organizaciones.
 5. RLS y pruebas de permisos.
 6. Creación y asignación de OT.
@@ -79,6 +101,7 @@ No comenzar por APK, gráficos o diseño final antes de cerrar modelo, autentica
 - No confiar en rutas protegidas de React como barrera real.
 - No incluir datos personales reales ni credenciales demo en seeds.
 - Toda acción crítica debe quedar auditada.
+- Revisar cada función `SECURITY DEFINER`; no aplicar cambios masivos sin analizar dependencias de RLS.
 
 ## Diseño
 
@@ -97,10 +120,12 @@ Una funcionalidad requiere interfaz, validación, RLS, manejo de errores, carga,
 Antes de modificar código:
 
 1. Leer README, CLAUDE, AGENTS y documentación relacionada.
-2. Inspeccionar el código existente.
+2. Inspeccionar el código y el esquema existente.
 3. Explicar impacto en estados, permisos, datos y PDF.
 4. Implementar una unidad completa y pequeña.
 5. Ejecutar pruebas.
-6. Actualizar documentación.
+6. Ejecutar advisors si hubo DDL.
+7. Regenerar tipos si cambió el esquema.
+8. Actualizar documentación.
 
 Requieren aprobación de Isicio: nuevo rol, nuevo estado, cambio de alcance, eliminación de datos, servicio de pago, cambio de marca, publicación o APK.
