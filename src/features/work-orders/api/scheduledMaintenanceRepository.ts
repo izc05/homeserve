@@ -37,6 +37,14 @@ export type ScheduledMaintenance = {
   updatedAt: string;
 };
 
+export type GenerateScheduledMaintenancesResult = {
+  tenantId: string;
+  horizonDays: number;
+  generatedCount: number;
+  skippedCount: number;
+  generatedIds: string[];
+};
+
 type ScheduledMaintenanceRow = {
   id?: string;
   tenant_id?: string;
@@ -64,8 +72,26 @@ type CreatedWorkOrderRow = {
   estado?: string | null;
 };
 
+type GenerateScheduledMaintenancesRow = {
+  tenant_id?: string;
+  horizon_days?: number | string | null;
+  generated_count?: number | string | null;
+  skipped_count?: number | string | null;
+  generated_ids?: unknown;
+};
+
 function requireUuid(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
+}
+
+function toNumber(value: number | string | null | undefined): number {
+  if (typeof value === 'number') return value;
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
 }
 
 function mapScheduledMaintenance(row: ScheduledMaintenanceRow): ScheduledMaintenance {
@@ -107,6 +133,20 @@ function mapCreatedWorkOrder(row: CreatedWorkOrderRow | null): CreatedWorkOrder 
   };
 }
 
+function mapGenerateScheduledMaintenancesResult(row: GenerateScheduledMaintenancesRow | null): GenerateScheduledMaintenancesResult {
+  if (!row?.tenant_id) {
+    throw new Error('La base de datos no devolvió el resultado de generación de planificación.');
+  }
+
+  return {
+    tenantId: String(row.tenant_id),
+    horizonDays: toNumber(row.horizon_days),
+    generatedCount: toNumber(row.generated_count),
+    skippedCount: toNumber(row.skipped_count),
+    generatedIds: toStringArray(row.generated_ids),
+  };
+}
+
 export async function listScheduledMaintenances(
   supabase: SupabaseClient,
   tenantId: string,
@@ -122,6 +162,22 @@ export async function listScheduledMaintenances(
 
   if (error) throw error;
   return ((data ?? []) as unknown as ScheduledMaintenanceRow[]).map(mapScheduledMaintenance);
+}
+
+export async function generateDueScheduledMaintenances(
+  supabase: SupabaseClient,
+  input: { tenantId: string; horizonDays?: number | null },
+): Promise<GenerateScheduledMaintenancesResult> {
+  requireUuid(input.tenantId, 'Selecciona una organización para generar planificación.');
+
+  const horizonDays = Math.max(0, Math.round(input.horizonDays ?? 30));
+  const { data, error } = await supabase.rpc('generate_due_scheduled_maintenances', {
+    tenant_uuid: input.tenantId,
+    horizon_days: horizonDays,
+  });
+
+  if (error) throw error;
+  return mapGenerateScheduledMaintenancesResult(data as GenerateScheduledMaintenancesRow | null);
 }
 
 export async function generateWorkOrderFromScheduledMaintenance(
@@ -141,4 +197,8 @@ export async function generateWorkOrderFromScheduledMaintenance(
 
 export function canGenerateWorkOrderFromScheduledMaintenance(status: ScheduledMaintenanceStatus, workOrderId?: string | null) {
   return !workOrderId && !['completado', 'cancelado', 'no_aplica', 'ot_generada'].includes(status);
+}
+
+export function isActionableScheduledMaintenance(status: ScheduledMaintenanceStatus) {
+  return ['programado', 'proximo', 'vencido', 'asignado', 'pausado', 'pendiente_material', 'pendiente_cliente'].includes(status);
 }
