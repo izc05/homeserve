@@ -44,6 +44,10 @@ export type FinalizeWorkOrderVisitInput = {
   finalAssetStatus?: string;
 };
 
+export type FinalizeActiveWorkOrderVisitInput = Omit<FinalizeWorkOrderVisitInput, 'visitId'> & {
+  workOrderId: string;
+};
+
 function requireUuid(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
 }
@@ -75,6 +79,20 @@ function mapVisitResult(data: unknown): WorkOrderVisitResult {
     estado: String(row.estado),
     fecha_inicio: row.fecha_inicio ?? null,
     fecha_fin: row.fecha_fin ?? null,
+  };
+}
+
+function buildClosePayload(input: Omit<FinalizeWorkOrderVisitInput, 'visitId'>) {
+  return {
+    resultado_cierre: input.result ?? 'trabajo_completado',
+    trabajo_realizado: input.workDone.trim(),
+    diagnostico: input.diagnosis?.trim() || null,
+    pruebas_realizadas: input.tests?.trim() || null,
+    recomendaciones: input.recommendations?.trim() || null,
+    trabajo_pendiente: input.pendingWork?.trim() || null,
+    motivo_cierre: input.closingReason?.trim() || null,
+    proxima_accion: input.nextAction?.trim() || null,
+    estado_final_activo: input.finalAssetStatus?.trim() || null,
   };
 }
 
@@ -146,17 +164,23 @@ export async function finalizeWorkOrderVisit(
 
   const { data, error } = await supabase.rpc('finalize_work_order_visit', {
     visit_uuid: input.visitId,
-    payload_json: {
-      resultado_cierre: input.result ?? 'trabajo_completado',
-      trabajo_realizado: input.workDone.trim(),
-      diagnostico: input.diagnosis?.trim() || null,
-      pruebas_realizadas: input.tests?.trim() || null,
-      recomendaciones: input.recommendations?.trim() || null,
-      trabajo_pendiente: input.pendingWork?.trim() || null,
-      motivo_cierre: input.closingReason?.trim() || null,
-      proxima_accion: input.nextAction?.trim() || null,
-      estado_final_activo: input.finalAssetStatus?.trim() || null,
-    },
+    payload_json: buildClosePayload(input),
+  });
+
+  if (error) throw error;
+  return mapVisitResult(data);
+}
+
+export async function finalizeActiveWorkOrderVisit(
+  supabase: SupabaseClient,
+  input: FinalizeActiveWorkOrderVisitInput,
+): Promise<WorkOrderVisitResult> {
+  requireUuid(input.workOrderId, 'No se ha indicado la OT a finalizar.');
+  requireText(input.workDone, 'Indica el trabajo realizado antes de finalizar.');
+
+  const { data, error } = await supabase.rpc('finalize_active_work_order_visit', {
+    work_order_uuid: input.workOrderId,
+    payload_json: buildClosePayload(input),
   });
 
   if (error) throw error;
