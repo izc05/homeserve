@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ClipboardList, Plus, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ClipboardList, Plus, RotateCcw, ShieldCheck } from 'lucide-react';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
 import type { WorkOrderPriority, WorkOrderType } from '../types/workOrder';
 import {
@@ -64,6 +64,19 @@ const technicianOptions = [
   { value: DEMO_SECOND_TECHNICIAN_ID, label: 'Miguel López', name: 'Miguel López' },
 ] as const;
 
+const requirementOptions: Array<{ key: keyof WorkOrderListItem['requirements']; label: string }> = [
+  { key: 'checklist', label: 'Checklist' },
+  { key: 'initialPhotos', label: 'Fotos iniciales' },
+  { key: 'finalPhotos', label: 'Fotos finales' },
+  { key: 'measurements', label: 'Mediciones' },
+  { key: 'materials', label: 'Materiales' },
+  { key: 'technicianSignature', label: 'Firma técnico' },
+  { key: 'responsibleSignature', label: 'Firma responsable' },
+  { key: 'finalFunctionalTest', label: 'Prueba final' },
+  { key: 'report', label: 'Informe' },
+  { key: 'administrativeReview', label: 'Validación responsable' },
+];
+
 function seedTitle(asset: DemoCreateAssetSeed | null | undefined, installation: DemoCreateInstallationSeed | null | undefined): string {
   if (asset) return `Revisar ${asset.assetName}`;
   if (installation) return `Intervención en ${installation.locationName ?? installation.siteName}`;
@@ -76,9 +89,41 @@ function seedDescription(asset: DemoCreateAssetSeed | null | undefined, installa
   return '';
 }
 
+function seedInstructions(asset: DemoCreateAssetSeed | null | undefined, installation: DemoCreateInstallationSeed | null | undefined): string {
+  if (asset) return `Revisar estado del equipo ${asset.assetName} y dejar evidencia de la intervención.`;
+  if (installation) return `Intervenir en ${installation.siteName} y documentar el trabajo realizado.`;
+  return '';
+}
+
+function seedExpectedResult(asset: DemoCreateAssetSeed | null | undefined, installation: DemoCreateInstallationSeed | null | undefined): string {
+  if (asset) return 'Equipo revisado, OT documentada y trazabilidad actualizada.';
+  if (installation) return 'Trabajo completado y documentado en la instalación.';
+  return '';
+}
+
+function defaultRequirements(hasAssetContext: boolean): WorkOrderListItem['requirements'] {
+  return {
+    checklist: true,
+    initialPhotos: true,
+    finalPhotos: true,
+    measurements: hasAssetContext,
+    materials: false,
+    technicianSignature: true,
+    responsibleSignature: false,
+    finalFunctionalTest: true,
+    report: true,
+    administrativeReview: true,
+  };
+}
+
+function nullable(value: string): string | null {
+  return value.trim() || null;
+}
+
 export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, initialInstallation, onCancel, onCreate }: DemoCreateWorkOrderProps) {
   const contextSite = initialAsset ?? initialInstallation;
   const hasContext = Boolean(initialAsset || initialInstallation);
+  const initialRequirements = defaultRequirements(Boolean(initialAsset));
   const [title, setTitle] = useState(seedTitle(initialAsset, initialInstallation));
   const [description, setDescription] = useState(seedDescription(initialAsset, initialInstallation));
   const [type, setType] = useState<WorkOrderType>(hasContext ? 'revision' : 'averia');
@@ -86,7 +131,12 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
   const [technicianId, setTechnicianId] = useState('');
   const [location, setLocation] = useState(contextSite?.locationName ?? 'Planta 2 · Área asistencial');
   const [plannedAt, setPlannedAt] = useState('2026-07-21T08:00');
+  const [dueAt, setDueAt] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState('60');
+  const [instructions, setInstructions] = useState(seedInstructions(initialAsset, initialInstallation));
+  const [safetyNotes, setSafetyNotes] = useState('');
+  const [expectedResult, setExpectedResult] = useState(seedExpectedResult(initialAsset, initialInstallation));
+  const [requirements, setRequirements] = useState<WorkOrderListItem['requirements']>(initialRequirements);
   const [error, setError] = useState('');
 
   const technician = useMemo(
@@ -94,11 +144,49 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
     [technicianId],
   );
 
+  const resetForm = () => {
+    setTitle(seedTitle(initialAsset, initialInstallation));
+    setDescription(seedDescription(initialAsset, initialInstallation));
+    setType(hasContext ? 'revision' : 'averia');
+    setPriority(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
+    setTechnicianId('');
+    setLocation(contextSite?.locationName ?? 'Planta 2 · Área asistencial');
+    setPlannedAt('2026-07-21T08:00');
+    setDueAt('');
+    setEstimatedMinutes('60');
+    setInstructions(seedInstructions(initialAsset, initialInstallation));
+    setSafetyNotes('');
+    setExpectedResult(seedExpectedResult(initialAsset, initialInstallation));
+    setRequirements(defaultRequirements(Boolean(initialAsset)));
+    setError('');
+  };
+
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedTitle = title.trim();
     if (normalizedTitle.length < 3) {
       setError('Escribe un título de al menos 3 caracteres.');
+      return;
+    }
+
+    const minutes = estimatedMinutes.trim() ? Number(estimatedMinutes) : null;
+    if (minutes !== null && (!Number.isFinite(minutes) || minutes < 1)) {
+      setError('La duración estimada debe ser mayor que 0 minutos.');
+      return;
+    }
+
+    const plannedDate = plannedAt ? new Date(plannedAt) : null;
+    const dueDate = dueAt ? new Date(dueAt) : null;
+    if (plannedDate && Number.isNaN(plannedDate.getTime())) {
+      setError('La fecha prevista no es válida.');
+      return;
+    }
+    if (dueDate && Number.isNaN(dueDate.getTime())) {
+      setError('La fecha límite no es válida.');
+      return;
+    }
+    if (plannedDate && dueDate && dueDate.getTime() < plannedDate.getTime()) {
+      setError('La fecha límite no puede ser anterior a la fecha prevista.');
       return;
     }
 
@@ -109,7 +197,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
       tenantId,
       code: nextDemoOrderCode(orders),
       title: normalizedTitle,
-      description: description.trim() || null,
+      description: nullable(description),
       type,
       priority,
       status: assigned ? 'ASIGNADA' : 'BORRADOR',
@@ -118,24 +206,13 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
       assetId: initialAsset?.assetId ?? null,
       assignedTo: technicianId || null,
       createdBy: 'demo-admin',
-      plannedAt: plannedAt ? new Date(plannedAt).toISOString() : null,
-      dueAt: null,
-      estimatedMinutes: estimatedMinutes ? Number(estimatedMinutes) : null,
-      instructions: initialAsset ? `Revisar estado del equipo ${initialAsset.assetName} y dejar evidencia de la intervención.` : initialInstallation ? `Intervenir en ${initialInstallation.siteName} y documentar el trabajo realizado.` : null,
-      safetyNotes: null,
-      expectedResult: initialAsset ? 'Equipo revisado, OT documentada y trazabilidad actualizada.' : initialInstallation ? 'Trabajo completado y documentado en la instalación.' : null,
-      requirements: {
-        checklist: true,
-        initialPhotos: true,
-        finalPhotos: true,
-        measurements: Boolean(initialAsset),
-        materials: false,
-        technicianSignature: true,
-        responsibleSignature: false,
-        finalFunctionalTest: true,
-        report: true,
-        administrativeReview: true,
-      },
+      plannedAt: plannedDate ? plannedDate.toISOString() : null,
+      dueAt: dueDate ? dueDate.toISOString() : null,
+      estimatedMinutes: minutes,
+      instructions: nullable(instructions),
+      safetyNotes: nullable(safetyNotes),
+      expectedResult: nullable(expectedResult),
+      requirements,
       blockReason: null,
       blockNotes: null,
       createdAt: now,
@@ -172,6 +249,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
           <ShieldCheck size={21} />
           <span><strong>{initialAsset ? 'Equipo vinculado' : initialInstallation ? 'Instalación vinculada' : 'Sin escritura en Supabase'}</strong><small>{initialAsset ? 'La nueva OT queda conectada al activo seleccionado.' : initialInstallation ? 'La nueva OT queda conectada a la instalación seleccionada.' : 'Puedes probar el flujo completo con tranquilidad.'}</small></span>
         </div>
+        <div className="demo-form-toolbar"><button className="filter-button" onClick={resetForm} type="button"><RotateCcw size={15} /> Restaurar formulario</button><span><ClipboardList size={15} /> {technicianId ? 'Se creará asignada' : 'Se guardará como borrador'}</span></div>
 
         <div className="demo-form-grid">
           <label className="demo-field demo-field-wide">
@@ -201,6 +279,10 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
             <input onChange={(event) => setPlannedAt(event.target.value)} type="datetime-local" value={plannedAt} />
           </label>
           <label className="demo-field">
+            Fecha límite
+            <input onChange={(event) => setDueAt(event.target.value)} type="datetime-local" value={dueAt} />
+          </label>
+          <label className="demo-field">
             Duración estimada
             <div className="demo-number-field"><input min="1" onChange={(event) => setEstimatedMinutes(event.target.value)} type="number" value={estimatedMinutes} /><span>min</span></div>
           </label>
@@ -212,14 +294,31 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
           {initialInstallation && !initialAsset && <div className="demo-field demo-field-wide readonly-summary"><strong>Instalación vinculada</strong><span>{initialInstallation.siteName}{initialInstallation.locationName ? ` · ${initialInstallation.locationName}` : ''}</span></div>}
           <label className="demo-field demo-field-wide">
             Descripción
-            <textarea onChange={(event) => setDescription(event.target.value)} placeholder="Describe el problema, alcance o trabajo solicitado" rows={5} value={description} />
+            <textarea onChange={(event) => setDescription(event.target.value)} placeholder="Describe el problema, alcance o trabajo solicitado" rows={4} value={description} />
           </label>
+          <label className="demo-field demo-field-wide">
+            Instrucciones al técnico
+            <textarea onChange={(event) => setInstructions(event.target.value)} placeholder="Acceso, prioridad, material necesario o indicaciones de trabajo" rows={3} value={instructions} />
+          </label>
+          <label className="demo-field demo-field-wide">
+            Riesgos y seguridad
+            <textarea onChange={(event) => setSafetyNotes(event.target.value)} placeholder="EPIs, consignación, zona crítica, presencia de usuarios..." rows={3} value={safetyNotes} />
+          </label>
+          <label className="demo-field demo-field-wide">
+            Resultado esperado
+            <textarea onChange={(event) => setExpectedResult(event.target.value)} placeholder="Qué debe quedar comprobado o documentado al cerrar la OT" rows={3} value={expectedResult} />
+          </label>
+        </div>
+
+        <div className="demo-requirements-edit-grid">
+          {requirementOptions.map((item) => <label key={item.key}><input checked={Boolean(requirements[item.key])} onChange={() => setRequirements((current) => ({ ...current, [item.key]: !current[item.key] }))} type="checkbox" /><span>{requirements[item.key] ? <CheckCircle2 size={15} /> : <ClipboardList size={15} />} {item.label}</span></label>)}
         </div>
 
         {error && <p className="demo-form-error">{error}</p>}
 
         <div className="demo-form-actions">
           <button className="secondary-button" onClick={onCancel} type="button">Cancelar</button>
+          <button className="secondary-button" onClick={resetForm} type="button"><RotateCcw size={16} /> Restaurar</button>
           <button className="primary-button" type="submit">
             {technicianId ? <CheckCircle2 size={18} /> : <ClipboardList size={18} />}
             {technicianId ? 'Crear y asignar' : 'Guardar borrador'}
