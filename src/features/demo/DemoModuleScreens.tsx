@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, Building2, CheckCircle2, ChevronRight, ClipboardList, Search, UsersRound, Wrench } from 'lucide-react';
+import { BarChart3, Boxes, Building2, CheckCircle2, ChevronRight, ClipboardList, Search, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { WorkOrderListItem } from '../work-orders/api/workOrdersRepository';
 
