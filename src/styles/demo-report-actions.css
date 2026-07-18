@@ -1,0 +1,55 @@
+.report-clickable-metrics {
+  margin-bottom: 14px;
+}
+
+.report-clickable-metrics .metric-card {
+  width: 100%;
+  min-height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-clickable-metrics .metric-card.active {
+  border-color: rgba(214, 36, 48, 0.34);
+  box-shadow: 0 18px 36px rgba(214, 36, 48, 0.12);
+}
+
+.report-clickable-metrics .metric-card > svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.report-filter-select {
+  min-height: 42px;
+  min-width: min(260px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.report-actions-row {
+  align-items: stretch;
+}
+
+@media (max-width: 700px) {
+  .report-clickable-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-actions-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .report-clickable-metrics {
+    grid-template-columns: 1fr;
+  }
+}
