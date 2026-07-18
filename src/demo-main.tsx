@@ -11,6 +11,7 @@ import './styles/demo-execution.css';
 import './styles/ui-polish.css';
 import './styles/demo-planning.css';
 import './styles/demo-technician.css';
+import './styles/demo-assets.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
