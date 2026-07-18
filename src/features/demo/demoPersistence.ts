@@ -56,7 +56,7 @@ type LegacyDemoPersistedState = {
   memory: Record<string, LegacyDemoOrderMemory>;
 };
 
-export const DEMO_STORAGE_KEY = 'isivoltpro.demo.v1';
+export const DEMO_STORAGE_KEY = 'isivoltpro.demo.fv.v1';
 
 const taskDefaults = {
   safety: false,
@@ -101,14 +101,14 @@ export function createDefaultOrderMemory(order: WorkOrderListItem): DemoOrderMem
       {
         id: `${order.id}-created`,
         title: 'Orden creada',
-        detail: 'Alta realizada en la demostración',
+        detail: 'Alta realizada en la demostración FV y mantenimiento',
         date: order.createdAt,
       },
     ],
     execution: {
       ...createDefaultExecutionState(),
       accumulatedSeconds: finished ? Math.max((order.estimatedMinutes ?? 60) * 60, 60) : 0,
-      observations: finished ? 'Intervención completada y comprobada en modo demostración.' : '',
+      observations: finished ? 'Intervención completada y comprobada en modo presentación.' : '',
       technicianSignature: finished ? order.assignedToName ?? 'Técnico demo' : null,
       completedAt: finished ? order.updatedAt : null,
       responsibleSignature: validated ? 'Responsable demo' : null,
