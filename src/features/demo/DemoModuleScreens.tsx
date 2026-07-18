@@ -11,6 +11,8 @@ export type DemoInstallationSeed = {
   locationName: string | null;
 };
 
+type ReportFilter = 'all' | 'open' | 'review' | 'validated';
+
 const statusLabels: Record<WorkOrderListItem['status'], string> = {
   BORRADOR: 'Borrador',
   ASIGNADA: 'Asignada',
@@ -28,6 +30,13 @@ const priorityLabels: Record<WorkOrderListItem['priority'], string> = {
   alta: 'Alta',
   urgente: 'Urgente',
   critica: 'Crítica',
+};
+
+const reportFilterLabels: Record<ReportFilter, string> = {
+  all: 'Todas las OT',
+  open: 'Solo abiertas',
+  review: 'Pendientes de validar',
+  validated: 'Validadas',
 };
 
 function statusClass(status: WorkOrderListItem['status']): string {
@@ -196,24 +205,40 @@ export function DemoInstallationsScreen({ orders, open, onCreateFromInstallation
 }
 
 export function DemoReportsScreen({ orders, open }: { orders: WorkOrderListItem[]; open: (id: string) => void }) {
-  const [filter, setFilter] = useState<'all' | 'open' | 'review' | 'validated'>('all');
+  const [filter, setFilter] = useState<ReportFilter>('all');
   const filtered = orders.filter((order) => {
     if (filter === 'open') return isOpen(order);
     if (filter === 'review') return order.status === 'FINALIZADA_TECNICO';
     if (filter === 'validated') return order.status === 'VALIDADA';
     return true;
   });
+  const metrics = {
+    all: orders.length,
+    open: orders.filter(isOpen).length,
+    review: orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length,
+    validated: orders.filter((order) => order.status === 'VALIDADA').length,
+  };
+  const reportCards: Array<{ filter: ReportFilter; label: string; value: number; helper: string; icon: typeof BarChart3; tone: string }> = [
+    { filter: 'all', label: 'Todas', value: metrics.all, helper: 'Resumen completo', icon: BarChart3, tone: 'purple' },
+    { filter: 'open', label: 'Abiertas', value: metrics.open, helper: 'Seguimiento diario', icon: ClipboardList, tone: 'red' },
+    { filter: 'review', label: 'Por validar', value: metrics.review, helper: 'Cierre responsable', icon: Wrench, tone: 'orange' },
+    { filter: 'validated', label: 'Validadas', value: metrics.validated, helper: 'Histórico del activo', icon: CheckCircle2, tone: 'green' },
+  ];
   const reportTitle = filter === 'open' ? 'Informe FV · OT abiertas' : filter === 'review' ? 'Informe FV · pendientes de validar' : filter === 'validated' ? 'Informe FV · histórico validado' : 'Informe FV · todas las OT';
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Control y trazabilidad</span><h1>Informes</h1><p>Resumen operativo para presentar mantenimiento FV: exportación CSV, impresión y acceso a cada OT.</p></div>
-      <section className="metrics-grid">
-        <article className="metric-card"><span className="metric-icon tone-red"><ClipboardList size={23} /></span><div className="metric-content"><strong>{orders.filter(isOpen).length}</strong><span>OT abiertas</span><small>Seguimiento diario</small></div></article>
-        <article className="metric-card"><span className="metric-icon tone-orange"><BarChart3 size={23} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length}</strong><span>Por validar</span><small>Responsable</small></div></article>
-        <article className="metric-card"><span className="metric-icon tone-green"><CheckCircle2 size={23} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'VALIDADA').length}</strong><span>Validadas</span><small>Histórico</small></div></article>
+      <div className="page-heading"><span className="section-kicker">Control y trazabilidad FV</span><h1>Informes</h1><p>Resumen operativo para presentar mantenimiento FV: exportación CSV, impresión, validación e histórico de activos.</p></div>
+      <section className="metrics-grid report-clickable-metrics">
+        {reportCards.map(({ filter: nextFilter, label, value, helper, icon: Icon, tone }) => (
+          <button className={`metric-card ${filter === nextFilter ? 'active' : ''}`} key={nextFilter} onClick={() => setFilter(nextFilter)} type="button">
+            <span className={`metric-icon tone-${tone}`}><Icon size={23} /></span>
+            <div className="metric-content"><strong>{value}</strong><span>{label}</span><small>{helper}</small></div>
+            <ChevronRight size={17} />
+          </button>
+        ))}
       </section>
       <section className="panel table-panel">
-        <div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><select aria-label="Filtrar informe" onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}><option value="all">Todas las OT</option><option value="open">Solo abiertas</option><option value="review">Pendientes de validar</option><option value="validated">Validadas</option></select></label><button className="filter-button" onClick={() => downloadReportCsv(filtered, reportTitle)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(filtered, reportTitle)} type="button"><Printer size={15} /> Imprimir</button><span className="source-badge">{filtered.length} registros</span></div>
+        <div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><select aria-label="Filtrar informe" onChange={(event) => setFilter(event.target.value as ReportFilter)} value={filter}>{Object.entries(reportFilterLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button className="filter-button" onClick={() => downloadReportCsv(filtered, reportTitle)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(filtered, reportTitle)} type="button"><Printer size={15} /> Imprimir</button><span className="source-badge">{filtered.length} registros</span></div>
         <ModuleOrderList orders={filtered} open={open} empty="No hay datos para este filtro." />
       </section>
     </>
