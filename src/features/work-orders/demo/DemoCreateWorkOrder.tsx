@@ -8,9 +8,23 @@ import {
   nextDemoOrderCode,
 } from './demoWorkOrders';
 
+export type DemoCreateAssetSeed = {
+  assetId: string;
+  assetName: string;
+  assetType: string | null;
+  assetReference: string | null;
+  assetCriticality: string | null;
+  assetStatus: string | null;
+  siteId: string;
+  siteName: string;
+  locationId: string | null;
+  locationName: string | null;
+};
+
 type DemoCreateWorkOrderProps = {
   tenantId: string;
   orders: WorkOrderListItem[];
+  initialAsset?: DemoCreateAssetSeed | null;
   onCancel: () => void;
   onCreate: (order: WorkOrderListItem) => void;
 };
@@ -42,13 +56,13 @@ const technicianOptions = [
   { value: DEMO_SECOND_TECHNICIAN_ID, label: 'Miguel López', name: 'Miguel López' },
 ] as const;
 
-export default function DemoCreateWorkOrder({ tenantId, orders, onCancel, onCreate }: DemoCreateWorkOrderProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [type, setType] = useState<WorkOrderType>('averia');
-  const [priority, setPriority] = useState<WorkOrderPriority>('normal');
+export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, onCancel, onCreate }: DemoCreateWorkOrderProps) {
+  const [title, setTitle] = useState(initialAsset ? `Revisar ${initialAsset.assetName}` : '');
+  const [description, setDescription] = useState(initialAsset ? `Intervención creada desde la ficha del equipo ${initialAsset.assetName}.` : '');
+  const [type, setType] = useState<WorkOrderType>(initialAsset ? 'revision' : 'averia');
+  const [priority, setPriority] = useState<WorkOrderPriority>(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
   const [technicianId, setTechnicianId] = useState('');
-  const [location, setLocation] = useState('Planta 2 · Área asistencial');
+  const [location, setLocation] = useState(initialAsset?.locationName ?? 'Planta 2 · Área asistencial');
   const [plannedAt, setPlannedAt] = useState('2026-07-21T08:00');
   const [estimatedMinutes, setEstimatedMinutes] = useState('60');
   const [error, setError] = useState('');
@@ -77,22 +91,22 @@ export default function DemoCreateWorkOrder({ tenantId, orders, onCancel, onCrea
       type,
       priority,
       status: assigned ? 'ASIGNADA' : 'BORRADOR',
-      siteId: 'demo-site-pts',
-      locationId: 'demo-location-new',
-      assetId: null,
+      siteId: initialAsset?.siteId ?? 'demo-site-pts',
+      locationId: initialAsset?.locationId ?? 'demo-location-new',
+      assetId: initialAsset?.assetId ?? null,
       assignedTo: technicianId || null,
       createdBy: 'demo-admin',
       plannedAt: plannedAt ? new Date(plannedAt).toISOString() : null,
       dueAt: null,
       estimatedMinutes: estimatedMinutes ? Number(estimatedMinutes) : null,
-      instructions: null,
+      instructions: initialAsset ? `Revisar estado del equipo ${initialAsset.assetName} y dejar evidencia de la intervención.` : null,
       safetyNotes: null,
-      expectedResult: null,
+      expectedResult: initialAsset ? 'Equipo revisado, OT documentada y trazabilidad actualizada.' : null,
       requirements: {
         checklist: true,
         initialPhotos: true,
         finalPhotos: true,
-        measurements: false,
+        measurements: Boolean(initialAsset),
         materials: false,
         technicianSignature: true,
         responsibleSignature: false,
@@ -104,9 +118,14 @@ export default function DemoCreateWorkOrder({ tenantId, orders, onCancel, onCrea
       blockNotes: null,
       createdAt: now,
       updatedAt: now,
-      siteName: 'Hospital Universitario PTS',
+      siteName: initialAsset?.siteName ?? 'Hospital Universitario PTS',
       locationName: location.trim() || 'Sin ubicación',
       assignedToName: technician.name,
+      assetName: initialAsset?.assetName ?? null,
+      assetType: initialAsset?.assetType ?? null,
+      assetReference: initialAsset?.assetReference ?? null,
+      assetCriticality: initialAsset?.assetCriticality ?? null,
+      assetStatus: initialAsset?.assetStatus ?? null,
     };
 
     onCreate(order);
@@ -117,8 +136,8 @@ export default function DemoCreateWorkOrder({ tenantId, orders, onCancel, onCrea
       <div className="page-heading page-heading-row">
         <div>
           <span className="section-kicker">Simulación local</span>
-          <h1>Nueva orden de trabajo</h1>
-          <p>La OT se añadirá solo a esta sesión de demostración.</p>
+          <h1>{initialAsset ? 'Nueva OT del equipo' : 'Nueva orden de trabajo'}</h1>
+          <p>{initialAsset ? `${initialAsset.assetName} · ${initialAsset.locationName ?? 'Sin ubicación'}` : 'La OT se añadirá solo a esta sesión de demostración.'}</p>
         </div>
         <button className="secondary-button" onClick={onCancel} type="button"><ArrowLeft size={17} /> Volver</button>
       </div>
@@ -126,7 +145,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, onCancel, onCrea
       <form className="panel demo-create-form" onSubmit={submit}>
         <div className="demo-form-banner">
           <ShieldCheck size={21} />
-          <span><strong>Sin escritura en Supabase</strong><small>Puedes probar el flujo completo con tranquilidad.</small></span>
+          <span><strong>{initialAsset ? 'Equipo vinculado' : 'Sin escritura en Supabase'}</strong><small>{initialAsset ? 'La nueva OT queda conectada al activo seleccionado.' : 'Puedes probar el flujo completo con tranquilidad.'}</small></span>
         </div>
 
         <div className="demo-form-grid">
@@ -164,6 +183,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, onCancel, onCrea
             Ubicación
             <input onChange={(event) => setLocation(event.target.value)} value={location} />
           </label>
+          {initialAsset && <div className="demo-field demo-field-wide readonly-summary"><strong>Equipo vinculado</strong><span>{initialAsset.assetName} · {initialAsset.assetReference ?? 'Sin referencia'} · {initialAsset.assetType ?? 'Tipo no indicado'}</span></div>}
           <label className="demo-field demo-field-wide">
             Descripción
             <textarea onChange={(event) => setDescription(event.target.value)} placeholder="Describe el problema, alcance o trabajo solicitado" rows={5} value={description} />
@@ -181,7 +201,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, onCancel, onCrea
         </div>
       </form>
 
-      <div className="demo-create-hint"><Plus size={17} /> La nueva OT aparecerá inmediatamente en dashboard, listado y planificación.</div>
+      <div className="demo-create-hint"><Plus size={17} /> La nueva OT aparecerá inmediatamente en dashboard, listado, planificación y ficha de equipo.</div>
     </section>
   );
 }
