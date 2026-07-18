@@ -17,6 +17,22 @@
   padding-inline: 13px;
 }
 
+.demo-topbar-title {
+  display: grid;
+  gap: 2px;
+}
+
+.demo-topbar-title strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.demo-topbar-title small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
 .demo-context-banner + .demo-context-banner,
 .main-content > .demo-context-banner {
   display: none;
@@ -80,6 +96,76 @@
   color: var(--success);
 }
 
+.demo-module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.demo-module-card {
+  min-height: 220px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.demo-module-card header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.demo-module-card header strong,
+.demo-module-card header small {
+  display: block;
+}
+
+.demo-module-card header strong {
+  font-size: 14px;
+}
+
+.demo-module-card header small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.demo-module-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.demo-module-stats span {
+  min-height: 62px;
+  display: grid;
+  place-items: center;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.demo-module-stats b {
+  color: var(--navy);
+  font-size: 19px;
+}
+
+.demo-module-order-list {
+  margin-top: 0;
+}
+
+.demo-module-order-list i.status {
+  align-self: center;
+  justify-self: end;
+  font-style: normal;
+}
+
 .enhanced-tabs {
   position: sticky;
   z-index: 25;
@@ -133,6 +219,14 @@
 
   .menu-button {
     display: inline-grid !important;
+  }
+
+  .demo-topbar-title {
+    margin-left: 0;
+  }
+
+  .demo-module-grid {
+    grid-template-columns: 1fr;
   }
 
   .enhanced-detail-header {
@@ -200,12 +294,14 @@
     display: none;
   }
 
-  .demo-action-strip > div {
+  .demo-action-strip > div,
+  .demo-module-stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .demo-action-strip button {
+  .demo-action-strip button,
+  .demo-module-card .secondary-button {
     justify-content: center;
   }
 
