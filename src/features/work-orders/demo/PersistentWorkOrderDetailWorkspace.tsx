@@ -102,6 +102,15 @@ function priorityClass(priority: WorkOrderListItem['priority']): string {
   return `priority-${priority}`;
 }
 
+function downloadTextFile(fileName: string, content: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function downloadDocument(name: string, order: WorkOrderListItem): void {
   const content = [
     'ISIVOLTPRO OT · DOCUMENTO DE DEMOSTRACIÓN',
@@ -113,12 +122,61 @@ function downloadDocument(name: string, order: WorkOrderListItem): void {
     '',
     'Este archivo se ha generado localmente para validar el flujo de trabajo.',
   ].join('\n');
-  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name.replace(/\.pdf$/i, '.txt');
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadTextFile(name.replace(/\.pdf$/i, '.txt'), content);
+}
+
+function downloadWorkOrderPart(order: WorkOrderListItem, memory: DemoOrderMemory): void {
+  const completedTasks = taskDefinitions.filter((task) => memory.tasks[task.id]).length;
+  const lines = [
+    'ISIVOLTPRO OT · PARTE DE INTERVENCIÓN',
+    `Orden: ${order.code}`,
+    `Título: ${order.title}`,
+    `Estado: ${statusLabels[order.status]}`,
+    `Prioridad: ${priorityLabels[order.priority]}`,
+    `Instalación: ${order.siteName}`,
+    `Ubicación: ${order.locationName ?? 'Sin ubicación'}`,
+    `Equipo: ${order.assetName ?? 'Sin equipo vinculado'}`,
+    `Técnico: ${order.assignedToName ?? 'Sin asignar'}`,
+    `Fecha prevista: ${displayDate(order.plannedAt)}`,
+    '',
+    'DESCRIPCIÓN',
+    order.description || 'Sin descripción registrada.',
+    '',
+    'EJECUCIÓN',
+    `Tiempo acumulado: ${formatDuration(memory.execution.accumulatedSeconds)}`,
+    `Observaciones: ${memory.execution.observations || 'Sin observaciones registradas.'}`,
+    `Checklist: ${completedTasks}/${taskDefinitions.length}`,
+    `Fotos iniciales: ${memory.initialPhotos}`,
+    `Fotos finales: ${memory.finalPhotos}`,
+    `Documentos: ${memory.documents.length}`,
+    '',
+    'DOCUMENTOS',
+    ...(memory.documents.length ? memory.documents.map((document) => `- ${document}`) : ['Sin documentos asociados.']),
+    '',
+    'FIRMAS',
+    `Técnico: ${memory.execution.technicianSignature ?? 'Pendiente'}`,
+    `Responsable: ${memory.execution.responsibleSignature ?? 'Pendiente'}`,
+  ];
+  downloadTextFile(`parte-${order.code}.txt`, lines.join('\n'));
+}
+
+function downloadPhotoSummary(order: WorkOrderListItem, memory: DemoOrderMemory): void {
+  downloadTextFile(`fotos-${order.code}.txt`, [
+    `Resumen de evidencias fotográficas · ${order.code}`,
+    `Fotos iniciales: ${memory.initialPhotos}`,
+    `Fotos finales: ${memory.finalPhotos}`,
+    `Generado: ${new Date().toLocaleString('es-ES')}`,
+  ].join('\n'));
+}
+
+function downloadHistory(order: WorkOrderListItem, memory: DemoOrderMemory): void {
+  const lines = [
+    `Historial de actividad · ${order.code}`,
+    `Generado: ${new Date().toLocaleString('es-ES')}`,
+    '',
+    ...memory.history.map((event) => `${displayDate(event.date)} · ${event.title} · ${event.detail}`),
+  ];
+  downloadTextFile(`historial-${order.code}.txt`, lines.join('\n'));
 }
 
 function addHistory(current: DemoOrderMemory, title: string, detail: string): DemoOrderMemory {
@@ -156,10 +214,16 @@ function DetailContent({ order }: { order: WorkOrderListItem }) {
 
 function TasksContent({ memory, onUpdate }: { memory: DemoOrderMemory; onUpdate: Props['onUpdateMemory'] }) {
   const completed = taskDefinitions.filter((task) => memory.tasks[task.id]).length;
+  const setAllTasks = (done: boolean) => onUpdate((current) => addHistory({
+    ...current,
+    tasks: { safety: done, inspect: done, work: done, test: done, report: done },
+  }, done ? 'Checklist completado' : 'Checklist reabierto', done ? 'Todas las tareas se marcan como completadas.' : 'Todas las tareas vuelven a pendiente.'));
+
   return (
     <article className="panel detail-tab-panel task-panel">
       <div className="panel-heading"><div><h2>Checklist de ejecución</h2><small>{completed} de {taskDefinitions.length} tareas completadas</small></div><span className="source-badge">Funcional</span></div>
       <div className="task-progress"><i style={{ width: `${Math.round((completed / taskDefinitions.length) * 100)}%` }} /></div>
+      <div className="detail-inline-actions"><button className="filter-button" onClick={() => setAllTasks(true)} type="button"><Check size={15} /> Completar todo</button><button className="filter-button" onClick={() => setAllTasks(false)} type="button">Reabrir todo</button></div>
       <div className="task-list">
         {taskDefinitions.map((task, index) => {
           const done = Boolean(memory.tasks[task.id]);
@@ -170,10 +234,11 @@ function TasksContent({ memory, onUpdate }: { memory: DemoOrderMemory; onUpdate:
   );
 }
 
-function PhotosContent({ memory, onUpdate }: { memory: DemoOrderMemory; onUpdate: Props['onUpdateMemory'] }) {
+function PhotosContent({ order, memory, onUpdate }: { order: WorkOrderListItem; memory: DemoOrderMemory; onUpdate: Props['onUpdateMemory'] }) {
   return (
     <article className="panel detail-tab-panel">
       <div className="panel-heading"><div><h2>Evidencias fotográficas</h2><small>Alta rápida de evidencias para validar el flujo móvil</small></div><span className="source-badge">{memory.initialPhotos + memory.finalPhotos} archivos</span></div>
+      <div className="detail-inline-actions"><button className="filter-button" onClick={() => { downloadPhotoSummary(order, memory); onUpdate((current) => addHistory(current, 'Resumen de fotos descargado', 'Se genera un resumen local de evidencias.')); }} type="button"><Download size={15} /> Resumen</button></div>
       <div className="photo-groups">
         <section>
           <div className="photo-group-heading"><span><Camera size={19} /></span><div><strong>Estado inicial</strong><small>{memory.initialPhotos} fotografías</small></div><button onClick={() => onUpdate((current) => addHistory({ ...current, initialPhotos: current.initialPhotos + 1 }, 'Foto inicial añadida', 'Evidencia inicial registrada.'))} type="button"><ImagePlus size={17} /> Añadir inicial</button></div>
@@ -190,20 +255,25 @@ function PhotosContent({ memory, onUpdate }: { memory: DemoOrderMemory; onUpdate
 
 function DocumentsContent({ order, memory, onUpdate }: { order: WorkOrderListItem; memory: DemoOrderMemory; onUpdate: Props['onUpdateMemory'] }) {
   const addDocument = () => onUpdate((current) => addHistory({ ...current, documents: [...current.documents, `Adjunto_${order.code}_${current.documents.length + 1}.pdf`] }, 'Documento adjuntado', 'Se ha añadido un documento a la OT.'));
+  const addPart = () => onUpdate((current) => {
+    const partName = `Parte_${order.code}.pdf`;
+    return addHistory({ ...current, documents: current.documents.includes(partName) ? current.documents : [...current.documents, partName] }, 'Parte generado', 'Se añade el parte de intervención a documentos.');
+  });
+
   return (
     <article className="panel detail-tab-panel">
-      <div className="panel-heading"><div><h2>Documentos asociados</h2><small>Partes, informes, manuales y certificados</small></div><button className="secondary-button compact-button" onClick={addDocument} type="button"><Upload size={16} /> Adjuntar</button></div>
+      <div className="panel-heading"><div><h2>Documentos asociados</h2><small>Partes, informes, manuales y certificados</small></div><div className="detail-inline-actions"><button className="secondary-button compact-button" onClick={addPart} type="button"><FileText size={16} /> Generar parte</button><button className="secondary-button compact-button" onClick={addDocument} type="button"><Upload size={16} /> Adjuntar</button></div></div>
       <div className="document-list">
-        {memory.documents.map((name) => <div key={name}><span><FileText size={21} /></span><div><strong>{name}</strong><small>Disponible para descarga de prueba</small></div><button aria-label={`Descargar ${name}`} onClick={() => downloadDocument(name, order)} type="button"><Download size={18} /></button></div>)}
+        {memory.documents.length === 0 ? <p className="empty-state">No hay documentos todavía. Usa Generar parte o Adjuntar.</p> : memory.documents.map((name) => <div key={name}><span><FileText size={21} /></span><div><strong>{name}</strong><small>Disponible para descarga de prueba</small></div><button aria-label={`Descargar ${name}`} onClick={() => downloadDocument(name, order)} type="button"><Download size={18} /></button></div>)}
       </div>
     </article>
   );
 }
 
-function HistoryContent({ memory }: { memory: DemoOrderMemory }) {
+function HistoryContent({ order, memory, onUpdate }: { order: WorkOrderListItem; memory: DemoOrderMemory; onUpdate: Props['onUpdateMemory'] }) {
   return (
     <article className="panel detail-tab-panel">
-      <div className="panel-heading"><div><h2>Historial de actividad</h2><small>Trazabilidad de acciones realizadas</small></div><span className="source-badge">{memory.history.length} eventos</span></div>
+      <div className="panel-heading"><div><h2>Historial de actividad</h2><small>Trazabilidad de acciones realizadas</small></div><button className="filter-button" onClick={() => { downloadHistory(order, memory); onUpdate((current) => addHistory(current, 'Historial descargado', 'Se descarga el historial local de la OT.')); }} type="button"><Download size={15} /> Descargar</button></div>
       <div className="history-list">{[...memory.history].reverse().map((event) => <div key={event.id}><span><History size={18} /></span><div><strong>{event.title}</strong><small>{event.detail}</small></div><time>{displayDate(event.date)}</time></div>)}</div>
     </article>
   );
@@ -256,14 +326,20 @@ export default function PersistentWorkOrderDetailWorkspace({ order, viewerRole, 
     }, 'Intervención finalizada', 'La OT queda pendiente de validación responsable.'));
     onTabChange('history');
   };
+  const downloadPart = () => {
+    downloadWorkOrderPart(order, memory);
+    onUpdateMemory((current) => addHistory(current, 'Parte descargado', 'Se descarga un parte local de intervención.'));
+  };
 
   let content;
   if (activeTab === 'execution') content = <TechnicianExecutionPanel memory={memory} onAddHistory={(title, detail) => onUpdateMemory((current) => addHistory(current, title, detail))} onUpdateMemory={onUpdateMemory} onUpdateOrder={onUpdateOrder} order={order} viewerRole={viewerRole} />;
   else if (activeTab === 'tasks') content = <TasksContent memory={memory} onUpdate={onUpdateMemory} />;
-  else if (activeTab === 'photos') content = <PhotosContent memory={memory} onUpdate={onUpdateMemory} />;
+  else if (activeTab === 'photos') content = <PhotosContent memory={memory} onUpdate={onUpdateMemory} order={order} />;
   else if (activeTab === 'documents') content = <DocumentsContent memory={memory} onUpdate={onUpdateMemory} order={order} />;
-  else if (activeTab === 'history') content = <HistoryContent memory={memory} />;
+  else if (activeTab === 'history') content = <HistoryContent memory={memory} onUpdate={onUpdateMemory} order={order} />;
   else content = <DetailContent order={order} />;
+
+  const hasQuickAction = order.status === 'ASIGNADA' || ['ASIGNADA', 'ACEPTADA'].includes(order.status) || ['ACEPTADA', 'EN_CURSO'].includes(order.status) || order.status === 'BLOQUEADA' || ['EN_CURSO', 'BLOQUEADA'].includes(order.status) || (canManage && order.status === 'FINALIZADA_TECNICO');
 
   return (
     <>
@@ -272,17 +348,17 @@ export default function PersistentWorkOrderDetailWorkspace({ order, viewerRole, 
         <button className="back-button" onClick={onBack} type="button"><ArrowLeft size={18} /> Volver</button>
         <div><span className="section-kicker">Orden de trabajo</span><h1>{order.code}</h1><p>{order.title}</p></div>
         <span className={statusClass(order.status)}>{statusLabels[order.status]}</span>
-        <div className="demo-detail-toolbar"><button className="filter-button" onClick={() => window.print()} type="button"><Printer size={16} /> Imprimir parte</button>{canManage && <button className="filter-button" onClick={onEdit} type="button"><Pencil size={16} /> Editar</button>}</div>
+        <div className="demo-detail-toolbar"><button className="filter-button" onClick={() => window.print()} type="button"><Printer size={16} /> Imprimir parte</button><button className="filter-button" onClick={downloadPart} type="button"><Download size={16} /> Descargar parte</button>{canManage && <button className="filter-button" onClick={onEdit} type="button"><Pencil size={16} /> Editar</button>}</div>
       </div>
       <div className="detail-location-line"><MapPin size={16} /> {order.siteName}{order.locationName ? ` · ${order.locationName}` : ''}</div>
       <div className="detail-tabs enhanced-tabs">{tabs.map(({ id, label, icon: Icon }) => <button aria-current={activeTab === id ? 'page' : undefined} className={activeTab === id ? 'active' : ''} key={id} onClick={() => onTabChange(id)} type="button"><Icon size={16} /> {label}</button>)}</div>
-      {canMove && <article className="panel demo-action-strip"><strong>Acciones rápidas</strong><div>{order.status === 'ASIGNADA' && <button onClick={() => setStatus('ACEPTADA', 'OT aceptada', `Cambio realizado por ${viewerRole}.`)} type="button"><CheckCircle2 size={16} /> Aceptar</button>}{['ASIGNADA', 'ACEPTADA'].includes(order.status) && <button onClick={() => setStatus('EN_CURSO', 'Trabajo iniciado', `Inicio realizado por ${viewerRole}.`)} type="button"><Play size={16} /> Iniciar</button>}{['ACEPTADA', 'EN_CURSO'].includes(order.status) && <button onClick={() => setStatus('BLOQUEADA', 'OT bloqueada', 'Se registra una parada temporal.')} type="button"><AlertTriangle size={16} /> Bloquear</button>}{order.status === 'BLOQUEADA' && <button onClick={() => setStatus('EN_CURSO', 'OT reanudada', 'La intervención vuelve a estar en curso.')} type="button"><Play size={16} /> Reanudar</button>}{['EN_CURSO', 'BLOQUEADA'].includes(order.status) && <button className="validate" onClick={finishOrder} type="button"><Check size={16} /> Finalizar técnico</button>}{canManage && order.status === 'FINALIZADA_TECNICO' && <button className="validate" onClick={() => { setStatus('VALIDADA', 'OT validada', 'Cierre validado por responsable.'); onUpdateMemory((current) => ({ ...addHistory(current, 'Histórico actualizado', 'La OT queda lista para histórico del activo.'), execution: { ...current.execution, responsibleSignature: current.execution.responsibleSignature ?? 'Responsable demo' } })); }} type="button"><ShieldCheck size={16} /> Validar cierre</button>}</div></article>}
+      {canMove && <article className="panel demo-action-strip"><strong>Acciones rápidas</strong><div>{order.status === 'ASIGNADA' && <button onClick={() => setStatus('ACEPTADA', 'OT aceptada', `Cambio realizado por ${viewerRole}.`)} type="button"><CheckCircle2 size={16} /> Aceptar</button>}{['ASIGNADA', 'ACEPTADA'].includes(order.status) && <button onClick={() => setStatus('EN_CURSO', 'Trabajo iniciado', `Inicio realizado por ${viewerRole}.`)} type="button"><Play size={16} /> Iniciar</button>}{['ACEPTADA', 'EN_CURSO'].includes(order.status) && <button onClick={() => setStatus('BLOQUEADA', 'OT bloqueada', 'Se registra una parada temporal.')} type="button"><AlertTriangle size={16} /> Bloquear</button>}{order.status === 'BLOQUEADA' && <button onClick={() => setStatus('EN_CURSO', 'OT reanudada', 'La intervención vuelve a estar en curso.')} type="button"><Play size={16} /> Reanudar</button>}{['EN_CURSO', 'BLOQUEADA'].includes(order.status) && <button className="validate" onClick={finishOrder} type="button"><Check size={16} /> Finalizar técnico</button>}{canManage && order.status === 'FINALIZADA_TECNICO' && <button className="validate" onClick={() => { setStatus('VALIDADA', 'OT validada', 'Cierre validado por responsable.'); onUpdateMemory((current) => ({ ...addHistory(current, 'Histórico actualizado', 'La OT queda lista para histórico del activo.'), execution: { ...current.execution, responsibleSignature: current.execution.responsibleSignature ?? 'Responsable demo' } })); }} type="button"><ShieldCheck size={16} /> Validar cierre</button>}{!hasQuickAction && <span className="demo-action-empty">No hay acciones técnicas disponibles para este estado.</span>}</div></article>}
       <section className="detail-grid enhanced-detail-grid">
         {content}
         <aside className="panel detail-side-card sticky-detail-side">
           <h2>Estado actual</h2>
           <div className="timeline"><div className="done"><i /><span><strong>OT creada</strong><small>{displayDate(order.createdAt)}</small></span></div><div className={order.assignedTo ? 'done' : 'current'}><i /><span><strong>{order.assignedTo ? 'Técnico asignado' : 'Pendiente de asignación'}</strong><small>{order.assignedToName ?? 'Sin técnico'}</small></span></div><div className="current"><i /><span><strong>{statusLabels[order.status]}</strong><small>Actualizada {displayDate(order.updatedAt)}</small></span></div></div>
-          <div className="demo-status-actions"><strong>Atajos</strong><button onClick={() => onTabChange('execution')} type="button"><Wrench size={16} /> Ejecución</button><button onClick={() => onTabChange('tasks')} type="button"><ListChecks size={16} /> Checklist</button><button onClick={() => onTabChange('documents')} type="button"><FileText size={16} /> Documentos</button></div>
+          <div className="demo-status-actions"><strong>Atajos</strong><button onClick={() => onTabChange('execution')} type="button"><Wrench size={16} /> Ejecución</button><button onClick={() => onTabChange('tasks')} type="button"><ListChecks size={16} /> Checklist</button><button onClick={() => onTabChange('photos')} type="button"><Camera size={16} /> Fotos</button><button onClick={() => onTabChange('documents')} type="button"><FileText size={16} /> Documentos</button><button onClick={() => onTabChange('history')} type="button"><History size={16} /> Historial</button></div>
           {viewerRole === 'cliente_lectura' && <p className="read-only-note"><LockKeyhole size={16} /> Este perfil puede consultar e imprimir, pero no editar ni simular cambios.</p>}
         </aside>
       </section>
