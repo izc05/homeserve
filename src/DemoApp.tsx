@@ -90,33 +90,64 @@ function newId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 }
 
-function DemoDashboard({ orders, name, open }: { orders: WorkOrderListItem[]; name: string; open: (id: string) => void }) {
+function DemoDashboard({
+  orders,
+  name,
+  open,
+  navigate,
+  create,
+  canCreate,
+}: {
+  orders: WorkOrderListItem[];
+  name: string;
+  open: (id: string) => void;
+  navigate: (view: DemoView) => void;
+  create: () => void;
+  canCreate: boolean;
+}) {
   const openCount = orders.filter((order) => !['VALIDADA', 'CANCELADA'].includes(order.status)).length;
   const blocked = orders.filter((order) => order.status === 'BLOQUEADA').length;
   const review = orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length;
   const validated = orders.filter((order) => order.status === 'VALIDADA').length;
+  const metrics: Array<{ value: number; label: string; Icon: typeof ClipboardList; tone: string; helper: string; action: () => void }> = [
+    { value: openCount, label: 'OT abiertas', Icon: ClipboardList, tone: 'red', helper: 'Abrir listado de OT', action: () => navigate('orders') },
+    { value: validated, label: 'OT validadas', Icon: CheckCircle2, tone: 'green', helper: 'Ver informes e histórico', action: () => navigate('reports') },
+    { value: review, label: 'Pendientes validar', Icon: CalendarDays, tone: 'orange', helper: 'Revisar informes', action: () => navigate('reports') },
+    { value: blocked, label: 'OT bloqueadas', Icon: ShieldCheck, tone: 'purple', helper: 'Revisar planificación', action: () => navigate('planning') },
+  ];
+  const quickActions: Array<{ label: string; Icon: typeof ClipboardList; action: () => void; enabled: boolean }> = [
+    { label: 'Nueva OT', Icon: Plus, action: create, enabled: canCreate },
+    { label: 'Planificación', Icon: CalendarDays, action: () => navigate('planning'), enabled: true },
+    { label: 'Vista técnico', Icon: Wrench, action: () => navigate('technician'), enabled: true },
+    { label: 'Técnicos', Icon: UsersRound, action: () => navigate('technicians'), enabled: true },
+    { label: 'Equipos', Icon: Boxes, action: () => navigate('assets'), enabled: true },
+    { label: 'Informes', Icon: BarChart3, action: () => navigate('reports'), enabled: true },
+  ];
+
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Panel central</span><h1>Hola, {name.split(' ')[0]} 👋</h1><p>Prototipo operativo con datos ficticios guardados en este navegador.</p></div>
-      <section className="metrics-grid">
-        {[
-          [openCount, 'OT abiertas', ClipboardList, 'red'],
-          [validated, 'OT validadas', CheckCircle2, 'green'],
-          [review, 'Pendientes validar', CalendarDays, 'orange'],
-          [blocked, 'OT bloqueadas', ShieldCheck, 'purple'],
-        ].map(([value, label, Icon, tone]) => {
-          const MetricIcon = Icon as typeof ClipboardList;
-          return <article className="metric-card" key={String(label)}><span className={`metric-icon tone-${tone}`}><MetricIcon size={23} /></span><div className="metric-content"><strong>{String(value)}</strong><span>{String(label)}</span><small>Persistencia local activa</small></div></article>;
-        })}
+      <div className="page-heading page-heading-row">
+        <div><span className="section-kicker">Panel central</span><h1>Hola, {name.split(' ')[0]} 👋</h1><p>Dashboard accionable: métricas, accesos rápidos y órdenes recientes abren pantallas reales.</p></div>
+        {canCreate && <button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}
+      </div>
+      <section className="metrics-grid dashboard-clickable-metrics">
+        {metrics.map(({ value, label, Icon, tone, helper, action }) => (
+          <button className="metric-card dashboard-metric-button" key={label} onClick={action} type="button">
+            <span className={`metric-icon tone-${tone}`}><Icon size={23} /></span>
+            <div className="metric-content"><strong>{value}</strong><span>{label}</span><small>{helper}</small></div>
+            <ChevronRight size={17} />
+          </button>
+        ))}
       </section>
       <section className="dashboard-grid dashboard-grid-top demo-dashboard-grid">
         <article className="panel recent-orders-panel">
-          <div className="panel-heading"><h2>Órdenes recientes</h2><span className="demo-data-badge">Guardado local</span></div>
+          <div className="panel-heading"><h2>Órdenes recientes</h2><button className="filter-button" onClick={() => navigate('orders')} type="button">Ver todas <ChevronRight size={15} /></button></div>
           <div className="recent-order-list">{orders.slice(0, 6).map((order) => <button className="recent-order" key={order.id} onClick={() => open(order.id)} type="button"><span className="order-icon"><Wrench size={20} /></span><span className="order-main"><strong>{order.code}</strong><span>{order.title}</span><small>{order.siteName} · {order.locationName}</small></span><span className="order-meta"><span className={statusClass(order.status)}>{statusLabels[order.status]}</span><small>{compactDate(order.plannedAt)}</small></span></button>)}</div>
         </article>
-        <article className="panel source-panel">
-          <div className="panel-heading"><h2>Qué puedes probar</h2><Zap size={22} /></div>
-          <div className="source-checks"><span><CheckCircle2 size={17} /> Pantallas de técnicos, instalaciones, equipos e informes</span><span><CheckCircle2 size={17} /> Crear y editar OT</span><span><CheckCircle2 size={17} /> Tareas, fotos, documentos e historial</span><span><CheckCircle2 size={17} /> Imprimir un parte</span></div>
+        <article className="panel source-panel dashboard-action-panel">
+          <div className="panel-heading"><h2>Accesos rápidos</h2><Zap size={22} /></div>
+          <div className="dashboard-quick-actions">{quickActions.filter((item) => item.enabled).map(({ label, Icon, action }) => <button key={label} onClick={action} type="button"><Icon size={17} /> {label}</button>)}</div>
+          <div className="source-checks"><span><CheckCircle2 size={17} /> Cada acceso navega o crea datos reales de la demo</span><span><CheckCircle2 size={17} /> Las órdenes recientes abren su ficha completa</span><span><CheckCircle2 size={17} /> Los cambios quedan guardados en este navegador</span></div>
         </article>
       </section>
     </>
@@ -242,7 +273,7 @@ export default function DemoApp() {
   else if (view === 'detail') content = <PersistentWorkOrderDetailWorkspace activeTab={detailTab} memory={selectedMemory} onBack={() => setView('orders')} onEdit={() => setView('edit')} onTabChange={setDetailTab} onUpdateMemory={(updater) => selected && updateMemory(selected.id, updater)} onUpdateOrder={(changes) => selected && updateOrder(selected.id, changes)} order={selected} viewerRole={role} />;
   else if (view === 'edit' && selected && canManage) content = <DemoEditWorkOrder order={selected} onCancel={() => setView('detail')} onSave={(changes) => { updateOrder(selected.id, changes); addHistory(selected.id, 'Orden editada', `Cambios guardados por ${roleNames[role]}.`); setView('detail'); }} />;
   else if (view === 'create' && canManage) content = <DemoCreateWorkOrder initialAsset={createAsset} initialInstallation={createInstallation} tenantId={DEMO_TENANT_ID} orders={orders} onCancel={() => { const backView: DemoView = createAsset ? 'assets' : createInstallation ? 'installations' : 'orders'; setCreateAsset(null); setCreateInstallation(null); setView(backView); }} onCreate={(order) => { setState((current) => ({ ...current, orders: [order, ...current.orders], memory: { ...current.memory, [order.id]: createDefaultOrderMemory(order) } })); setCreateAsset(null); setCreateInstallation(null); setSelectedId(order.id); setDetailTab('detail'); setView('detail'); }} />;
-  else content = <DemoDashboard orders={orders} name={viewerName} open={open} />;
+  else content = <DemoDashboard canCreate={canManage} create={() => openCreate()} navigate={navigate} orders={orders} name={viewerName} open={open} />;
 
   const navigation = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: Home },
