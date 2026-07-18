@@ -46,7 +46,24 @@ import type {
   WorkOrderStatus,
 } from './features/work-orders/types/workOrder';
 
-type View = 'dashboard' | 'orders' | 'planning' | 'detail' | 'create' | 'technician';
+type View =
+  | 'dashboard'
+  | 'orders'
+  | 'planning'
+  | 'detail'
+  | 'create'
+  | 'technician'
+  | 'technicians'
+  | 'clients'
+  | 'assets'
+  | 'reports'
+  | 'audit'
+  | 'checklists'
+  | 'templates'
+  | 'catalogs'
+  | 'settings';
+
+type NavigationItem = { id: View; label: string; icon: LucideIcon };
 
 type AppProps = {
   tenantId: string;
@@ -57,26 +74,26 @@ type AppProps = {
   onLogout: () => void;
 };
 
-const mainNavigation: Array<{ id: View; label: string; icon: LucideIcon }> = [
+const mainNavigation: NavigationItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'orders', label: 'Órdenes de trabajo', icon: ClipboardList },
   { id: 'planning', label: 'Planificación', icon: CalendarDays },
   { id: 'technician', label: 'Vista técnico', icon: Wrench },
 ];
 
-const secondaryNavigation = [
-  { label: 'Técnicos', icon: UsersRound },
-  { label: 'Clientes / Instalaciones', icon: Building2 },
-  { label: 'Equipos', icon: Boxes },
-  { label: 'Informes', icon: BarChart3 },
-  { label: 'Auditoría', icon: ShieldCheck },
+const secondaryNavigation: NavigationItem[] = [
+  { id: 'technicians', label: 'Técnicos', icon: UsersRound },
+  { id: 'clients', label: 'Clientes / Instalaciones', icon: Building2 },
+  { id: 'assets', label: 'Equipos', icon: Boxes },
+  { id: 'reports', label: 'Informes', icon: BarChart3 },
+  { id: 'audit', label: 'Auditoría', icon: ShieldCheck },
 ];
 
-const configurationNavigation = [
-  { label: 'Checklists', icon: ListChecks },
-  { label: 'Plantillas', icon: Files },
-  { label: 'Catálogos', icon: SlidersHorizontal },
-  { label: 'Ajustes', icon: Settings },
+const configurationNavigation: NavigationItem[] = [
+  { id: 'checklists', label: 'Checklists', icon: ListChecks },
+  { id: 'templates', label: 'Plantillas', icon: Files },
+  { id: 'catalogs', label: 'Catálogos', icon: SlidersHorizontal },
+  { id: 'settings', label: 'Ajustes', icon: Settings },
 ];
 
 const statusLabels: Record<WorkOrderStatus, string> = {
@@ -97,6 +114,14 @@ const priorityLabels: Record<WorkOrderPriority, string> = {
   urgente: 'Urgente',
   critica: 'Crítica',
 };
+
+const templateNames = [
+  'Revisión preventiva FV',
+  'Medición de strings',
+  'Cuadro DC / AC',
+  'Contador bidireccional',
+  'Limpieza de módulos',
+];
 
 const statusClass = (status: WorkOrderStatus) =>
   `status status-${status.toLowerCase().replaceAll('_', '-')}`;
@@ -145,6 +170,10 @@ function roleLabel(role: string): string {
   return labels[role] ?? role;
 }
 
+function uniqueCount(values: Array<string | null | undefined>) {
+  return new Set(values.filter(Boolean)).size;
+}
+
 function Brand() {
   return (
     <div className="brand">
@@ -171,6 +200,17 @@ function Sidebar({
   close: () => void;
   logout: () => void;
 }) {
+  const renderItem = ({ id, label, icon: Icon }: NavigationItem, muted = false) => (
+    <button
+      className={`nav-item ${active === id ? 'active' : ''} ${muted ? 'muted-nav' : ''}`}
+      key={id}
+      onClick={() => { navigate(id); close(); }}
+      type="button"
+    >
+      <Icon size={19} /><span>{label}</span>
+    </button>
+  );
+
   return (
     <>
       <button className={`sidebar-backdrop ${open ? 'visible' : ''}`} onClick={close} aria-label="Cerrar menú" />
@@ -178,19 +218,10 @@ function Sidebar({
         <div className="sidebar-brand-row"><Brand /><button className="icon-button sidebar-close" onClick={close} aria-label="Cerrar menú"><X size={20} /></button></div>
         <nav className="sidebar-nav">
           <span className="nav-caption">Panel central</span>
-          {mainNavigation.map(({ id, label, icon: Icon }) => (
-            <button
-              className={`nav-item ${active === id ? 'active' : ''}`}
-              key={id}
-              onClick={() => { navigate(id); close(); }}
-              type="button"
-            >
-              <Icon size={19} /><span>{label}</span>
-            </button>
-          ))}
-          {secondaryNavigation.map(({ label, icon: Icon }) => <button className="nav-item muted-nav" key={label} type="button"><Icon size={19} /><span>{label}</span></button>)}
+          {mainNavigation.map((item) => renderItem(item))}
+          {secondaryNavigation.map((item) => renderItem(item, true))}
           <span className="nav-caption nav-caption-spaced">Configuración</span>
-          {configurationNavigation.map(({ label, icon: Icon }) => <button className="nav-item muted-nav" key={label} type="button"><Icon size={19} /><span>{label}</span></button>)}
+          {configurationNavigation.map((item) => renderItem(item, true))}
         </nav>
         <div className="sidebar-footer">
           <div className="organisation-card"><span className="avatar avatar-small">OT</span><span><strong>{tenantName}</strong><small>{roleLabel(viewerRole)}</small></span><ChevronDown size={17} /></div>
@@ -361,6 +392,75 @@ function Technician({ orders, viewerId }: { orders: WorkOrderListItem[]; viewerI
   );
 }
 
+function SimpleSummaryPage({
+  view,
+  orders,
+  tenantName,
+  viewerRole,
+}: {
+  view: View;
+  orders: WorkOrderListItem[];
+  tenantName: string;
+  viewerRole: string;
+}) {
+  const technicians = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const order of orders) counts.set(order.assignedToName ?? 'Sin asignar', (counts.get(order.assignedToName ?? 'Sin asignar') ?? 0) + 1);
+    return [...counts.entries()].sort((left, right) => right[1] - left[1]);
+  }, [orders]);
+  const titleByView: Record<View, string> = {
+    dashboard: 'Dashboard',
+    orders: 'Órdenes de trabajo',
+    planning: 'Planificación',
+    detail: 'Detalle',
+    create: 'Nueva OT',
+    technician: 'Vista técnico',
+    technicians: 'Técnicos',
+    clients: 'Clientes / Instalaciones',
+    assets: 'Equipos',
+    reports: 'Informes',
+    audit: 'Auditoría',
+    checklists: 'Checklists',
+    templates: 'Plantillas',
+    catalogs: 'Catálogos',
+    settings: 'Ajustes',
+  };
+
+  if (view === 'technicians') {
+    return <><div className="page-heading"><span className="section-kicker">Personal</span><h1>Técnicos</h1><p>Resumen de carga visible por técnico.</p></div><section className="panel workload-panel"><div className="panel-heading"><h2>Asignaciones</h2><span className="source-badge">Datos reales</span></div><div className="workload-list">{technicians.length === 0 ? <p className="empty-state">Sin técnicos asignados.</p> : technicians.map(([name, amount]) => <div className="workload-row" key={name}><span className="avatar avatar-mini">{name === 'Sin asignar' ? '—' : name.split(' ').map((word) => word[0]).join('').slice(0, 2)}</span><strong>{name}</strong><div className="progress"><i style={{ width: `${Math.min(100, amount * 20)}%` }} /></div><b>{amount} OT</b><small>Visibles</small></div>)}</div></section></>;
+  }
+
+  if (view === 'clients') {
+    return <><div className="page-heading"><span className="section-kicker">Inventario</span><h1>Clientes / Instalaciones</h1><p>{uniqueCount(orders.map((order) => order.siteName))} instalaciones con OT visibles.</p></div><section className="panel planning-list-panel"><div className="day-plan-list">{[...new Set(orders.map((order) => order.siteName))].map((site) => <button key={site} type="button"><Building2 size={18} /><span><strong>{site}</strong><small>{orders.filter((order) => order.siteName === site).length} OT asociadas</small></span><ChevronRight size={17} /></button>)}</div></section></>;
+  }
+
+  if (view === 'assets') {
+    return <><div className="page-heading"><span className="section-kicker">Inventario técnico</span><h1>Equipos</h1><p>Resumen por tipo de OT/equipo relacionado.</p></div><section className="metrics-grid">{(['mantenimiento_preventivo', 'averia', 'inspeccion', 'revision'] as const).map((type) => <article className="metric-card" key={type}><span className="metric-icon tone-red"><Boxes size={22} /></span><div className="metric-content"><strong>{orders.filter((order) => order.type === type).length}</strong><span>{type.replaceAll('_', ' ')}</span><small>OT visibles</small></div></article>)}</section></>;
+  }
+
+  if (view === 'reports') {
+    return <><div className="page-heading"><span className="section-kicker">Documentación</span><h1>Informes</h1><p>Estado documental de las órdenes.</p></div><Metrics orders={orders} /><section className="panel source-panel"><div className="source-checks"><span><CheckCircle2 size={17} /> {orders.filter((order) => order.requirements.report).length} OT con informe requerido</span><span><Clock3 size={17} /> {orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length} pendientes de revisión</span><span><ShieldCheck size={17} /> {orders.filter((order) => order.status === 'VALIDADA').length} validadas</span></div></section></>;
+  }
+
+  if (view === 'audit') {
+    return <><div className="page-heading"><span className="section-kicker">Trazabilidad</span><h1>Auditoría</h1><p>Últimos movimientos derivados de las OT visibles.</p></div><section className="panel planning-list-panel"><div className="day-plan-list">{orders.slice(0, 12).map((order) => <button key={order.id} type="button"><ShieldCheck size={18} /><span><strong>{order.code} · {statusLabels[order.status]}</strong><small>Actualizada {displayDate(order.updatedAt)}</small></span><ChevronRight size={17} /></button>)}</div></section></>;
+  }
+
+  if (view === 'checklists') {
+    return <><div className="page-heading"><span className="section-kicker">Control técnico</span><h1>Checklists</h1><p>{orders.filter((order) => order.requirements.checklist).length} OT requieren checklist.</p></div><section className="metrics-grid"><article className="metric-card"><span className="metric-icon tone-green"><ListChecks size={22} /></span><div className="metric-content"><strong>{orders.filter((order) => order.requirements.checklist).length}</strong><span>Con checklist</span><small>Requisito activo</small></div></article><article className="metric-card"><span className="metric-icon tone-orange"><Clock3 size={22} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'EN_CURSO').length}</strong><span>En ejecución</span><small>Pendientes de completar</small></div></article></section></>;
+  }
+
+  if (view === 'templates') {
+    return <><div className="page-heading"><span className="section-kicker">Configuración</span><h1>Plantillas</h1><p>Plantillas operativas para generar OT repetibles.</p></div><section className="panel planning-list-panel"><div className="day-plan-list">{templateNames.map((name) => <button key={name} type="button"><Files size={18} /><span><strong>{name}</strong><small>Plantilla lista para usar en el flujo OT</small></span><ChevronRight size={17} /></button>)}</div></section></>;
+  }
+
+  if (view === 'catalogs') {
+    return <><div className="page-heading"><span className="section-kicker">Maestros</span><h1>Catálogos</h1><p>Catálogos base de estados, prioridades y tipos.</p></div><section className="metrics-grid"><article className="metric-card"><span className="metric-icon tone-red"><SlidersHorizontal size={22} /></span><div className="metric-content"><strong>{Object.keys(statusLabels).length}</strong><span>Estados OT</span><small>Ciclo de vida</small></div></article><article className="metric-card"><span className="metric-icon tone-orange"><SlidersHorizontal size={22} /></span><div className="metric-content"><strong>{Object.keys(priorityLabels).length}</strong><span>Prioridades</span><small>Clasificación</small></div></article><article className="metric-card"><span className="metric-icon tone-green"><Boxes size={22} /></span><div className="metric-content"><strong>{uniqueCount(orders.map((order) => order.type))}</strong><span>Tipos usados</span><small>Según OT visibles</small></div></article></section></>;
+  }
+
+  return <><div className="page-heading"><span className="section-kicker">Cuenta</span><h1>{titleByView[view]}</h1><p>Configuración activa de la sesión.</p></div><section className="panel source-panel"><div className="source-checks"><span><CheckCircle2 size={17} /> Organización: {tenantName}</span><span><UsersRound size={17} /> Rol: {roleLabel(viewerRole)}</span><span><ShieldCheck size={17} /> Datos filtrados por RLS</span><span><Settings size={17} /> Panel preparado para configuración avanzada</span></div></section></>;
+}
+
 function MobileNav({ active, navigate }: { active: View; navigate: (view: View) => void }) {
   return <nav className="app-mobile-nav">{mainNavigation.map(({ id, label, icon: Icon }) => <button className={active === id ? 'active' : ''} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label === 'Órdenes de trabajo' ? 'OT' : label.replace('Vista ', '')}</span></button>)}<button className="mobile-create-button" onClick={() => navigate('create')} type="button"><Plus size={24} /></button></nav>;
 }
@@ -393,6 +493,7 @@ export default function App({
   else if (view === 'create') content = <CreateOrder tenantId={tenantId} canManage={viewerRole === 'admin_cliente'} cancel={() => setView('orders')} created={() => setView('orders')} />;
   else if (view === 'planning') content = <Planning orders={orders} open={openDetail} />;
   else if (view === 'technician') content = <Technician orders={orders} viewerId={viewerId} />;
+  else if (['technicians', 'clients', 'assets', 'reports', 'audit', 'checklists', 'templates', 'catalogs', 'settings'].includes(view)) content = <SimpleSummaryPage view={view} orders={orders} tenantName={tenantName} viewerRole={viewerRole} />;
   else content = <Dashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
 
   return (
