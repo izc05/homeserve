@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarDays, CheckCircle2, ChevronRight, RotateCcw, Search, TimerReset } from 'lucide-react';
+import { CalendarClock, CalendarDays, CheckCircle2, ChevronRight, Download, Printer, RotateCcw, Search, TimerReset } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { WorkOrderListItem } from '../work-orders/api/workOrdersRepository';
 
@@ -77,15 +77,58 @@ function isThisWeek(order: WorkOrderListItem, today: Date): boolean {
   return day >= today && day <= weekLimit;
 }
 
-function nextPlanDates(order: WorkOrderListItem, days: number): { plannedAt: string; dueAt: string } {
-  const base = planningDate(order) ?? new Date();
-  const planned = addDays(base, days);
-  const due = addDays(planned, 1);
+function nextPlanDates(daysFromToday: number): { plannedAt: string; dueAt: string } {
+  const planned = addDays(startOfDay(new Date()), daysFromToday);
+  planned.setHours(8, 0, 0, 0);
+  const due = new Date(planned);
+  due.setHours(18, 0, 0, 0);
   return { plannedAt: planned.toISOString(), dueAt: due.toISOString() };
 }
 
 function sortByPlanDate(a: WorkOrderListItem, b: WorkOrderListItem): number {
   return String(a.plannedAt ?? a.dueAt ?? '').localeCompare(String(b.plannedAt ?? b.dueAt ?? ''));
+}
+
+function csvValue(value: string | number | null | undefined): string {
+  const text = String(value ?? '');
+  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safeText.replaceAll('"', '""')}"`;
+}
+
+function escapeHtml(value: string | number | null | undefined): string {
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function downloadPlanningCsv(orders: WorkOrderListItem[], prefix = 'planificacion-ot'): void {
+  const headers = ['codigo', 'titulo', 'estado', 'instalacion', 'ubicacion', 'equipo', 'tecnico', 'fecha_prevista', 'fecha_limite'];
+  const rows = orders.map((order) => [
+    order.code,
+    order.title,
+    statusLabels[order.status],
+    order.siteName,
+    order.locationName ?? '',
+    order.assetName ?? '',
+    order.assignedToName ?? '',
+    order.plannedAt ?? '',
+    order.dueAt ?? '',
+  ]);
+  const csv = [headers, ...rows].map((row) => row.map(csvValue).join(';')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${prefix}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function printPlanningReport(orders: WorkOrderListItem[], title = 'Informe de planificación'): void {
+  const printable = window.open('', '_blank', 'noopener,noreferrer,width=950,height=720');
+  if (!printable) return;
+  const rows = orders.map((order) => `<tr><td>${escapeHtml(order.code)}</td><td>${escapeHtml(order.title)}</td><td>${escapeHtml(statusLabels[order.status])}</td><td>${escapeHtml(order.siteName)}</td><td>${escapeHtml(order.locationName ?? '')}</td><td>${escapeHtml(order.assignedToName ?? '')}</td><td>${escapeHtml(formatDateTime(order.plannedAt ?? order.dueAt))}</td></tr>`).join('');
+  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${orders.length} trabajos · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Instalación</th><th>Ubicación</th><th>Técnico</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  printable.document.close();
+  printable.focus();
+  printable.print();
 }
 
 export default function DemoPlanningScreen({
@@ -121,10 +164,18 @@ export default function DemoPlanningScreen({
     return true;
   });
 
-  const reschedule = (order: WorkOrderListItem, days: number) => {
-    const { plannedAt, dueAt } = nextPlanDates(order, days);
-    onReschedule(order.id, plannedAt, dueAt, `Reprogramada ${days === 1 ? 'a mañana' : `+${days} días`} desde planificación.`);
+  const reschedule = (order: WorkOrderListItem, daysFromToday: number) => {
+    const { plannedAt, dueAt } = nextPlanDates(daysFromToday);
+    const label = daysFromToday === 0 ? 'a hoy' : daysFromToday === 1 ? 'a mañana' : `+${daysFromToday} días`;
+    onReschedule(order.id, plannedAt, dueAt, `Reprogramada ${label} desde planificación.`);
   };
+
+  const metricCards: Array<{ label: string; value: number; filter: PlanningFilter; icon: typeof TimerReset; tone: string; helper: string }> = [
+    { label: 'Vencidas', value: metrics.overdue, filter: 'overdue', icon: TimerReset, tone: 'red', helper: 'Reprogramar o abrir OT' },
+    { label: 'Hoy', value: metrics.today, filter: 'today', icon: CalendarDays, tone: 'blue', helper: 'Trabajo diario' },
+    { label: '7 días', value: metrics.week, filter: 'week', icon: CalendarClock, tone: 'purple', helper: 'Próxima carga' },
+    { label: 'Validar', value: metrics.review, filter: 'review', icon: CheckCircle2, tone: 'green', helper: 'Cierre responsable' },
+  ];
 
   return (
     <>
@@ -137,11 +188,14 @@ export default function DemoPlanningScreen({
         <span className="source-badge">Demo persistente</span>
       </div>
 
-      <section className="metrics-grid planning-metrics-grid">
-        <article className="metric-card"><span className="metric-icon tone-red"><TimerReset size={23} /></span><div className="metric-content"><strong>{metrics.overdue}</strong><span>Vencidas</span><small>Reprogramar o abrir OT</small></div></article>
-        <article className="metric-card"><span className="metric-icon tone-blue"><CalendarDays size={23} /></span><div className="metric-content"><strong>{metrics.today}</strong><span>Hoy</span><small>Trabajo diario</small></div></article>
-        <article className="metric-card"><span className="metric-icon tone-purple"><CalendarClock size={23} /></span><div className="metric-content"><strong>{metrics.week}</strong><span>7 días</span><small>Próxima carga</small></div></article>
-        <article className="metric-card"><span className="metric-icon tone-green"><CheckCircle2 size={23} /></span><div className="metric-content"><strong>{metrics.review}</strong><span>Validar</span><small>Cierre responsable</small></div></article>
+      <section className="metrics-grid planning-metrics-grid planning-clickable-metrics">
+        {metricCards.map(({ label, value, filter: nextFilter, icon: Icon, tone, helper }) => (
+          <button className={`metric-card ${filter === nextFilter ? 'active' : ''}`} key={label} onClick={() => setFilter(nextFilter)} type="button">
+            <span className={`metric-icon tone-${tone}`}><Icon size={23} /></span>
+            <div className="metric-content"><strong>{value}</strong><span>{label}</span><small>{helper}</small></div>
+            <ChevronRight size={17} />
+          </button>
+        ))}
       </section>
 
       <section className="panel planning-workspace-panel">
@@ -151,6 +205,8 @@ export default function DemoPlanningScreen({
             {Object.entries(filterLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <button className="filter-button" onClick={() => { setFilter('all'); setSearch(''); }} type="button"><RotateCcw size={15} /> Limpiar</button>
+          <button className="filter-button" onClick={() => downloadPlanningCsv(filtered)} type="button"><Download size={15} /> CSV</button>
+          <button className="filter-button" onClick={() => printPlanningReport(filtered, `Planificación · ${filterLabels[filter]}`)} type="button"><Printer size={15} /> Imprimir</button>
         </div>
 
         <div className="planning-work-list">
@@ -163,6 +219,7 @@ export default function DemoPlanningScreen({
                 <ChevronRight size={17} />
               </button>
               <div className="planning-work-actions">
+                <button onClick={() => reschedule(order, 0)} type="button">Hoy 08:00</button>
                 <button onClick={() => reschedule(order, 1)} type="button">Mañana</button>
                 <button onClick={() => reschedule(order, 7)} type="button">+7 días</button>
                 <button className="primary-link-button" onClick={() => open(order.id)} type="button">Abrir OT</button>
