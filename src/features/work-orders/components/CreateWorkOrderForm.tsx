@@ -10,7 +10,7 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { getSupabaseClient } from '../../../lib/supabase';
 import {
@@ -45,11 +45,39 @@ const PRIORITY_OPTIONS = [
   ['critica', 'Crítica'],
 ] as const;
 
+const DEFAULT_VALUES: CreateWorkOrderFormValues = {
+  title: '',
+  description: '',
+  installationId: '',
+  locationId: '',
+  assetId: '',
+  technicianId: '',
+  type: 'mantenimiento_preventivo',
+  priority: 'normal',
+  plannedAt: '',
+  dueAt: '',
+  estimatedMinutes: undefined,
+  instructions: '',
+  safetyNotes: '',
+  expectedResult: '',
+  checklist: true,
+  initialPhotos: false,
+  finalPhotos: true,
+  measurements: false,
+  materials: false,
+  technicianSignature: true,
+  responsibleSignature: false,
+  finalFunctionalTest: false,
+  report: true,
+  administrativeReview: true,
+};
+
 type CreateMode = 'draft' | 'assigned';
 
 type CreateWorkOrderFormProps = {
   tenantId: string;
   canManage: boolean;
+  initialValues?: Partial<CreateWorkOrderFormValues>;
   onCancel: () => void;
   onCreated: (workOrderId: string, code: string) => void;
 };
@@ -57,6 +85,7 @@ type CreateWorkOrderFormProps = {
 export default function CreateWorkOrderForm({
   tenantId,
   canManage,
+  initialValues,
   onCancel,
   onCreated,
 }: CreateWorkOrderFormProps) {
@@ -71,32 +100,17 @@ export default function CreateWorkOrderForm({
   const form = useForm<CreateWorkOrderFormValues>({
     resolver: zodResolver(createWorkOrderSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      installationId: '',
-      locationId: '',
-      assetId: '',
-      technicianId: '',
-      type: 'mantenimiento_preventivo',
-      priority: 'normal',
-      plannedAt: '',
-      dueAt: '',
-      estimatedMinutes: undefined,
-      instructions: '',
-      safetyNotes: '',
-      expectedResult: '',
-      checklist: true,
-      initialPhotos: false,
-      finalPhotos: true,
-      measurements: false,
-      materials: false,
-      technicianSignature: true,
-      responsibleSignature: false,
-      finalFunctionalTest: false,
-      report: true,
-      administrativeReview: true,
+      ...DEFAULT_VALUES,
+      ...initialValues,
     },
   });
+
+  useEffect(() => {
+    form.reset({
+      ...DEFAULT_VALUES,
+      ...initialValues,
+    });
+  }, [form, initialValues]);
 
   const installationId = form.watch('installationId');
   const locationId = form.watch('locationId');
@@ -160,7 +174,10 @@ export default function CreateWorkOrderForm({
       return createWorkOrder(getSupabaseClient(), input);
     },
     onSuccess: async (created) => {
-      await queryClient.invalidateQueries({ queryKey: ['work-orders', tenantId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['work-orders', tenantId] }),
+        queryClient.invalidateQueries({ queryKey: ['work-order-creation-catalog', tenantId] }),
+      ]);
       onCreated(created.id, created.code);
     },
     onError: (error) => {
@@ -224,6 +241,10 @@ export default function CreateWorkOrderForm({
       </div>
 
       <form className="panel work-order-create-form" onSubmit={(event) => event.preventDefault()}>
+        {initialValues && Object.keys(initialValues).length > 0 && (
+          <p className="read-only-note"><CheckCircle2 size={16} /> Formulario precargado desde el módulo seleccionado.</p>
+        )}
+
         <div className="creation-section-heading">
           <div><span>1</span><strong>Trabajo y ubicación</strong></div>
           <small>Campos obligatorios para identificar la intervención.</small>
