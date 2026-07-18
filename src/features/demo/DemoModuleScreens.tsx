@@ -22,6 +22,14 @@ const statusLabels: Record<WorkOrderListItem['status'], string> = {
   CANCELADA: 'Cancelada',
 };
 
+const priorityLabels: Record<WorkOrderListItem['priority'], string> = {
+  baja: 'Baja',
+  normal: 'Media',
+  alta: 'Alta',
+  urgente: 'Urgente',
+  critica: 'Crítica',
+};
+
 function statusClass(status: WorkOrderListItem['status']): string {
   return `status status-${status.toLowerCase().replaceAll('_', '-')}`;
 }
@@ -61,15 +69,21 @@ function safeSlug(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'demo';
 }
 
-function downloadReportCsv(orders: WorkOrderListItem[], prefix = 'informe-ot'): void {
-  const headers = ['codigo', 'titulo', 'estado', 'prioridad', 'instalacion', 'ubicacion', 'tecnico', 'fecha_prevista'];
+function escapeHtml(value: string | number | null | undefined): string {
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function downloadReportCsv(orders: WorkOrderListItem[], prefix = 'informe-fv-ot'): void {
+  const headers = ['codigo', 'titulo', 'estado', 'prioridad', 'cliente_instalacion', 'ubicacion', 'equipo', 'referencia_equipo', 'tecnico', 'fecha_prevista'];
   const rows = orders.map((order) => [
     order.code,
     order.title,
     statusLabels[order.status],
-    order.priority,
+    priorityLabels[order.priority],
     order.siteName,
     order.locationName ?? '',
+    order.assetName ?? '',
+    order.assetReference ?? '',
     order.assignedToName ?? '',
     order.plannedAt ?? '',
   ]);
@@ -78,16 +92,16 @@ function downloadReportCsv(orders: WorkOrderListItem[], prefix = 'informe-ot'): 
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${prefix}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `${safeSlug(prefix)}-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
 
-function printReport(orders: WorkOrderListItem[], title = 'Informe de órdenes de trabajo'): void {
+function printReport(orders: WorkOrderListItem[], title = 'Informe FV y mantenimiento'): void {
   const printable = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
   if (!printable) return;
-  const rows = orders.map((order) => `<tr><td>${order.code}</td><td>${order.title}</td><td>${statusLabels[order.status]}</td><td>${order.priority}</td><td>${order.locationName ?? ''}</td><td>${order.assignedToName ?? ''}</td></tr>`).join('');
-  printable.document.write(`<!doctype html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:12px}th{background:#f8fafc}</style></head><body><h1>${title}</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Ubicación</th><th>Técnico</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  const rows = orders.map((order) => `<tr><td>${escapeHtml(order.code)}</td><td>${escapeHtml(order.title)}</td><td>${escapeHtml(statusLabels[order.status])}</td><td>${escapeHtml(priorityLabels[order.priority])}</td><td>${escapeHtml(order.siteName)}</td><td>${escapeHtml(order.locationName ?? '')}</td><td>${escapeHtml(order.assetName ?? '')}</td><td>${escapeHtml(order.assignedToName ?? '')}</td></tr>`).join('');
+  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:12px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Cliente / instalación</th><th>Ubicación</th><th>Equipo</th><th>Técnico</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   printable.document.close();
   printable.focus();
   printable.print();
@@ -100,7 +114,7 @@ function ModuleOrderList({ orders, open, empty }: { orders: WorkOrderListItem[];
       {orders.map((order) => (
         <button key={order.id} onClick={() => open(order.id)} type="button">
           <time>{compactDate(order.plannedAt)}</time>
-          <span><strong>{order.code} · {order.title}</strong><small>{order.locationName ?? 'Sin ubicación'} · {order.assignedToName ?? 'Sin técnico'}</small></span>
+          <span><strong>{order.code} · {order.title}</strong><small>{order.locationName ?? 'Sin ubicación'} · {order.assetName ?? 'Sin equipo'} · {order.assignedToName ?? 'Sin técnico'}</small></span>
           <i className={statusClass(order.status)}>{statusLabels[order.status]}</i>
         </button>
       ))}
@@ -114,7 +128,7 @@ export function DemoTechniciansScreen({ orders, open }: { orders: WorkOrderListI
   const selected = groups.find((group) => group.name === selectedName) ?? groups[0] ?? null;
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Personal</span><h1>Técnicos</h1><p>Carga de trabajo, estado, exportación e impresión por técnico.</p></div>
+      <div className="page-heading"><span className="section-kicker">Personal técnico</span><h1>Técnicos</h1><p>Carga de trabajo, estado, exportación e impresión por técnico de mantenimiento FV.</p></div>
       <section className="demo-module-grid">
         {groups.map(({ name, rows }) => {
           const last = latestOrder(rows);
@@ -133,7 +147,7 @@ export function DemoTechniciansScreen({ orders, open }: { orders: WorkOrderListI
       </section>
       {selected && (
         <section className="panel demo-module-detail-panel">
-          <div className="panel-heading"><div><h2>{selected.name}</h2><small>{selected.rows.length} órdenes · {selected.rows.filter(isOpen).length} abiertas</small></div><div className="demo-module-actions"><button className="filter-button" onClick={() => downloadReportCsv(selected.rows, `tecnico-${safeSlug(selected.name)}`)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(selected.rows, `Informe técnico · ${selected.name}`)} type="button"><Printer size={15} /> Imprimir</button></div></div>
+          <div className="panel-heading"><div><h2>{selected.name}</h2><small>{selected.rows.length} órdenes · {selected.rows.filter(isOpen).length} abiertas</small></div><div className="demo-module-actions"><button className="filter-button" onClick={() => downloadReportCsv(selected.rows, `tecnico-${safeSlug(selected.name)}`)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(selected.rows, `Informe técnico FV · ${selected.name}`)} type="button"><Printer size={15} /> Imprimir</button></div></div>
           <ModuleOrderList orders={selected.rows} open={open} empty="Este técnico no tiene trabajos." />
         </section>
       )}
@@ -147,20 +161,20 @@ export function DemoInstallationsScreen({ orders, open, onCreateFromInstallation
   const selected = groups.find((group) => group.name === selectedName) ?? groups[0] ?? null;
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Activos e instalaciones</span><h1>Instalaciones</h1><p>Cada instalación muestra ubicaciones, OT abiertas, creación de trabajos, CSV e impresión.</p></div>
+      <div className="page-heading"><span className="section-kicker">Clientes e instalaciones FV</span><h1>Clientes / instalaciones</h1><p>Cada cliente o planta muestra ubicaciones, OT abiertas, creación de trabajos, CSV e impresión.</p></div>
       <section className="demo-module-grid">
         {groups.map(({ name, rows }) => {
           const locations = new Set(rows.map((order) => order.locationName ?? 'Sin ubicación'));
           const last = latestOrder(rows);
           const seed: DemoInstallationSeed = {
-            siteId: rows[0]?.siteId ?? 'demo-site-pts',
+            siteId: rows[0]?.siteId ?? 'demo-site-fv-jaen',
             siteName: name,
             locationId: null,
             locationName: null,
           };
           return (
             <article className={`panel demo-module-card ${selected?.name === name ? 'active-module-card' : ''}`} key={name}>
-              <header><span className="metric-icon tone-blue"><Building2 size={22} /></span><div><strong>{name}</strong><small>{locations.size} ubicaciones · {rows.filter(isOpen).length} OT abiertas</small></div></header>
+              <header><span className="metric-icon tone-blue"><Building2 size={22} /></span><div><strong>{name}</strong><small>{locations.size} zonas · {rows.filter(isOpen).length} OT abiertas</small></div></header>
               <ModuleOrderList orders={rows.slice(0, 3)} open={open} empty="Sin órdenes asociadas." />
               <div className="demo-module-actions">
                 <button className="primary-button" onClick={() => setSelectedName(name)} type="button"><ClipboardList size={17} /> Ver trabajos</button>
@@ -173,7 +187,7 @@ export function DemoInstallationsScreen({ orders, open, onCreateFromInstallation
       </section>
       {selected && (
         <section className="panel demo-module-detail-panel">
-          <div className="panel-heading"><div><h2>{selected.name}</h2><small>{selected.rows.length} órdenes · {selected.rows.filter(isOpen).length} abiertas · {new Set(selected.rows.map((order) => order.locationName ?? 'Sin ubicación')).size} ubicaciones</small></div><div className="demo-module-actions"><button className="filter-button" onClick={() => downloadReportCsv(selected.rows, `instalacion-${safeSlug(selected.name)}`)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(selected.rows, `Informe instalación · ${selected.name}`)} type="button"><Printer size={15} /> Imprimir</button></div></div>
+          <div className="panel-heading"><div><h2>{selected.name}</h2><small>{selected.rows.length} órdenes · {selected.rows.filter(isOpen).length} abiertas · {new Set(selected.rows.map((order) => order.locationName ?? 'Sin ubicación')).size} zonas</small></div><div className="demo-module-actions"><button className="filter-button" onClick={() => downloadReportCsv(selected.rows, `cliente-instalacion-${safeSlug(selected.name)}`)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(selected.rows, `Informe cliente / instalación FV · ${selected.name}`)} type="button"><Printer size={15} /> Imprimir</button></div></div>
           <ModuleOrderList orders={selected.rows} open={open} empty="Esta instalación no tiene trabajos." />
         </section>
       )}
@@ -189,16 +203,17 @@ export function DemoReportsScreen({ orders, open }: { orders: WorkOrderListItem[
     if (filter === 'validated') return order.status === 'VALIDADA';
     return true;
   });
+  const reportTitle = filter === 'open' ? 'Informe FV · OT abiertas' : filter === 'review' ? 'Informe FV · pendientes de validar' : filter === 'validated' ? 'Informe FV · histórico validado' : 'Informe FV · todas las OT';
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Control</span><h1>Informes</h1><p>Resumen operativo con exportación CSV, impresión y acceso a cada OT.</p></div>
+      <div className="page-heading"><span className="section-kicker">Control y trazabilidad</span><h1>Informes</h1><p>Resumen operativo para presentar mantenimiento FV: exportación CSV, impresión y acceso a cada OT.</p></div>
       <section className="metrics-grid">
         <article className="metric-card"><span className="metric-icon tone-red"><ClipboardList size={23} /></span><div className="metric-content"><strong>{orders.filter(isOpen).length}</strong><span>OT abiertas</span><small>Seguimiento diario</small></div></article>
         <article className="metric-card"><span className="metric-icon tone-orange"><BarChart3 size={23} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length}</strong><span>Por validar</span><small>Responsable</small></div></article>
         <article className="metric-card"><span className="metric-icon tone-green"><CheckCircle2 size={23} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'VALIDADA').length}</strong><span>Validadas</span><small>Histórico</small></div></article>
       </section>
       <section className="panel table-panel">
-        <div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><select aria-label="Filtrar informe" onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}><option value="all">Todas las OT</option><option value="open">Solo abiertas</option><option value="review">Pendientes de validar</option><option value="validated">Validadas</option></select></label><button className="filter-button" onClick={() => downloadReportCsv(filtered)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(filtered)} type="button"><Printer size={15} /> Imprimir</button><span className="source-badge">{filtered.length} registros</span></div>
+        <div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><select aria-label="Filtrar informe" onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}><option value="all">Todas las OT</option><option value="open">Solo abiertas</option><option value="review">Pendientes de validar</option><option value="validated">Validadas</option></select></label><button className="filter-button" onClick={() => downloadReportCsv(filtered, reportTitle)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(filtered, reportTitle)} type="button"><Printer size={15} /> Imprimir</button><span className="source-badge">{filtered.length} registros</span></div>
         <ModuleOrderList orders={filtered} open={open} empty="No hay datos para este filtro." />
       </section>
     </>
