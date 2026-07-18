@@ -105,7 +105,7 @@ function seedDescription(asset: DemoCreateAssetSeed | null | undefined, installa
 }
 
 function seedInstructions(asset: DemoCreateAssetSeed | null | undefined, installation: DemoCreateInstallationSeed | null | undefined): string {
-  if (asset) return `Revisar estado del equipo ${asset.assetName} y dejar evidencia de la intervención.`;
+  if (asset) return `Revisar estado del equipo ${asset.assetName}, tomar evidencias y actualizar trazabilidad del activo.`;
   if (installation) return `Intervenir en ${installation.siteName} y documentar el trabajo realizado.`;
   return '';
 }
@@ -138,20 +138,19 @@ function nullable(value: string): string | null {
 export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, initialInstallation, onCancel, onCreate }: DemoCreateWorkOrderProps) {
   const contextSite = initialAsset ?? initialInstallation;
   const hasContext = Boolean(initialAsset || initialInstallation);
-  const initialRequirements = defaultRequirements(Boolean(initialAsset));
   const [title, setTitle] = useState(seedTitle(initialAsset, initialInstallation));
   const [description, setDescription] = useState(seedDescription(initialAsset, initialInstallation));
-  const [type, setType] = useState<WorkOrderType>(hasContext ? 'revision' : 'averia');
+  const [type, setType] = useState<WorkOrderType>(hasContext ? 'revision' : 'mantenimiento_correctivo');
   const [priority, setPriority] = useState<WorkOrderPriority>(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
   const [technicianId, setTechnicianId] = useState('');
-  const [location, setLocation] = useState(contextSite?.locationName ?? 'Planta 2 · Área asistencial');
+  const [location, setLocation] = useState(contextSite?.locationName ?? 'Planta FV · Sala técnica');
   const [plannedAt, setPlannedAt] = useState(defaultDateTime(2));
   const [dueAt, setDueAt] = useState(defaultDateTime(26));
   const [estimatedMinutes, setEstimatedMinutes] = useState('60');
   const [instructions, setInstructions] = useState(seedInstructions(initialAsset, initialInstallation));
   const [safetyNotes, setSafetyNotes] = useState('');
   const [expectedResult, setExpectedResult] = useState(seedExpectedResult(initialAsset, initialInstallation));
-  const [requirements, setRequirements] = useState<WorkOrderListItem['requirements']>(initialRequirements);
+  const [requirements, setRequirements] = useState<WorkOrderListItem['requirements']>(defaultRequirements(Boolean(initialAsset)));
   const [error, setError] = useState('');
 
   const technician = useMemo(
@@ -164,7 +163,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
     if (template === 'draft') {
       setTechnicianId('');
       setPriority(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
-      setType(hasContext ? 'revision' : 'averia');
+      setType(hasContext ? 'revision' : 'mantenimiento_correctivo');
       setPlannedAt('');
       setDueAt('');
     }
@@ -187,10 +186,10 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
   const resetForm = () => {
     setTitle(seedTitle(initialAsset, initialInstallation));
     setDescription(seedDescription(initialAsset, initialInstallation));
-    setType(hasContext ? 'revision' : 'averia');
+    setType(hasContext ? 'revision' : 'mantenimiento_correctivo');
     setPriority(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
     setTechnicianId('');
-    setLocation(contextSite?.locationName ?? 'Planta 2 · Área asistencial');
+    setLocation(contextSite?.locationName ?? 'Planta FV · Sala técnica');
     setPlannedAt(defaultDateTime(2));
     setDueAt(defaultDateTime(26));
     setEstimatedMinutes('60');
@@ -241,8 +240,8 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
       type,
       priority,
       status: assigned ? 'ASIGNADA' : 'BORRADOR',
-      siteId: contextSite?.siteId ?? 'demo-site-pts',
-      locationId: contextSite?.locationId ?? 'demo-location-new',
+      siteId: contextSite?.siteId ?? 'demo-site-fv-jaen',
+      locationId: contextSite?.locationId ?? 'demo-location-fv-new',
       assetId: initialAsset?.assetId ?? null,
       assignedTo: technicianId || null,
       createdBy: 'demo-admin',
@@ -257,7 +256,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
       blockNotes: null,
       createdAt: now,
       updatedAt: now,
-      siteName: contextSite?.siteName ?? 'Hospital Universitario PTS',
+      siteName: contextSite?.siteName ?? 'SolarManten FV · Planta Jaén',
       locationName: location.trim() || contextSite?.locationName || 'Sin ubicación',
       assignedToName: technician.name,
       assetName: initialAsset?.assetName ?? null,
@@ -270,14 +269,14 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
     onCreate(order);
   };
 
-  const titleText = initialAsset ? 'Nueva OT del equipo' : initialInstallation ? 'Nueva OT de instalación' : 'Nueva orden de trabajo';
-  const subtitleText = initialAsset ? `${initialAsset.assetName} · ${initialAsset.locationName ?? 'Sin ubicación'}` : initialInstallation ? `${initialInstallation.siteName}${initialInstallation.locationName ? ` · ${initialInstallation.locationName}` : ''}` : 'La OT se añadirá solo a esta sesión de demostración.';
+  const titleText = initialAsset ? 'Nueva OT del equipo FV' : initialInstallation ? 'Nueva OT de instalación' : 'Nueva orden de trabajo';
+  const subtitleText = initialAsset ? `${initialAsset.assetName} · ${initialAsset.locationName ?? 'Sin ubicación'}` : initialInstallation ? `${initialInstallation.siteName}${initialInstallation.locationName ? ` · ${initialInstallation.locationName}` : ''}` : 'La OT se añadirá solo a esta presentación.';
 
   return (
     <section className="demo-create-page">
       <div className="page-heading page-heading-row">
         <div>
-          <span className="section-kicker">Simulación local</span>
+          <span className="section-kicker">Simulación FV</span>
           <h1>{titleText}</h1>
           <p>{subtitleText}</p>
         </div>
@@ -287,7 +286,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
       <form className="panel demo-create-form" onSubmit={submit}>
         <div className="demo-form-banner">
           <ShieldCheck size={21} />
-          <span><strong>{initialAsset ? 'Equipo vinculado' : initialInstallation ? 'Instalación vinculada' : 'Sin escritura en Supabase'}</strong><small>{initialAsset ? 'La nueva OT queda conectada al activo seleccionado.' : initialInstallation ? 'La nueva OT queda conectada a la instalación seleccionada.' : 'Puedes probar el flujo completo con tranquilidad.'}</small></span>
+          <span><strong>{initialAsset ? 'Equipo vinculado' : initialInstallation ? 'Instalación vinculada' : 'Presentación local'}</strong><small>{initialAsset ? 'La nueva OT queda conectada al activo seleccionado.' : initialInstallation ? 'La nueva OT queda conectada a la instalación seleccionada.' : 'Puedes enseñar el flujo completo sin tocar datos reales.'}</small></span>
         </div>
         <div className="demo-form-toolbar">
           <button className="filter-button" onClick={() => applyTemplate('draft')} type="button"><ClipboardList size={15} /> Borrador</button>
@@ -298,62 +297,20 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
         </div>
 
         <div className="demo-form-grid">
-          <label className="demo-field demo-field-wide">
-            Título de la intervención
-            <input onChange={(event) => setTitle(event.target.value)} placeholder="Ej. Revisar alumbrado de emergencia" value={title} />
-          </label>
-          <label className="demo-field">
-            Tipo
-            <select onChange={(event) => setType(event.target.value as WorkOrderType)} value={type}>
-              {typeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <label className="demo-field">
-            Prioridad
-            <select onChange={(event) => setPriority(event.target.value as WorkOrderPriority)} value={priority}>
-              {priorityOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <label className="demo-field">
-            Técnico
-            <select onChange={(event) => setTechnicianId(event.target.value)} value={technicianId}>
-              {technicianOptions.map((option) => <option key={option.value || 'draft'} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <label className="demo-field">
-            Fecha prevista
-            <input onChange={(event) => setPlannedAt(event.target.value)} type="datetime-local" value={plannedAt} />
-          </label>
-          <label className="demo-field">
-            Fecha límite
-            <input onChange={(event) => setDueAt(event.target.value)} type="datetime-local" value={dueAt} />
-          </label>
-          <label className="demo-field">
-            Duración estimada
-            <div className="demo-number-field"><input min="1" onChange={(event) => setEstimatedMinutes(event.target.value)} type="number" value={estimatedMinutes} /><span>min</span></div>
-          </label>
-          <label className="demo-field demo-field-wide">
-            Ubicación
-            <input onChange={(event) => setLocation(event.target.value)} value={location} />
-          </label>
+          <label className="demo-field demo-field-wide">Título de la intervención<input onChange={(event) => setTitle(event.target.value)} placeholder="Ej. Revisar inversor, cuadro AC o string FV" value={title} /></label>
+          <label className="demo-field">Tipo<select onChange={(event) => setType(event.target.value as WorkOrderType)} value={type}>{typeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="demo-field">Prioridad<select onChange={(event) => setPriority(event.target.value as WorkOrderPriority)} value={priority}>{priorityOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="demo-field">Técnico<select onChange={(event) => setTechnicianId(event.target.value)} value={technicianId}>{technicianOptions.map((option) => <option key={option.value || 'draft'} value={option.value}>{option.label}</option>)}</select></label>
+          <label className="demo-field">Fecha prevista<input onChange={(event) => setPlannedAt(event.target.value)} type="datetime-local" value={plannedAt} /></label>
+          <label className="demo-field">Fecha límite<input onChange={(event) => setDueAt(event.target.value)} type="datetime-local" value={dueAt} /></label>
+          <label className="demo-field">Duración estimada<div className="demo-number-field"><input min="1" onChange={(event) => setEstimatedMinutes(event.target.value)} type="number" value={estimatedMinutes} /><span>min</span></div></label>
+          <label className="demo-field demo-field-wide">Ubicación<input onChange={(event) => setLocation(event.target.value)} value={location} /></label>
           {initialAsset && <div className="demo-field demo-field-wide readonly-summary"><strong>Equipo vinculado</strong><span>{initialAsset.assetName} · {initialAsset.assetReference ?? 'Sin referencia'} · {initialAsset.assetType ?? 'Tipo no indicado'}</span></div>}
           {initialInstallation && !initialAsset && <div className="demo-field demo-field-wide readonly-summary"><strong>Instalación vinculada</strong><span>{initialInstallation.siteName}{initialInstallation.locationName ? ` · ${initialInstallation.locationName}` : ''}</span></div>}
-          <label className="demo-field demo-field-wide">
-            Descripción
-            <textarea onChange={(event) => setDescription(event.target.value)} placeholder="Describe el problema, alcance o trabajo solicitado" rows={4} value={description} />
-          </label>
-          <label className="demo-field demo-field-wide">
-            Instrucciones al técnico
-            <textarea onChange={(event) => setInstructions(event.target.value)} placeholder="Acceso, prioridad, material necesario o indicaciones de trabajo" rows={3} value={instructions} />
-          </label>
-          <label className="demo-field demo-field-wide">
-            Riesgos y seguridad
-            <textarea onChange={(event) => setSafetyNotes(event.target.value)} placeholder="EPIs, consignación, zona crítica, presencia de usuarios..." rows={3} value={safetyNotes} />
-          </label>
-          <label className="demo-field demo-field-wide">
-            Resultado esperado
-            <textarea onChange={(event) => setExpectedResult(event.target.value)} placeholder="Qué debe quedar comprobado o documentado al cerrar la OT" rows={3} value={expectedResult} />
-          </label>
+          <label className="demo-field demo-field-wide">Descripción<textarea onChange={(event) => setDescription(event.target.value)} placeholder="Describe avería, preventivo, revisión o alcance del trabajo" rows={4} value={description} /></label>
+          <label className="demo-field demo-field-wide">Instrucciones al técnico<textarea onChange={(event) => setInstructions(event.target.value)} placeholder="Acceso, prioridad, material necesario o indicaciones de trabajo" rows={3} value={instructions} /></label>
+          <label className="demo-field demo-field-wide">Riesgos y seguridad<textarea onChange={(event) => setSafetyNotes(event.target.value)} placeholder="EPIs, consignación DC/AC, cubierta, trabajos en altura, zona energizada..." rows={3} value={safetyNotes} /></label>
+          <label className="demo-field demo-field-wide">Resultado esperado<textarea onChange={(event) => setExpectedResult(event.target.value)} placeholder="Qué debe quedar comprobado o documentado al cerrar la OT" rows={3} value={expectedResult} /></label>
         </div>
 
         <div className="demo-requirements-edit-grid">
@@ -365,10 +322,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
         <div className="demo-form-actions">
           <button className="secondary-button" onClick={onCancel} type="button">Cancelar</button>
           <button className="secondary-button" onClick={resetForm} type="button"><RotateCcw size={16} /> Restaurar</button>
-          <button className="primary-button" type="submit">
-            {technicianId ? <CheckCircle2 size={18} /> : <ClipboardList size={18} />}
-            {technicianId ? 'Crear y asignar' : 'Guardar borrador'}
-          </button>
+          <button className="primary-button" type="submit">{technicianId ? <CheckCircle2 size={18} /> : <ClipboardList size={18} />}{technicianId ? 'Crear y asignar' : 'Guardar borrador'}</button>
         </div>
       </form>
 
