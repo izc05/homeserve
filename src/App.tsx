@@ -52,6 +52,7 @@ import {
   resumeWorkOrder,
   startWorkOrderVisit,
 } from './features/work-orders/api/workOrderLifecycle';
+import { reviewWorkOrder, type WorkOrderReviewDecision } from './features/work-orders/api/workOrderReview';
 import type {
   WorkOrderPriority,
   WorkOrderStatus,
@@ -81,7 +82,9 @@ type NavigationItem = { id: View; label: string; icon: LucideIcon };
 type CreatePreset = Partial<CreateWorkOrderFormValues>;
 type OpenCreate = (preset?: CreatePreset) => void;
 type LifecycleAction = 'accept' | 'start' | 'finish' | 'pause' | 'material' | 'client' | 'resume';
+type ReviewAction = 'validate' | 'correction';
 type RunLifecycleAction = (action: LifecycleAction, order: WorkOrderListItem) => void;
+type RunReviewAction = (action: ReviewAction, order: WorkOrderListItem) => void;
 type ActionNotice = { kind: 'success' | 'error'; orderId?: string; text: string } | null;
 
 type AppProps = {
@@ -149,12 +152,7 @@ const typeLabels: Record<WorkOrderType, string> = {
   otro: 'Otro',
 };
 
-const templateCatalog: Array<{
-  name: string;
-  cadence: string;
-  requirements: string[];
-  preset: CreatePreset;
-}> = [
+const templateCatalog: Array<{ name: string; cadence: string; requirements: string[]; preset: CreatePreset }> = [
   {
     name: 'Revisión preventiva inversor FV',
     cadence: 'Semestral',
@@ -288,13 +286,7 @@ function isModuleView(view: View): view is ModuleView {
 
 function displayDate(value: string | null): string {
   if (!value) return 'Sin planificar';
-  return new Intl.DateTimeFormat('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
 function compactDate(value: string | null): string {
@@ -414,38 +406,12 @@ function actionIcon(action: LifecycleAction): LucideIcon {
 }
 
 function Brand() {
-  return (
-    <div className="brand">
-      <span className="brand-symbol"><Zap size={25} strokeWidth={2.8} /></span>
-      <div><strong>IsiVoltPro OT</strong><span>Gestión de órdenes de trabajo</span></div>
-    </div>
-  );
+  return <div className="brand"><span className="brand-symbol"><Zap size={25} strokeWidth={2.8} /></span><div><strong>IsiVoltPro OT</strong><span>Gestión de órdenes de trabajo</span></div></div>;
 }
 
-function Sidebar({
-  active,
-  open,
-  tenantName,
-  viewerRole,
-  navigate,
-  close,
-  logout,
-}: {
-  active: View;
-  open: boolean;
-  tenantName: string;
-  viewerRole: string;
-  navigate: (view: View) => void;
-  close: () => void;
-  logout: () => void;
-}) {
+function Sidebar({ active, open, tenantName, viewerRole, navigate, close, logout }: { active: View; open: boolean; tenantName: string; viewerRole: string; navigate: (view: View) => void; close: () => void; logout: () => void }) {
   const renderItem = ({ id, label, icon: Icon }: NavigationItem, muted = false) => (
-    <button
-      className={`nav-item ${active === id ? 'active' : ''} ${muted ? 'muted-nav' : ''}`}
-      key={id}
-      onClick={() => { navigate(id); close(); }}
-      type="button"
-    >
+    <button className={`nav-item ${active === id ? 'active' : ''} ${muted ? 'muted-nav' : ''}`} key={id} onClick={() => { navigate(id); close(); }} type="button">
       <Icon size={19} /><span>{label}</span>
     </button>
   );
@@ -454,10 +420,7 @@ function Sidebar({
     <>
       <button className={`sidebar-backdrop ${open ? 'visible' : ''}`} onClick={close} aria-label="Cerrar menú" />
       <aside className={`sidebar ${open ? 'open' : ''}`}>
-        <div className="sidebar-brand-row">
-          <Brand />
-          <button className="icon-button sidebar-close" onClick={close} aria-label="Cerrar menú"><X size={20} /></button>
-        </div>
+        <div className="sidebar-brand-row"><Brand /><button className="icon-button sidebar-close" onClick={close} aria-label="Cerrar menú"><X size={20} /></button></div>
         <nav className="sidebar-nav">
           <span className="nav-caption">Panel central</span>
           {mainNavigation.map((item) => renderItem(item))}
@@ -465,31 +428,14 @@ function Sidebar({
           <span className="nav-caption nav-caption-spaced">Configuración</span>
           {configurationNavigation.map((item) => renderItem(item, true))}
         </nav>
-        <div className="sidebar-footer">
-          <div className="organisation-card">
-            <span className="avatar avatar-small">OT</span>
-            <span><strong>{tenantName}</strong><small>{roleLabel(viewerRole)}</small></span>
-            <ChevronDown size={17} />
-          </div>
-          <button className="logout-button" onClick={logout} type="button"><LogOut size={18} /> Cerrar sesión</button>
-        </div>
+        <div className="sidebar-footer"><div className="organisation-card"><span className="avatar avatar-small">OT</span><span><strong>{tenantName}</strong><small>{roleLabel(viewerRole)}</small></span><ChevronDown size={17} /></div><button className="logout-button" onClick={logout} type="button"><LogOut size={18} /> Cerrar sesión</button></div>
       </aside>
     </>
   );
 }
 
 function Topbar({ viewerName, viewerRole, menu, create }: { viewerName: string; viewerRole: string; menu: () => void; create: () => void }) {
-  return (
-    <header className="topbar">
-      <button className="icon-button menu-button" onClick={menu} aria-label="Abrir menú"><Menu size={21} /></button>
-      <label className="search-box"><Search size={18} /><input placeholder="Buscar OT, equipo, ubicación..." /><kbd>⌘K</kbd></label>
-      <div className="topbar-actions">
-        <button className="icon-button notification-button" type="button"><Bell size={20} /><span>0</span></button>
-        <div className="user-menu"><span className="avatar">{initials(viewerName)}</span><span><strong>{viewerName}</strong><small>{roleLabel(viewerRole)}</small></span><ChevronDown size={17} /></div>
-        <button className="primary-button top-create" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>
-      </div>
-    </header>
-  );
+  return <header className="topbar"><button className="icon-button menu-button" onClick={menu} aria-label="Abrir menú"><Menu size={21} /></button><label className="search-box"><Search size={18} /><input placeholder="Buscar OT, equipo, ubicación..." /><kbd>⌘K</kbd></label><div className="topbar-actions"><button className="icon-button notification-button" type="button"><Bell size={20} /><span>0</span></button><div className="user-menu"><span className="avatar">{initials(viewerName)}</span><span><strong>{viewerName}</strong><small>{roleLabel(viewerRole)}</small></span><ChevronDown size={17} /></div><button className="primary-button top-create" onClick={create} type="button"><Plus size={18} /> Nueva OT</button></div></header>;
 }
 
 function LoadingOrders() {
@@ -508,110 +454,46 @@ function Metrics({ orders }: { orders: WorkOrderListItem[] }) {
     { value: orders.filter((order) => order.status === 'BLOQUEADA').length, label: 'OT bloqueadas', detail: 'Requieren atención', icon: AlertTriangle, tone: 'purple' },
   ] as const;
 
-  return (
-    <section className="metrics-grid">
-      {items.map(({ value, label, detail, icon: Icon, tone }) => (
-        <article className="metric-card" key={label}>
-          <span className={`metric-icon tone-${tone}`}><Icon size={23} /></span>
-          <div className="metric-content"><strong>{value}</strong><span>{label}</span><small>{detail}</small></div>
-        </article>
-      ))}
-    </section>
-  );
+  return <section className="metrics-grid">{items.map(({ value, label, detail, icon: Icon, tone }) => <article className="metric-card" key={label}><span className={`metric-icon tone-${tone}`}><Icon size={23} /></span><div className="metric-content"><strong>{value}</strong><span>{label}</span><small>{detail}</small></div></article>)}</section>;
 }
 
 function ModuleMetrics({ orders, catalog }: { orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null }) {
-  return (
-    <section className="metrics-grid">
-      <article className="metric-card"><span className="metric-icon tone-red"><ClipboardList size={22} /></span><div className="metric-content"><strong>{orders.length}</strong><span>OT visibles</span><small>Según RLS</small></div></article>
-      <article className="metric-card"><span className="metric-icon tone-green"><Building2 size={22} /></span><div className="metric-content"><strong>{catalog?.installations.length ?? uniqueCount(orders.map((order) => order.siteName))}</strong><span>Instalaciones</span><small>Activas / visibles</small></div></article>
-      <article className="metric-card"><span className="metric-icon tone-orange"><Boxes size={22} /></span><div className="metric-content"><strong>{catalog?.assets.length ?? uniqueCount(orders.map((order) => order.assetName || order.assetType))}</strong><span>Equipos</span><small>Inventario</small></div></article>
-      <article className="metric-card"><span className="metric-icon tone-purple"><AlertTriangle size={22} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'BLOQUEADA').length}</strong><span>Bloqueos</span><small>Revisar</small></div></article>
-    </section>
-  );
+  return <section className="metrics-grid"><article className="metric-card"><span className="metric-icon tone-red"><ClipboardList size={22} /></span><div className="metric-content"><strong>{orders.length}</strong><span>OT visibles</span><small>Según RLS</small></div></article><article className="metric-card"><span className="metric-icon tone-green"><Building2 size={22} /></span><div className="metric-content"><strong>{catalog?.installations.length ?? uniqueCount(orders.map((order) => order.siteName))}</strong><span>Instalaciones</span><small>Activas / visibles</small></div></article><article className="metric-card"><span className="metric-icon tone-orange"><Boxes size={22} /></span><div className="metric-content"><strong>{catalog?.assets.length ?? uniqueCount(orders.map((order) => order.assetName || order.assetType))}</strong><span>Equipos</span><small>Inventario</small></div></article><article className="metric-card"><span className="metric-icon tone-purple"><AlertTriangle size={22} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'BLOQUEADA').length}</strong><span>Bloqueos</span><small>Revisar</small></div></article></section>;
 }
 
 function OrderList({ orders, open, empty, limit }: { orders: WorkOrderListItem[]; open: (id: string) => void; empty: string; limit?: number }) {
   const visible = limit ? orders.slice(0, limit) : orders;
   if (visible.length === 0) return <p className="empty-state">{empty}</p>;
-
-  return (
-    <div className="day-plan-list">
-      {visible.map((order) => {
-        const Icon = iconForOrder(order);
-        return (
-          <button key={order.id} onClick={() => open(order.id)} type="button">
-            <Icon size={18} />
-            <span>
-              <strong>{order.code} · {order.title}</strong>
-              <small>{order.siteName}{order.locationName ? ` · ${order.locationName}` : ''}{order.assetName ? ` · ${order.assetName}` : ''}</small>
-            </span>
-            <span className={statusClass(order.status)}>{statusLabels[order.status]}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
+  return <div className="day-plan-list">{visible.map((order) => { const Icon = iconForOrder(order); return <button key={order.id} onClick={() => open(order.id)} type="button"><Icon size={18} /><span><strong>{order.code} · {order.title}</strong><small>{order.siteName}{order.locationName ? ` · ${order.locationName}` : ''}{order.assetName ? ` · ${order.assetName}` : ''}</small></span><span className={statusClass(order.status)}>{statusLabels[order.status]}</span></button>; })}</div>;
 }
 
-function LifecycleActions({
-  order,
-  canUse,
-  busy,
-  notice,
-  compact = false,
-  run,
-}: {
-  order: WorkOrderListItem;
-  canUse: boolean;
-  busy: boolean;
-  notice?: ActionNotice;
-  compact?: boolean;
-  run: RunLifecycleAction;
-}) {
+function Notice({ notice, orderId }: { notice: ActionNotice; orderId: string }) {
+  if (!notice || notice.orderId !== orderId) return null;
+  return <p className={notice.kind === 'error' ? 'form-global-error' : 'read-only-note'}>{notice.kind === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />} {notice.text}</p>;
+}
+
+function LifecycleActions({ order, canUse, busy, compact = false, run }: { order: WorkOrderListItem; canUse: boolean; busy: boolean; compact?: boolean; run: RunLifecycleAction }) {
   const actions = availableLifecycleActions(order);
   const visibleActions = compact ? actions.slice(0, 2) : actions;
-
   if (!canUse || visibleActions.length === 0) {
     if (compact) return null;
     return <p className="read-only-note"><LockKeyhole size={16} /> No hay acciones técnicas disponibles para este estado.</p>;
   }
 
-  return (
-    <>
-      <div className="form-actions work-order-form-actions">
-        {visibleActions.map((action) => {
-          const Icon = actionIcon(action);
-          const primary = action === 'start' || action === 'finish' || action === 'resume';
-          return (
-            <button
-              className={primary ? 'primary-button' : 'secondary-button'}
-              disabled={busy}
-              key={action}
-              onClick={(event) => { event.stopPropagation(); run(action, order); }}
-              type="button"
-            >
-              {busy ? <LoaderCircle className="spin" size={17} /> : <Icon size={17} />} {actionLabel(action)}
-            </button>
-          );
-        })}
-      </div>
-      {!compact && notice && notice.orderId === order.id && (
-        <p className={notice.kind === 'error' ? 'form-global-error' : 'read-only-note'}>
-          {notice.kind === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />} {notice.text}
-        </p>
-      )}
-    </>
-  );
+  return <div className="form-actions work-order-form-actions">{visibleActions.map((action) => { const Icon = actionIcon(action); const primary = action === 'start' || action === 'finish' || action === 'resume'; return <button className={primary ? 'primary-button' : 'secondary-button'} disabled={busy} key={action} onClick={(event) => { event.stopPropagation(); run(action, order); }} type="button">{busy ? <LoaderCircle className="spin" size={17} /> : <Icon size={17} />} {actionLabel(action)}</button>; })}</div>;
+}
+
+function ReviewActions({ order, canReview, busy, run }: { order: WorkOrderListItem; canReview: boolean; busy: boolean; run: RunReviewAction }) {
+  if (!canReview) return null;
+  if (order.status !== 'FINALIZADA_TECNICO') {
+    return <p className="read-only-note"><ShieldCheck size={16} /> La revisión administrativa aparece cuando el técnico finaliza la intervención.</p>;
+  }
+
+  return <div className="form-actions work-order-form-actions"><button className="primary-button" disabled={busy} onClick={() => run('validate', order)} type="button">{busy ? <LoaderCircle className="spin" size={17} /> : <ShieldCheck size={17} />} Validar OT</button><button className="secondary-button" disabled={busy} onClick={() => run('correction', order)} type="button">{busy ? <LoaderCircle className="spin" size={17} /> : <AlertTriangle size={17} />} Solicitar corrección</button></div>;
 }
 
 function RecentOrders({ orders, open }: { orders: WorkOrderListItem[]; open: (id: string) => void }) {
-  return (
-    <article className="panel recent-orders-panel">
-      <div className="panel-heading"><h2>OT recientes</h2><span className="source-badge">Datos reales</span></div>
-      <OrderList orders={orders} open={open} empty="No hay órdenes visibles en esta organización." limit={5} />
-    </article>
-  );
+  return <article className="panel recent-orders-panel"><div className="panel-heading"><h2>OT recientes</h2><span className="source-badge">Datos reales</span></div><OrderList orders={orders} open={open} empty="No hay órdenes visibles en esta organización." limit={5} /></article>;
 }
 
 function Dashboard({ orders, viewerName, openOrders, openDetail }: { orders: WorkOrderListItem[]; viewerName: string; openOrders: () => void; openDetail: (id: string) => void }) {
@@ -624,29 +506,7 @@ function Dashboard({ orders, viewerName, openOrders, openDetail }: { orders: Wor
   const planned = orders.filter((order) => order.plannedAt).slice(0, 3);
   const total = Math.max(orders.length, 1);
 
-  return (
-    <>
-      <div className="page-heading"><span className="section-kicker">Panel central</span><h1>Hola, {viewerName.split(' ')[0]} 👋</h1><p>Resumen real de las órdenes visibles para tu cuenta.</p></div>
-      <Metrics orders={orders} />
-      <section className="dashboard-grid dashboard-grid-top">
-        <article className="panel orders-status-panel">
-          <div className="panel-heading"><h2>Estado de órdenes</h2><span className="source-badge">RLS activo</span></div>
-          <div className="donut-layout"><div className="donut"><div><strong>{orders.length}</strong><span>Órdenes</span></div></div><ul className="legend-list">{(['ASIGNADA', 'EN_CURSO', 'FINALIZADA_TECNICO', 'BLOQUEADA', 'VALIDADA'] as const).map((status, index) => <li key={status}><i className={['legend-red', 'legend-orange', 'legend-purple', 'legend-gray', 'legend-green'][index]} /><span>{statusLabels[status]}</span><strong>{counts.get(status) ?? 0}</strong><small>{Math.round(((counts.get(status) ?? 0) / total) * 100)}%</small></li>)}</ul></div>
-          <button className="text-link panel-link" onClick={openOrders} type="button">Ver listado <ChevronRight size={15} /></button>
-        </article>
-        <RecentOrders orders={orders} open={openDetail} />
-        <div className="right-stack">
-          <article className="panel activity-panel source-panel"><div className="panel-heading"><h2>Fuente de datos</h2><ShieldCheck size={22} /></div><div className="source-checks"><span><CheckCircle2 size={17} /> Supabase como fuente oficial</span><span><CheckCircle2 size={17} /> Filtrado por organización</span><span><CheckCircle2 size={17} /> Permisos aplicados por RLS</span><span><CheckCircle2 size={17} /> Sin datos de demostración</span></div></article>
-          <article className="panel alert-panel"><div className="panel-heading"><h2>Atención</h2></div><div className="alert-row"><span className="activity-icon tone-red"><AlertTriangle size={17} /></span><span><strong>{counts.get('BLOQUEADA') ?? 0} OT bloqueadas</strong><button className="text-link" onClick={openOrders} type="button">Revisar</button></span></div><div className="alert-row"><span className="activity-icon tone-orange"><Clock3 size={17} /></span><span><strong>{counts.get('FINALIZADA_TECNICO') ?? 0} pendientes de validación</strong><button className="text-link" onClick={openOrders} type="button">Abrir listado</button></span></div></article>
-        </div>
-      </section>
-      <section className="dashboard-grid dashboard-grid-bottom">
-        <article className="panel workload-panel"><div className="panel-heading"><h2>Carga visible por técnico</h2></div><div className="workload-list">{technicians.map(({ name, rows }) => <div className="workload-row" key={name}><span className="avatar avatar-mini">{initials(name)}</span><strong>{name}</strong><div className="progress"><i style={{ width: `${Math.min(100, Math.round((rows.length / total) * 100))}%` }} /></div><b>{rows.length} OT</b><small>{Math.round((rows.length / total) * 100)}%</small></div>)}</div></article>
-        <article className="panel calendar-panel"><div className="panel-heading"><div><h2>Próximas OT</h2><strong className="calendar-date">Planificación real</strong></div></div><div className="agenda-list">{planned.length === 0 ? <p className="empty-state">No hay fechas previstas.</p> : planned.map((order, index) => <button className={`agenda-item ${index === 1 ? 'orange' : index === 2 ? 'green' : 'red'}`} key={order.id} onClick={() => openDetail(order.id)} type="button"><time>{compactDate(order.plannedAt)}</time><span><strong>{order.title}</strong><small>{order.assignedToName ?? 'Sin asignar'} · {order.siteName}</small></span></button>)}</div></article>
-      </section>
-      <button className="mobile-wide-action" onClick={openOrders} type="button">Ver todas las órdenes <ChevronRight size={17} /></button>
-    </>
-  );
+  return <><div className="page-heading"><span className="section-kicker">Panel central</span><h1>Hola, {viewerName.split(' ')[0]} 👋</h1><p>Resumen real de las órdenes visibles para tu cuenta.</p></div><Metrics orders={orders} /><section className="dashboard-grid dashboard-grid-top"><article className="panel orders-status-panel"><div className="panel-heading"><h2>Estado de órdenes</h2><span className="source-badge">RLS activo</span></div><div className="donut-layout"><div className="donut"><div><strong>{orders.length}</strong><span>Órdenes</span></div></div><ul className="legend-list">{(['ASIGNADA', 'EN_CURSO', 'FINALIZADA_TECNICO', 'BLOQUEADA', 'VALIDADA'] as const).map((status, index) => <li key={status}><i className={['legend-red', 'legend-orange', 'legend-purple', 'legend-gray', 'legend-green'][index]} /><span>{statusLabels[status]}</span><strong>{counts.get(status) ?? 0}</strong><small>{Math.round(((counts.get(status) ?? 0) / total) * 100)}%</small></li>)}</ul></div><button className="text-link panel-link" onClick={openOrders} type="button">Ver listado <ChevronRight size={15} /></button></article><RecentOrders orders={orders} open={openDetail} /><div className="right-stack"><article className="panel activity-panel source-panel"><div className="panel-heading"><h2>Fuente de datos</h2><ShieldCheck size={22} /></div><div className="source-checks"><span><CheckCircle2 size={17} /> Supabase como fuente oficial</span><span><CheckCircle2 size={17} /> Filtrado por organización</span><span><CheckCircle2 size={17} /> Permisos aplicados por RLS</span><span><CheckCircle2 size={17} /> Sin datos de demostración</span></div></article><article className="panel alert-panel"><div className="panel-heading"><h2>Atención</h2></div><div className="alert-row"><span className="activity-icon tone-red"><AlertTriangle size={17} /></span><span><strong>{counts.get('BLOQUEADA') ?? 0} OT bloqueadas</strong><button className="text-link" onClick={openOrders} type="button">Revisar</button></span></div><div className="alert-row"><span className="activity-icon tone-orange"><Clock3 size={17} /></span><span><strong>{counts.get('FINALIZADA_TECNICO') ?? 0} pendientes de validación</strong><button className="text-link" onClick={openOrders} type="button">Abrir listado</button></span></div></article></div></section><section className="dashboard-grid dashboard-grid-bottom"><article className="panel workload-panel"><div className="panel-heading"><h2>Carga visible por técnico</h2></div><div className="workload-list">{technicians.map(({ name, rows }) => <div className="workload-row" key={name}><span className="avatar avatar-mini">{initials(name)}</span><strong>{name}</strong><div className="progress"><i style={{ width: `${Math.min(100, Math.round((rows.length / total) * 100))}%` }} /></div><b>{rows.length} OT</b><small>{Math.round((rows.length / total) * 100)}%</small></div>)}</div></article><article className="panel calendar-panel"><div className="panel-heading"><div><h2>Próximas OT</h2><strong className="calendar-date">Planificación real</strong></div></div><div className="agenda-list">{planned.length === 0 ? <p className="empty-state">No hay fechas previstas.</p> : planned.map((order, index) => <button className={`agenda-item ${index === 1 ? 'orange' : index === 2 ? 'green' : 'red'}`} key={order.id} onClick={() => openDetail(order.id)} type="button"><time>{compactDate(order.plannedAt)}</time><span><strong>{order.title}</strong><small>{order.assignedToName ?? 'Sin asignar'} · {order.siteName}</small></span></button>)}</div></article></section><button className="mobile-wide-action" onClick={openOrders} type="button">Ver todas las órdenes <ChevronRight size={17} /></button></>;
 }
 
 function OrdersPage({ orders, open, create }: { orders: WorkOrderListItem[]; open: (id: string) => void; create: () => void }) {
@@ -656,75 +516,14 @@ function OrdersPage({ orders, open, create }: { orders: WorkOrderListItem[]; ope
     return term ? orders.filter((order) => [order.code, order.title, order.siteName, order.locationName, order.assignedToName, order.assetName, order.assetReference].some((value) => value?.toLowerCase().includes(term))) : orders;
   }, [orders, search]);
 
-  return (
-    <>
-      <div className="page-heading page-heading-row"><div><span className="section-kicker">Gestión diaria</span><h1>Órdenes de trabajo</h1><p>{filtered.length} órdenes visibles mediante RLS.</p></div><button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button></div>
-      <section className="panel table-panel">
-        <div className="filters-row"><label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por ID, título, equipo o ubicación" value={search} /></label><span className="source-badge">Datos reales</span></div>
-        <div className="orders-table">
-          <div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / equipo</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span /></div>
-          {filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan con la búsqueda.</p> : filtered.map((order) => <button className="orders-table-row" key={order.id} onClick={() => open(order.id)} type="button"><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName}{order.assetName ? ` · ${order.assetName}` : order.locationName ? ` · ${order.locationName}` : ''}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span><i className={`priority-badge ${priorityClass(order.priority)}`}>{priorityLabels[order.priority]}</i></span><span>{compactDate(order.plannedAt)}</span><span><ChevronRight size={17} /></span></button>)}
-        </div>
-      </section>
-    </>
-  );
+  return <><div className="page-heading page-heading-row"><div><span className="section-kicker">Gestión diaria</span><h1>Órdenes de trabajo</h1><p>{filtered.length} órdenes visibles mediante RLS.</p></div><button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button></div><section className="panel table-panel"><div className="filters-row"><label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por ID, título, equipo o ubicación" value={search} /></label><span className="source-badge">Datos reales</span></div><div className="orders-table"><div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / equipo</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span /></div>{filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan con la búsqueda.</p> : filtered.map((order) => <button className="orders-table-row" key={order.id} onClick={() => open(order.id)} type="button"><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName}{order.assetName ? ` · ${order.assetName}` : order.locationName ? ` · ${order.locationName}` : ''}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span><i className={`priority-badge ${priorityClass(order.priority)}`}>{priorityLabels[order.priority]}</i></span><span>{compactDate(order.plannedAt)}</span><span><ChevronRight size={17} /></span></button>)}</div></section></>;
 }
 
-function Detail({
-  order,
-  back,
-  create,
-  viewerId,
-  viewerRole,
-  busyOrderId,
-  notice,
-  runAction,
-}: {
-  order: WorkOrderListItem | null;
-  back: () => void;
-  create: OpenCreate;
-  viewerId: string;
-  viewerRole: string;
-  busyOrderId: string | null;
-  notice: ActionNotice;
-  runAction: RunLifecycleAction;
-}) {
+function Detail({ order, back, create, viewerId, viewerRole, busyOrderId, notice, runAction, runReview }: { order: WorkOrderListItem | null; back: () => void; create: OpenCreate; viewerId: string; viewerRole: string; busyOrderId: string | null; notice: ActionNotice; runAction: RunLifecycleAction; runReview: RunReviewAction }) {
   if (!order) return <section className="panel data-state"><AlertTriangle size={28} /><strong>Orden no disponible</strong><p>Puede haber cambiado la organización activa o tus permisos.</p><button className="secondary-button" onClick={back} type="button">Volver</button></section>;
   const required = Object.entries(order.requirements).filter(([, value]) => value).map(([key]) => key.replaceAll(/([A-Z])/g, ' $1').toLowerCase());
 
-  return (
-    <>
-      <div className="detail-header">
-        <button className="back-button" onClick={back} type="button"><ArrowLeft size={18} /> Volver</button>
-        <div><span className="section-kicker">Orden de trabajo real</span><h1>{order.code}</h1><p>{order.title}</p></div>
-        <span className={statusClass(order.status)}>{statusLabels[order.status]}</span>
-        <button className="filter-button detail-actions" onClick={() => create({
-          installationId: order.siteId,
-          locationId: order.locationId ?? '',
-          assetId: order.assetId ?? '',
-          technicianId: order.assignedTo ?? '',
-          title: `Seguimiento de ${order.title}`,
-          description: `Nueva actuación relacionada con ${order.code}.`,
-          type: order.type,
-          priority: order.priority,
-        })} type="button">Nueva relacionada <Plus size={15} /></button>
-      </div>
-      <div className="detail-tabs"><button className="active" type="button">Detalle</button><button type="button">Tareas</button><button type="button">Fotos</button><button type="button">Documentos</button><button type="button">Historial</button></div>
-      <section className="detail-grid">
-        <article className="panel detail-main-card">
-          <div className="panel-heading"><h2>Información del trabajo</h2><span className={`priority-badge ${priorityClass(order.priority)}`}>{priorityLabels[order.priority]}</span></div>
-          <dl className="detail-definition-grid"><div><dt>Instalación</dt><dd>{order.siteName}</dd></div><div><dt>Ubicación</dt><dd>{order.locationName ?? 'Sin ubicación'}</dd></div><div><dt>Equipo</dt><dd>{order.assetName ?? 'Sin equipo vinculado'}</dd></div><div><dt>Tipo equipo</dt><dd>{order.assetType ?? typeLabels[order.type]}</dd></div><div><dt>Técnico asignado</dt><dd>{order.assignedToName ?? 'Sin asignar'}</dd></div><div><dt>Fecha planificada</dt><dd>{displayDate(order.plannedAt)}</dd></div><div><dt>Tiempo estimado</dt><dd>{order.estimatedMinutes ? `${order.estimatedMinutes} min` : 'No indicado'}</dd></div><div><dt>Referencia</dt><dd>{order.assetReference ?? 'No indicada'}</dd></div></dl>
-          <div className="description-box"><strong>Descripción</strong><p>{order.description || 'Sin descripción registrada.'}</p></div>
-          <div className="evidence-grid"><div><ListChecks size={22} /><strong>{order.requirements.checklist ? 'Checklist requerido' : 'Sin checklist'}</strong><small>{required.length ? required.join(' · ') : 'Sin requisitos especiales'}</small></div><div><ShieldCheck size={22} /><strong>{order.requirements.administrativeReview ? 'Revisión requerida' : 'Revisión no requerida'}</strong><small>Control administrativo</small></div><div><Clock3 size={22} /><strong>{order.dueAt ? displayDate(order.dueAt) : 'Sin fecha límite'}</strong><small>Vencimiento</small></div></div>
-        </article>
-        <aside className="panel detail-side-card"><h2>Estado actual</h2><div className="timeline"><div className="done"><i /><span><strong>OT creada</strong><small>{displayDate(order.createdAt)}</small></span></div><div className={order.assignedTo ? 'done' : 'current'}><i /><span><strong>{order.assignedTo ? 'Técnico asignado' : 'Pendiente de asignación'}</strong><small>{order.assignedToName ?? 'Sin técnico'}</small></span></div><div className="current"><i /><span><strong>{statusLabels[order.status]}</strong><small>Actualizada {displayDate(order.updatedAt)}</small></span></div></div><p className="read-only-note"><LockKeyhole size={16} /> Acciones protegidas por RPC y RLS.</p></aside>
-      </section>
-      <article className="panel source-panel">
-        <div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Ciclo real</span></div>
-        <LifecycleActions order={order} canUse={canExecuteOrder(order, viewerId, viewerRole)} busy={busyOrderId === order.id} notice={notice} run={runAction} />
-      </article>
-    </>
-  );
+  return <><div className="detail-header"><button className="back-button" onClick={back} type="button"><ArrowLeft size={18} /> Volver</button><div><span className="section-kicker">Orden de trabajo real</span><h1>{order.code}</h1><p>{order.title}</p></div><span className={statusClass(order.status)}>{statusLabels[order.status]}</span><button className="filter-button detail-actions" onClick={() => create({ installationId: order.siteId, locationId: order.locationId ?? '', assetId: order.assetId ?? '', technicianId: order.assignedTo ?? '', title: `Seguimiento de ${order.title}`, description: `Nueva actuación relacionada con ${order.code}.`, type: order.type, priority: order.priority })} type="button">Nueva relacionada <Plus size={15} /></button></div><div className="detail-tabs"><button className="active" type="button">Detalle</button><button type="button">Tareas</button><button type="button">Fotos</button><button type="button">Documentos</button><button type="button">Historial</button></div><section className="detail-grid"><article className="panel detail-main-card"><div className="panel-heading"><h2>Información del trabajo</h2><span className={`priority-badge ${priorityClass(order.priority)}`}>{priorityLabels[order.priority]}</span></div><dl className="detail-definition-grid"><div><dt>Instalación</dt><dd>{order.siteName}</dd></div><div><dt>Ubicación</dt><dd>{order.locationName ?? 'Sin ubicación'}</dd></div><div><dt>Equipo</dt><dd>{order.assetName ?? 'Sin equipo vinculado'}</dd></div><div><dt>Tipo equipo</dt><dd>{order.assetType ?? typeLabels[order.type]}</dd></div><div><dt>Técnico asignado</dt><dd>{order.assignedToName ?? 'Sin asignar'}</dd></div><div><dt>Fecha planificada</dt><dd>{displayDate(order.plannedAt)}</dd></div><div><dt>Tiempo estimado</dt><dd>{order.estimatedMinutes ? `${order.estimatedMinutes} min` : 'No indicado'}</dd></div><div><dt>Referencia</dt><dd>{order.assetReference ?? 'No indicada'}</dd></div></dl><div className="description-box"><strong>Descripción</strong><p>{order.description || 'Sin descripción registrada.'}</p></div><div className="evidence-grid"><div><ListChecks size={22} /><strong>{order.requirements.checklist ? 'Checklist requerido' : 'Sin checklist'}</strong><small>{required.length ? required.join(' · ') : 'Sin requisitos especiales'}</small></div><div><ShieldCheck size={22} /><strong>{order.requirements.administrativeReview ? 'Revisión requerida' : 'Revisión no requerida'}</strong><small>Control administrativo</small></div><div><Clock3 size={22} /><strong>{order.dueAt ? displayDate(order.dueAt) : 'Sin fecha límite'}</strong><small>Vencimiento</small></div></div></article><aside className="panel detail-side-card"><h2>Estado actual</h2><div className="timeline"><div className="done"><i /><span><strong>OT creada</strong><small>{displayDate(order.createdAt)}</small></span></div><div className={order.assignedTo ? 'done' : 'current'}><i /><span><strong>{order.assignedTo ? 'Técnico asignado' : 'Pendiente de asignación'}</strong><small>{order.assignedToName ?? 'Sin técnico'}</small></span></div><div className="current"><i /><span><strong>{statusLabels[order.status]}</strong><small>Actualizada {displayDate(order.updatedAt)}</small></span></div></div><p className="read-only-note"><LockKeyhole size={16} /> Acciones protegidas por RPC y RLS.</p></aside></section><article className="panel source-panel"><div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Ciclo real</span></div><LifecycleActions order={order} canUse={canExecuteOrder(order, viewerId, viewerRole)} busy={busyOrderId === order.id} run={runAction} /><Notice notice={notice} orderId={order.id} /></article><article className="panel source-panel"><div className="panel-heading"><h2><ShieldCheck size={21} /> Revisión administrativa</h2><span className="source-badge">Validación</span></div><ReviewActions order={order} canReview={isManagerRole(viewerRole)} busy={busyOrderId === order.id} run={runReview} /><Notice notice={notice} orderId={order.id} /></article></>;
 }
 
 function CreateOrder({ tenantId, canManage, cancel, created, initialValues }: { tenantId: string; canManage: boolean; cancel: () => void; created: (workOrderId: string, code: string) => void; initialValues?: CreatePreset }) {
@@ -737,28 +536,9 @@ function Planning({ orders, open }: { orders: WorkOrderListItem[]; open: (id: st
   return <><div className="page-heading"><span className="section-kicker">Organización</span><h1>Planificación real</h1><p>Órdenes con fecha prevista para la organización activa.</p></div><Metrics orders={orders} /><section className="dashboard-grid dashboard-grid-bottom"><article className="panel planning-list-panel"><div className="panel-heading"><h2>Agenda de OT</h2><span className="source-badge">{planned.length} planificadas</span></div><OrderList orders={planned} open={open} empty="No hay OT planificadas." /></article><article className="panel alert-panel"><div className="panel-heading"><h2>Vencidas / riesgo</h2></div><OrderList orders={overdue} open={open} empty="Sin OT vencidas visibles." limit={6} /></article></section></>;
 }
 
-function Technician({
-  orders,
-  viewerId,
-  viewerRole,
-  open,
-  busyOrderId,
-  runAction,
-}: {
-  orders: WorkOrderListItem[];
-  viewerId: string;
-  viewerRole: string;
-  open: (id: string) => void;
-  busyOrderId: string | null;
-  runAction: RunLifecycleAction;
-}) {
+function Technician({ orders, viewerId, viewerRole, open, busyOrderId, runAction }: { orders: WorkOrderListItem[]; viewerId: string; viewerRole: string; open: (id: string) => void; busyOrderId: string | null; runAction: RunLifecycleAction }) {
   const ownOrders = orders.filter((order) => order.assignedTo === viewerId || isManagerRole(viewerRole));
-  return (
-    <section className="technician-preview-page">
-      <div className="technician-description"><span className="section-kicker">Zona técnico real</span><h1>Solo las OT ejecutables</h1><p>Esta vista ya permite aceptar, iniciar, pausar, reanudar y finalizar desde el móvil.</p><div className="technician-benefits"><span><CheckCircle2 size={18} /> {ownOrders.length} OT visibles</span><span><CheckCircle2 size={18} /> Acciones protegidas por RPC</span><span><CheckCircle2 size={18} /> Evidencias guiadas en desarrollo</span></div></div>
-      <div className="phone-shell"><div className="phone-speaker" /><div className="phone-screen"><header className="mobile-header"><Menu size={20} /><strong>IsiVoltPro OT</strong><Bell size={19} /></header><main className="mobile-content"><h2>Mis órdenes</h2><p>{ownOrders.length} trabajos asignados o gestionables.</p><div className="mobile-metrics"><div><span className="tone-red"><ClipboardList size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'ASIGNADA').length}</strong><small>Asignadas</small></div><div><span className="tone-green"><CheckCircle2 size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'EN_CURSO').length}</strong><small>En curso</small></div><div><span className="tone-orange"><Clock3 size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'FINALIZADA_TECNICO').length}</strong><small>Pendientes</small></div><div><span className="tone-purple"><AlertTriangle size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'BLOQUEADA').length}</strong><small>Bloqueadas</small></div></div><div className="mobile-section-heading"><h3>Mis OT recientes</h3></div><div className="mobile-orders">{ownOrders.length === 0 ? <p className="empty-state">No tienes OT asignadas.</p> : ownOrders.slice(0, 5).map((order) => { const Icon = iconForOrder(order); return <button key={order.id} onClick={() => open(order.id)} type="button"><span className="order-icon"><Icon size={18} /></span><span><strong>{order.code}</strong><b>{order.title}</b><small><MapPin size={12} /> {order.siteName}{order.assetName ? ` · ${order.assetName}` : ''}</small><LifecycleActions order={order} canUse={canExecuteOrder(order, viewerId, viewerRole)} busy={busyOrderId === order.id} compact run={runAction} /></span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i><small>{compactDate(order.plannedAt)}</small><ChevronRight size={16} /></span></button>; })}</div></main><nav className="mobile-bottom-nav"><button className="active" type="button"><Home size={19} /><span>Inicio</span></button><button type="button"><ClipboardList size={19} /><span>Mis OT</span></button><button className="mobile-plus" type="button"><Plus size={25} /></button><button type="button"><CalendarDays size={19} /><span>Agenda</span></button><button type="button"><MoreHorizontal size={19} /><span>Más</span></button></nav></div></div>
-    </section>
-  );
+  return <section className="technician-preview-page"><div className="technician-description"><span className="section-kicker">Zona técnico real</span><h1>Solo las OT ejecutables</h1><p>Esta vista permite aceptar, iniciar, pausar, reanudar y finalizar desde el móvil.</p><div className="technician-benefits"><span><CheckCircle2 size={18} /> {ownOrders.length} OT visibles</span><span><CheckCircle2 size={18} /> Acciones protegidas por RPC</span><span><CheckCircle2 size={18} /> Cierre guiado en evolución</span></div></div><div className="phone-shell"><div className="phone-speaker" /><div className="phone-screen"><header className="mobile-header"><Menu size={20} /><strong>IsiVoltPro OT</strong><Bell size={19} /></header><main className="mobile-content"><h2>Mis órdenes</h2><p>{ownOrders.length} trabajos asignados o gestionables.</p><div className="mobile-metrics"><div><span className="tone-red"><ClipboardList size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'ASIGNADA').length}</strong><small>Asignadas</small></div><div><span className="tone-green"><CheckCircle2 size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'EN_CURSO').length}</strong><small>En curso</small></div><div><span className="tone-orange"><Clock3 size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'FINALIZADA_TECNICO').length}</strong><small>Pendientes</small></div><div><span className="tone-purple"><AlertTriangle size={19} /></span><strong>{ownOrders.filter((order) => order.status === 'BLOQUEADA').length}</strong><small>Bloqueadas</small></div></div><div className="mobile-section-heading"><h3>Mis OT recientes</h3></div><div className="mobile-orders">{ownOrders.length === 0 ? <p className="empty-state">No tienes OT asignadas.</p> : ownOrders.slice(0, 5).map((order) => { const Icon = iconForOrder(order); return <button key={order.id} onClick={() => open(order.id)} type="button"><span className="order-icon"><Icon size={18} /></span><span><strong>{order.code}</strong><b>{order.title}</b><small><MapPin size={12} /> {order.siteName}{order.assetName ? ` · ${order.assetName}` : ''}</small><LifecycleActions order={order} canUse={canExecuteOrder(order, viewerId, viewerRole)} busy={busyOrderId === order.id} compact run={runAction} /></span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i><small>{compactDate(order.plannedAt)}</small><ChevronRight size={16} /></span></button>; })}</div></main><nav className="mobile-bottom-nav"><button className="active" type="button"><Home size={19} /><span>Inicio</span></button><button type="button"><ClipboardList size={19} /><span>Mis OT</span></button><button className="mobile-plus" type="button"><Plus size={25} /></button><button type="button"><CalendarDays size={19} /><span>Agenda</span></button><button type="button"><MoreHorizontal size={19} /><span>Más</span></button></nav></div></div></section>;
 }
 
 function TechniciansPage({ orders, catalog, open, create }: { orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null; open: (id: string) => void; create: OpenCreate }) {
@@ -784,10 +564,7 @@ function ReportsPage({ orders, open }: { orders: WorkOrderListItem[]; open: (id:
 }
 
 function AuditPage({ orders, open }: { orders: WorkOrderListItem[]; open: (id: string) => void }) {
-  const events = orders.flatMap((order) => [
-    { id: `${order.id}-updated`, at: order.updatedAt, order, title: `Estado: ${statusLabels[order.status]}`, detail: order.assignedToName ? `Asignada a ${order.assignedToName}` : 'Sin técnico asignado' },
-    { id: `${order.id}-created`, at: order.createdAt, order, title: 'OT creada', detail: order.siteName },
-  ]).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 18);
+  const events = orders.flatMap((order) => [{ id: `${order.id}-updated`, at: order.updatedAt, order, title: `Estado: ${statusLabels[order.status]}`, detail: order.assignedToName ? `Asignada a ${order.assignedToName}` : 'Sin técnico asignado' }, { id: `${order.id}-created`, at: order.createdAt, order, title: 'OT creada', detail: order.siteName }]).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 18);
   return <><ModuleMetrics orders={orders} /><section className="panel planning-list-panel"><div className="panel-heading"><h2>Línea de tiempo</h2><span className="source-badge">{events.length} eventos</span></div><div className="day-plan-list">{events.length === 0 ? <p className="empty-state">Sin actividad visible.</p> : events.map((event) => <button key={event.id} onClick={() => open(event.order.id)} type="button"><ShieldCheck size={18} /><span><strong>{event.order.code} · {event.title}</strong><small>{displayDate(event.at)} · {event.detail}</small></span><ChevronRight size={17} /></button>)}</div></section></>;
 }
 
@@ -823,22 +600,7 @@ function ConnectedModulePage({ view, orders, catalog, tenantName, viewerRole, vi
   } satisfies Record<ModuleView, { title: string; kicker: string; description: string; icon: LucideIcon }>;
   const current = meta[view];
   const Icon = current.icon;
-
-  return (
-    <>
-      <div className="page-heading page-heading-row"><div><span className="section-kicker">{current.kicker}</span><h1>{current.title}</h1><p>{current.description}</p></div><button className="primary-button" onClick={() => create()} type="button"><Plus size={18} /> Nueva OT</button></div>
-      <article className="panel source-panel"><div className="panel-heading"><h2><Icon size={21} /> Flujo conectado</h2><span className="source-badge">Datos reales</span></div><div className="source-checks"><span><CheckCircle2 size={17} /> Cliente/instalación → equipo → OT</span><span><CheckCircle2 size={17} /> Asignación técnico → intervención</span><span><CheckCircle2 size={17} /> Checklist/fotos/informe → validación</span></div></article>
-      {view === 'technicians' && <TechniciansPage orders={orders} catalog={catalog} open={openDetail} create={create} />}
-      {view === 'clients' && <ClientsPage orders={orders} catalog={catalog} open={openDetail} create={create} />}
-      {view === 'assets' && <AssetsPage orders={orders} catalog={catalog} open={openDetail} create={create} />}
-      {view === 'reports' && <ReportsPage orders={orders} open={openDetail} />}
-      {view === 'audit' && <AuditPage orders={orders} open={openDetail} />}
-      {view === 'checklists' && <ChecklistsPage orders={orders} open={openDetail} />}
-      {view === 'templates' && <TemplatesPage create={create} catalog={catalog} />}
-      {view === 'catalogs' && <CatalogsPage orders={orders} catalog={catalog} />}
-      {view === 'settings' && <SettingsPage tenantName={tenantName} viewerRole={viewerRole} viewerName={viewerName} orders={orders} catalog={catalog} />}
-    </>
-  );
+  return <><div className="page-heading page-heading-row"><div><span className="section-kicker">{current.kicker}</span><h1>{current.title}</h1><p>{current.description}</p></div><button className="primary-button" onClick={() => create()} type="button"><Plus size={18} /> Nueva OT</button></div><article className="panel source-panel"><div className="panel-heading"><h2><Icon size={21} /> Flujo conectado</h2><span className="source-badge">Datos reales</span></div><div className="source-checks"><span><CheckCircle2 size={17} /> Cliente/instalación → equipo → OT</span><span><CheckCircle2 size={17} /> Asignación técnico → intervención</span><span><CheckCircle2 size={17} /> Checklist/fotos/informe → validación</span></div></article>{view === 'technicians' && <TechniciansPage orders={orders} catalog={catalog} open={openDetail} create={create} />}{view === 'clients' && <ClientsPage orders={orders} catalog={catalog} open={openDetail} create={create} />}{view === 'assets' && <AssetsPage orders={orders} catalog={catalog} open={openDetail} create={create} />}{view === 'reports' && <ReportsPage orders={orders} open={openDetail} />}{view === 'audit' && <AuditPage orders={orders} open={openDetail} />}{view === 'checklists' && <ChecklistsPage orders={orders} open={openDetail} />}{view === 'templates' && <TemplatesPage create={create} catalog={catalog} />}{view === 'catalogs' && <CatalogsPage orders={orders} catalog={catalog} />}{view === 'settings' && <SettingsPage tenantName={tenantName} viewerRole={viewerRole} viewerName={viewerName} orders={orders} catalog={catalog} />}</>;
 }
 
 function MobileNav({ active, navigate }: { active: View; navigate: (view: View) => void }) {
@@ -853,17 +615,8 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   const [createPreset, setCreatePreset] = useState<CreatePreset | undefined>();
   const [notice, setNotice] = useState<ActionNotice>(null);
 
-  const query = useQuery({
-    queryKey: ['work-orders', tenantId],
-    queryFn: () => listAccessibleWorkOrders(getSupabaseClient(), tenantId),
-    enabled: Boolean(tenantId),
-  });
-  const catalogQuery = useQuery({
-    queryKey: ['work-order-creation-catalog', tenantId],
-    queryFn: () => loadWorkOrderCreationCatalog(getSupabaseClient(), tenantId),
-    enabled: Boolean(tenantId),
-    staleTime: 60_000,
-  });
+  const query = useQuery({ queryKey: ['work-orders', tenantId], queryFn: () => listAccessibleWorkOrders(getSupabaseClient(), tenantId), enabled: Boolean(tenantId) });
+  const catalogQuery = useQuery({ queryKey: ['work-order-creation-catalog', tenantId], queryFn: () => loadWorkOrderCreationCatalog(getSupabaseClient(), tenantId), enabled: Boolean(tenantId), staleTime: 60_000 });
 
   const lifecycleMutation = useMutation({
     mutationFn: async ({ action, order, reason, workDone }: { action: LifecycleAction; order: WorkOrderListItem; reason?: string; workDone?: string }) => {
@@ -880,64 +633,74 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
       await queryClient.invalidateQueries({ queryKey: ['work-orders', tenantId] });
       setNotice({ kind: 'success', orderId: variables.order.id, text: `${actionLabel(variables.action)} realizado correctamente.` });
     },
-    onError: (error, variables) => {
-      setNotice({ kind: 'error', orderId: variables.order.id, text: error instanceof Error ? error.message : 'No se pudo completar la acción.' });
+    onError: (error, variables) => setNotice({ kind: 'error', orderId: variables.order.id, text: error instanceof Error ? error.message : 'No se pudo completar la acción.' }),
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ action, order, notes }: { action: ReviewAction; order: WorkOrderListItem; notes: string }) => {
+      const decision: WorkOrderReviewDecision = action === 'validate' ? 'validada' : 'correccion_solicitada';
+      return reviewWorkOrder(getSupabaseClient(), { workOrderId: order.id, decision, notes });
     },
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ['work-orders', tenantId] });
+      setNotice({ kind: 'success', orderId: variables.order.id, text: variables.action === 'validate' ? 'OT validada correctamente.' : 'Corrección solicitada al técnico.' });
+    },
+    onError: (error, variables) => setNotice({ kind: 'error', orderId: variables.order.id, text: error instanceof Error ? error.message : 'No se pudo completar la revisión.' }),
   });
 
   const orders = query.data ?? [];
   const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? null;
-  const busyOrderId = lifecycleMutation.variables?.order.id ?? null;
+  const busyOrderId = lifecycleMutation.variables?.order.id ?? reviewMutation.variables?.order.id ?? null;
 
   const openDetail = (id: string) => { setSelectedOrderId(id); setView('detail'); };
   const openCreate: OpenCreate = (preset) => { setCreatePreset(preset); setView('create'); };
-  const finishCreate = (workOrderId: string) => {
-    void query.refetch();
-    void catalogQuery.refetch();
-    setCreatePreset(undefined);
-    setSelectedOrderId(workOrderId);
-    setView('detail');
-  };
+  const finishCreate = (workOrderId: string) => { void query.refetch(); void catalogQuery.refetch(); setCreatePreset(undefined); setSelectedOrderId(workOrderId); setView('detail'); };
 
   const runLifecycleAction: RunLifecycleAction = (action, order) => {
     if (!canExecuteOrder(order, viewerId, viewerRole)) {
       setNotice({ kind: 'error', orderId: order.id, text: 'No tienes permisos para ejecutar esta OT.' });
       return;
     }
-
     if (action === 'pause' || action === 'material' || action === 'client') {
       const reason = window.prompt('Indica el motivo para dejar la OT bloqueada o pendiente:');
       if (!reason?.trim()) return;
       lifecycleMutation.mutate({ action, order, reason });
       return;
     }
-
     if (action === 'finish') {
       const workDone = window.prompt('Resume el trabajo realizado para finalizar la intervención:');
       if (!workDone?.trim()) return;
       lifecycleMutation.mutate({ action, order, workDone });
       return;
     }
-
     lifecycleMutation.mutate({ action, order });
+  };
+
+  const runReviewAction: RunReviewAction = (action, order) => {
+    if (!isManagerRole(viewerRole)) {
+      setNotice({ kind: 'error', orderId: order.id, text: 'Solo un responsable puede revisar la OT.' });
+      return;
+    }
+    if (order.status !== 'FINALIZADA_TECNICO') {
+      setNotice({ kind: 'error', orderId: order.id, text: 'La OT debe estar finalizada por el técnico para revisarla.' });
+      return;
+    }
+    const defaultNote = action === 'validate' ? 'OT validada desde revisión administrativa.' : '';
+    const notes = window.prompt(action === 'validate' ? 'Nota de validación administrativa:' : 'Indica qué debe corregir el técnico:', defaultNote);
+    if (!notes?.trim()) return;
+    reviewMutation.mutate({ action, order, notes });
   };
 
   let content;
   if (query.isLoading) content = <LoadingOrders />;
   else if (query.error) content = <OrdersError message={query.error.message} retry={() => void query.refetch()} />;
   else if (view === 'orders') content = <OrdersPage orders={orders} create={() => openCreate()} open={openDetail} />;
-  else if (view === 'detail') content = <Detail order={selectedOrder} back={() => setView('orders')} create={openCreate} viewerId={viewerId} viewerRole={viewerRole} busyOrderId={busyOrderId} notice={notice} runAction={runLifecycleAction} />;
+  else if (view === 'detail') content = <Detail order={selectedOrder} back={() => setView('orders')} create={openCreate} viewerId={viewerId} viewerRole={viewerRole} busyOrderId={busyOrderId} notice={notice} runAction={runLifecycleAction} runReview={runReviewAction} />;
   else if (view === 'create') content = <CreateOrder tenantId={tenantId} canManage={isManagerRole(viewerRole)} cancel={() => { setCreatePreset(undefined); setView('orders'); }} created={finishCreate} initialValues={createPreset} />;
   else if (view === 'planning') content = <Planning orders={orders} open={openDetail} />;
   else if (view === 'technician') content = <Technician orders={orders} viewerId={viewerId} viewerRole={viewerRole} open={openDetail} busyOrderId={busyOrderId} runAction={runLifecycleAction} />;
   else if (isModuleView(view)) content = <ConnectedModulePage view={view} orders={orders} catalog={catalogQuery.data} tenantName={tenantName} viewerRole={viewerRole} viewerName={viewerName} openDetail={openDetail} create={openCreate} />;
   else content = <Dashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
 
-  return (
-    <div className="app-shell">
-      <Sidebar active={view} open={menuOpen} tenantName={tenantName} viewerRole={viewerRole} navigate={setView} close={() => setMenuOpen(false)} logout={onLogout} />
-      <div className="app-workspace"><Topbar viewerName={viewerName} viewerRole={viewerRole} menu={() => setMenuOpen(true)} create={() => openCreate()} /><main className="main-content">{content}</main></div>
-      <MobileNav active={view} navigate={(nextView) => { setCreatePreset(undefined); setView(nextView); }} />
-    </div>
-  );
+  return <div className="app-shell"><Sidebar active={view} open={menuOpen} tenantName={tenantName} viewerRole={viewerRole} navigate={setView} close={() => setMenuOpen(false)} logout={onLogout} /><div className="app-workspace"><Topbar viewerName={viewerName} viewerRole={viewerRole} menu={() => setMenuOpen(true)} create={() => openCreate()} /><main className="main-content">{content}</main></div><MobileNav active={view} navigate={(nextView) => { setCreatePreset(undefined); setView(nextView); }} /></div>;
 }
