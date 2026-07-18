@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { type FormEvent, useMemo, useState } from 'react';
 import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardList, Plus, RotateCcw, ShieldCheck } from 'lucide-react';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
 import type { WorkOrderPriority, WorkOrderType } from '../types/workOrder';
@@ -200,7 +200,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
     setError('');
   };
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedTitle = title.trim();
     if (normalizedTitle.length < 3) {
