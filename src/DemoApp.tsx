@@ -58,7 +58,7 @@ const viewerNames: Record<DemoRole, string> = {
   admin_cliente: 'Isi Administrador',
   coordinador: 'Isi Coordinador',
   tecnico: 'Carlos Martínez',
-  cliente_lectura: 'Usuario Consulta',
+  cliente_lectura: 'Cliente Consulta',
 };
 
 const statusLabels: Record<WorkOrderListItem['status'], string> = {
@@ -108,7 +108,7 @@ function escapeHtml(value: string | number | null | undefined): string {
 }
 
 function downloadOrdersCsv(orders: WorkOrderListItem[], prefix = 'ordenes-trabajo'): void {
-  const headers = ['codigo', 'titulo', 'estado', 'prioridad', 'instalacion', 'ubicacion', 'equipo', 'tecnico', 'fecha_prevista'];
+  const headers = ['codigo', 'titulo', 'estado', 'prioridad', 'cliente_instalacion', 'ubicacion', 'equipo', 'tecnico', 'fecha_prevista'];
   const rows = orders.map((order) => [
     order.code,
     order.title,
@@ -133,7 +133,7 @@ function printOrdersReport(orders: WorkOrderListItem[], title = 'Listado de órd
   const printable = window.open('', '_blank', 'noopener,noreferrer,width=950,height=720');
   if (!printable) return;
   const rows = orders.map((order) => `<tr><td>${escapeHtml(order.code)}</td><td>${escapeHtml(order.title)}</td><td>${escapeHtml(statusLabels[order.status])}</td><td>${escapeHtml(priorityLabels[order.priority])}</td><td>${escapeHtml(order.siteName)}</td><td>${escapeHtml(order.locationName ?? '')}</td><td>${escapeHtml(order.assetName ?? '')}</td><td>${escapeHtml(order.assignedToName ?? '')}</td><td>${escapeHtml(compactDate(order.plannedAt))}</td></tr>`).join('');
-  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Instalación</th><th>Ubicación</th><th>Equipo</th><th>Técnico</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Cliente / instalación</th><th>Ubicación</th><th>Equipo</th><th>Técnico</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   printable.document.close();
   printable.focus();
   printable.print();
@@ -173,14 +173,14 @@ function DemoDashboard({
     { label: 'Planificación', Icon: CalendarDays, action: () => navigate('planning'), enabled: true },
     { label: 'Vista técnico', Icon: Wrench, action: () => navigate('technician'), enabled: true },
     { label: 'Técnicos', Icon: UsersRound, action: () => navigate('technicians'), enabled: true },
-    { label: 'Equipos', Icon: Boxes, action: () => navigate('assets'), enabled: true },
+    { label: 'Equipos FV', Icon: Boxes, action: () => navigate('assets'), enabled: true },
     { label: 'Informes', Icon: BarChart3, action: () => navigate('reports'), enabled: true },
   ];
 
   return (
     <>
       <div className="page-heading page-heading-row">
-        <div><span className="section-kicker">Panel central</span><h1>Hola, {name.split(' ')[0]} 👋</h1><p>Dashboard accionable: métricas, accesos rápidos y órdenes recientes abren pantallas reales.</p></div>
+        <div><span className="section-kicker">Panel central</span><h1>Hola, {name.split(' ')[0]} 👋</h1><p>Dashboard para empresa de fotovoltaica y mantenimiento: clientes, instalaciones, equipos, OT, checklist e informes.</p></div>
         {canCreate && <button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}
       </div>
       <section className="metrics-grid dashboard-clickable-metrics">
@@ -200,7 +200,7 @@ function DemoDashboard({
         <article className="panel source-panel dashboard-action-panel">
           <div className="panel-heading"><h2>Accesos rápidos</h2><Zap size={22} /></div>
           <div className="dashboard-quick-actions">{quickActions.filter((item) => item.enabled).map(({ label, Icon, action }) => <button key={label} onClick={action} type="button"><Icon size={17} /> {label}</button>)}</div>
-          <div className="source-checks"><span><CheckCircle2 size={17} /> Cada acceso navega o crea datos reales de la demo</span><span><CheckCircle2 size={17} /> Las órdenes recientes abren su ficha completa</span><span><CheckCircle2 size={17} /> Los cambios quedan guardados en este navegador</span></div>
+          <div className="source-checks"><span><CheckCircle2 size={17} /> Presentación orientada a FV y mantenimiento</span><span><CheckCircle2 size={17} /> Las OT recientes abren ficha completa</span><span><CheckCircle2 size={17} /> Los cambios quedan guardados en este navegador</span></div>
         </article>
       </section>
     </>
@@ -247,7 +247,7 @@ function DemoOrders({ orders, open, create, canCreate }: { orders: WorkOrderList
       </section>
       <section className="panel table-panel orders-action-panel">
         <div className="filters-row demo-filters-row">
-          <label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OT, título, equipo, instalación o ubicación" value={search} /></label>
+          <label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OT, cliente, equipo FV, técnico o ubicación" value={search} /></label>
           <select aria-label="Filtrar por estado" onChange={(event) => setStatus(event.target.value as OrderStatusFilter)} value={status}>
             <option value="all">Todos los estados</option>
             <option value="open">Todas las abiertas</option>
@@ -262,7 +262,7 @@ function DemoOrders({ orders, open, create, canCreate }: { orders: WorkOrderList
           <button className="filter-button" onClick={() => printOrdersReport(filtered, reportName)} type="button"><Printer size={15} /> Imprimir</button>
         </div>
         <div className="orders-table">
-          <div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / ubicación</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span /></div>
+          <div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Cliente / ubicación</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span /></div>
           {filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan con los filtros.</p> : filtered.map((order) => <button className="orders-table-row" key={order.id} onClick={() => open(order.id)} type="button"><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName} · {order.locationName}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span>{priorityLabels[order.priority]}</span><span>{compactDate(order.plannedAt)}</span><span><ChevronRight size={17} /></span></button>)}
         </div>
       </section>
@@ -322,7 +322,7 @@ export default function DemoApp() {
   });
   const addHistory = (orderId: string, title: string, detail: string) => updateMemory(orderId, (current) => ({ ...current, history: [...current.history, { id: newId(), title, detail, date: new Date().toISOString() }] }));
   const resetDemo = () => {
-    if (!window.confirm('¿Restablecer todas las órdenes y evidencias de la demostración?')) return;
+    if (!window.confirm('¿Restablecer todas las órdenes y evidencias de la presentación FV?')) return;
     clearDemoState();
     setState(loadDemoState(demoWorkOrders));
     setSelectedId('');
@@ -353,8 +353,12 @@ export default function DemoApp() {
     if (action === 'finish') {
       updateMemory(order.id, (current) => ({
         ...current,
-        technicianSignature: true,
-        timeSpentMinutes: Math.max(current.timeSpentMinutes, order.estimatedMinutes ?? 45),
+        execution: {
+          ...current.execution,
+          accumulatedSeconds: Math.max(current.execution.accumulatedSeconds, (order.estimatedMinutes ?? 45) * 60),
+          technicianSignature: current.execution.technicianSignature ?? order.assignedToName ?? 'Técnico demo',
+          completedAt: now,
+        },
         history: [...current.history, { id: newId(), title: titleByAction[action], detail: 'El técnico deja la OT pendiente de validación responsable.', date: now }],
       }));
       return;
@@ -383,10 +387,10 @@ export default function DemoApp() {
   ];
   const moduleNavigation = [
     { id: 'technicians' as const, label: 'Técnicos', icon: UsersRound },
-    { id: 'installations' as const, label: 'Instalaciones', icon: Building2 },
-    { id: 'assets' as const, label: 'Equipos', icon: Boxes },
+    { id: 'installations' as const, label: 'Clientes / instalaciones', icon: Building2 },
+    { id: 'assets' as const, label: 'Equipos FV', icon: Boxes },
     { id: 'reports' as const, label: 'Informes', icon: BarChart3 },
   ];
 
-  return <div className="app-shell"><button className={`sidebar-backdrop ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" /><aside className={`sidebar ${menuOpen ? 'open' : ''}`}><div className="sidebar-brand-row"><div className="brand"><span className="brand-symbol"><Zap size={25} /></span><div><strong>IsiVoltPro OT</strong><span>Prototipo sin Supabase</span></div></div></div><nav className="sidebar-nav"><span className="nav-caption">Panel demo</span>{navigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}<span className="nav-caption nav-caption-spaced">Módulos conectados</span>{moduleNavigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}</nav><div className="sidebar-footer"><div className="organisation-card"><span className="avatar avatar-small">OT</span><span><strong>Hospital PTS · Demo</strong><small>{roleNames[role]}</small></span></div><button className="logout-button demo-reset-button" onClick={resetDemo} type="button"><RotateCcw size={18} /> Restablecer demo</button><button className="logout-button" onClick={() => setRole(null)} type="button"><LogOut size={18} /> Cambiar perfil</button></div></aside><div className="app-workspace"><header className="topbar"><button className="icon-button menu-button" onClick={() => setMenuOpen(true)} type="button"><Menu size={21} /></button><div className="demo-topbar-title"><strong>{viewerName}</strong><small>{roleNames[role]} · Demo operativo</small></div><div className="topbar-actions">{canManage && <button className="primary-button top-create" onClick={() => openCreate()} type="button"><Plus size={18} /> Nueva OT</button>}</div></header><main className="main-content"><div className="demo-context-banner"><ShieldCheck size={17} /><span><strong>Modo demo local:</strong> todo lo visible en pantalla tiene navegación o acción funcional.</span></div>{content}</main></div></div>;
+  return <div className="app-shell"><button className={`sidebar-backdrop ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" /><aside className={`sidebar ${menuOpen ? 'open' : ''}`}><div className="sidebar-brand-row"><div className="brand"><span className="brand-symbol"><Zap size={25} /></span><div><strong>IsiVoltPro OT</strong><span>Fotovoltaica y mantenimiento</span></div></div></div><nav className="sidebar-nav"><span className="nav-caption">Presentación</span>{navigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}<span className="nav-caption nav-caption-spaced">Módulos conectados</span>{moduleNavigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}</nav><div className="sidebar-footer"><div className="organisation-card"><span className="avatar avatar-small">FV</span><span><strong>SolarManten FV · Demo</strong><small>{roleNames[role]}</small></span></div><button className="logout-button demo-reset-button" onClick={resetDemo} type="button"><RotateCcw size={18} /> Restablecer demo</button><button className="logout-button" onClick={() => setRole(null)} type="button"><LogOut size={18} /> Cambiar perfil</button></div></aside><div className="app-workspace"><header className="topbar"><button className="icon-button menu-button" onClick={() => setMenuOpen(true)} type="button"><Menu size={21} /></button><div className="demo-topbar-title"><strong>{viewerName}</strong><small>{roleNames[role]} · Presentación FV</small></div><div className="topbar-actions">{canManage && <button className="primary-button top-create" onClick={() => openCreate()} type="button"><Plus size={18} /> Nueva OT</button>}</div></header><main className="main-content"><div className="demo-context-banner"><ShieldCheck size={17} /><span><strong>Modo presentación:</strong> flujo completo de fotovoltaica y mantenimiento con OT, equipos, técnicos, checklist, fotos e informes.</span></div>{content}</main></div></div>;
 }
