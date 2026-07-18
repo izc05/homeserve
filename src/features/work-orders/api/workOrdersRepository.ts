@@ -6,6 +6,11 @@ export type WorkOrderListItem = WorkOrder & {
   siteName: string;
   locationName: string | null;
   assignedToName: string | null;
+  assetName: string | null;
+  assetType: string | null;
+  assetReference: string | null;
+  assetCriticality: string | null;
+  assetStatus: string | null;
 };
 
 const WORK_ORDER_COLUMNS = [
@@ -36,6 +41,14 @@ const WORK_ORDER_COLUMNS = [
 ].join(',');
 
 type NamedRow = { id: string; nombre: string | null };
+type AssetRow = {
+  id: string;
+  nombre: string | null;
+  tipo: string | null;
+  referencia: string | null;
+  criticidad: string | null;
+  estado: string | null;
+};
 
 function unique(values: Array<string | null>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
@@ -56,6 +69,23 @@ async function loadNames(
       String(row.id),
       String(row.nombre || 'Sin nombre'),
     ]),
+  );
+}
+
+async function loadAssets(
+  supabase: SupabaseClient,
+  ids: string[],
+): Promise<Map<string, AssetRow>> {
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from('activos')
+    .select('id,nombre,tipo,referencia,criticidad,estado')
+    .in('id', ids);
+  if (error) throw error;
+
+  return new Map(
+    ((data ?? []) as unknown as AssetRow[]).map((row) => [String(row.id), row]),
   );
 }
 
@@ -81,20 +111,30 @@ export async function listAccessibleWorkOrders(
   if (error) throw error;
 
   const rows = (data ?? []) as unknown as LegacyWorkOrderRow[];
-  const [siteNames, locationNames, technicianNames] = await Promise.all([
+  const [siteNames, locationNames, technicianNames, assets] = await Promise.all([
     loadNames(supabase, 'instalaciones', unique(rows.map((row) => row.instalacion_id))),
     loadNames(supabase, 'ubicaciones', unique(rows.map((row) => row.ubicacion_id))),
     loadNames(supabase, 'profiles', unique(rows.map((row) => row.assigned_to))),
+    loadAssets(supabase, unique(rows.map((row) => row.activo_id))),
   ]);
 
-  return rows.map((row) => ({
-    ...mapLegacyWorkOrder(row),
-    siteName: siteNames.get(row.instalacion_id) ?? 'Instalación sin nombre',
-    locationName: row.ubicacion_id
-      ? locationNames.get(row.ubicacion_id) ?? 'Ubicación sin nombre'
-      : null,
-    assignedToName: row.assigned_to
-      ? technicianNames.get(row.assigned_to) ?? 'Técnico sin nombre'
-      : null,
-  }));
+  return rows.map((row) => {
+    const asset = row.activo_id ? assets.get(row.activo_id) ?? null : null;
+
+    return {
+      ...mapLegacyWorkOrder(row),
+      siteName: siteNames.get(row.instalacion_id) ?? 'Instalación sin nombre',
+      locationName: row.ubicacion_id
+        ? locationNames.get(row.ubicacion_id) ?? 'Ubicación sin nombre'
+        : null,
+      assignedToName: row.assigned_to
+        ? technicianNames.get(row.assigned_to) ?? 'Técnico sin nombre'
+        : null,
+      assetName: asset?.nombre ?? null,
+      assetType: asset?.tipo ?? null,
+      assetReference: asset?.referencia ?? null,
+      assetCriticality: asset?.criticidad ?? null,
+      assetStatus: asset?.estado ?? null,
+    };
+  });
 }
