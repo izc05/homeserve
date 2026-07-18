@@ -1,4 +1,4 @@
-import { BarChart3, Building2, CheckCircle2, ChevronRight, ClipboardList, Search, Wrench } from 'lucide-react';
+import { BarChart3, Building2, CheckCircle2, ChevronRight, ClipboardList, Download, Printer, Search, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { WorkOrderListItem } from '../work-orders/api/workOrdersRepository';
 
@@ -42,6 +42,44 @@ function latestOrder(orders: WorkOrderListItem[]): WorkOrderListItem | null {
 
 function isOpen(order: WorkOrderListItem): boolean {
   return !['VALIDADA', 'CANCELADA'].includes(order.status);
+}
+
+function csvValue(value: string | number | null | undefined): string {
+  const text = String(value ?? '');
+  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safeText.replaceAll('"', '""')}"`;
+}
+
+function downloadReportCsv(orders: WorkOrderListItem[]): void {
+  const headers = ['codigo', 'titulo', 'estado', 'prioridad', 'instalacion', 'ubicacion', 'tecnico', 'fecha_prevista'];
+  const rows = orders.map((order) => [
+    order.code,
+    order.title,
+    statusLabels[order.status],
+    order.priority,
+    order.siteName,
+    order.locationName ?? '',
+    order.assignedToName ?? '',
+    order.plannedAt ?? '',
+  ]);
+  const csv = [headers, ...rows].map((row) => row.map(csvValue).join(';')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `informe-ot-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function printReport(orders: WorkOrderListItem[]): void {
+  const printable = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
+  if (!printable) return;
+  const rows = orders.map((order) => `<tr><td>${order.code}</td><td>${order.title}</td><td>${statusLabels[order.status]}</td><td>${order.priority}</td><td>${order.locationName ?? ''}</td><td>${order.assignedToName ?? ''}</td></tr>`).join('');
+  printable.document.write(`<!doctype html><html><head><title>Informe OT</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:12px}th{background:#f8fafc}</style></head><body><h1>Informe de órdenes de trabajo</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Ubicación</th><th>Técnico</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  printable.document.close();
+  printable.focus();
+  printable.print();
 }
 
 function ModuleOrderList({ orders, open, empty }: { orders: WorkOrderListItem[]; open: (id: string) => void; empty: string }) {
@@ -113,14 +151,14 @@ export function DemoReportsScreen({ orders, open }: { orders: WorkOrderListItem[
   });
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Control</span><h1>Informes</h1><p>Resumen operativo con accesos a trabajos que necesitan revisión o seguimiento.</p></div>
+      <div className="page-heading"><span className="section-kicker">Control</span><h1>Informes</h1><p>Resumen operativo con exportación CSV, impresión y acceso a cada OT.</p></div>
       <section className="metrics-grid">
         <article className="metric-card"><span className="metric-icon tone-red"><ClipboardList size={23} /></span><div className="metric-content"><strong>{orders.filter(isOpen).length}</strong><span>OT abiertas</span><small>Seguimiento diario</small></div></article>
         <article className="metric-card"><span className="metric-icon tone-orange"><BarChart3 size={23} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length}</strong><span>Por validar</span><small>Responsable</small></div></article>
         <article className="metric-card"><span className="metric-icon tone-green"><CheckCircle2 size={23} /></span><div className="metric-content"><strong>{orders.filter((order) => order.status === 'VALIDADA').length}</strong><span>Validadas</span><small>Histórico</small></div></article>
       </section>
       <section className="panel table-panel">
-        <div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><select aria-label="Filtrar informe" onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}><option value="all">Todas las OT</option><option value="open">Solo abiertas</option><option value="review">Pendientes de validar</option><option value="validated">Validadas</option></select></label><span className="source-badge">Navegable</span></div>
+        <div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><select aria-label="Filtrar informe" onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}><option value="all">Todas las OT</option><option value="open">Solo abiertas</option><option value="review">Pendientes de validar</option><option value="validated">Validadas</option></select></label><button className="filter-button" onClick={() => downloadReportCsv(filtered)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(filtered)} type="button"><Printer size={15} /> Imprimir</button><span className="source-badge">{filtered.length} registros</span></div>
         <ModuleOrderList orders={filtered} open={open} empty="No hay datos para este filtro." />
       </section>
     </>
