@@ -74,6 +74,33 @@ export type CreatedWorkOrder = {
   status: string;
 };
 
+export type CreateInstallationInput = {
+  tenantId: string;
+  name: string;
+  code?: string | null;
+  type?: string | null;
+  address?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  description?: string | null;
+};
+
+export type CreateAssetInput = {
+  tenantId: string;
+  installationId: string;
+  locationId?: string | null;
+  name: string;
+  type?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  serialNumber?: string | null;
+  reference?: string | null;
+  criticality?: 'baja' | 'media' | 'alta' | 'critica' | string | null;
+  description?: string | null;
+  notes?: string | null;
+};
+
 type InstallationRow = { id: string; nombre: string; codigo: string | null };
 type LocationRow = { id: string; instalacion_id: string; nombre: string };
 type AssetRow = {
@@ -88,14 +115,29 @@ type MemberRow = {
 };
 type ProfileRow = { id: string; nombre: string | null };
 type CreatedWorkOrderRow = { id: string; codigo_ot: string; estado: string };
+type CreatedInstallationRow = { id: string; nombre: string; codigo: string | null };
+type CreatedAssetRow = {
+  id: string;
+  instalacion_id: string;
+  ubicacion_id: string | null;
+  nombre: string;
+};
 
 function unique(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))];
 }
 
-function nullableText(value: string | null): string | null {
+function nullableText(value: string | null | undefined): string | null {
   const normalized = value?.trim() ?? '';
   return normalized || null;
+}
+
+async function currentUserId(supabase: SupabaseClient): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  const id = data.user?.id;
+  if (!id) throw new Error('No hay sesión activa para crear datos.');
+  return id;
 }
 
 export function toCreateWorkOrderRpcArgs(input: CreateWorkOrderInput): Record<string, unknown> {
@@ -207,6 +249,87 @@ export async function loadWorkOrderCreationCatalog(
       name: profileNames.get(String(member.user_id)) ?? 'Técnico sin nombre',
       role: member.role,
     })),
+  };
+}
+
+export async function createInstallation(
+  supabase: SupabaseClient,
+  input: CreateInstallationInput,
+): Promise<InstallationOption> {
+  if (!input.tenantId.trim()) throw new Error('Selecciona una organización antes de crear la instalación.');
+  if (!input.name.trim()) throw new Error('Indica el nombre de la instalación.');
+
+  const createdBy = await currentUserId(supabase);
+  const { data, error } = await supabase
+    .from('instalaciones')
+    .insert({
+      tenant_id: input.tenantId,
+      nombre: input.name.trim(),
+      codigo: nullableText(input.code),
+      tipo: nullableText(input.type) ?? 'general',
+      direccion: nullableText(input.address),
+      contacto_nombre: nullableText(input.contactName),
+      contacto_telefono: nullableText(input.contactPhone),
+      contacto_email: nullableText(input.contactEmail),
+      descripcion: nullableText(input.description),
+      estado: 'activa',
+      created_by: createdBy,
+    })
+    .select('id,nombre,codigo')
+    .single();
+
+  if (error) throw error;
+
+  const row = data as unknown as CreatedInstallationRow | null;
+  if (!row?.id) throw new Error('La base de datos no devolvió la instalación creada.');
+
+  return {
+    id: String(row.id),
+    name: String(row.nombre),
+    code: row.codigo ? String(row.codigo) : null,
+  };
+}
+
+export async function createAsset(
+  supabase: SupabaseClient,
+  input: CreateAssetInput,
+): Promise<AssetOption> {
+  if (!input.tenantId.trim()) throw new Error('Selecciona una organización antes de crear el equipo.');
+  if (!input.installationId.trim()) throw new Error('Selecciona una instalación para crear el equipo.');
+  if (!input.name.trim()) throw new Error('Indica el nombre del equipo.');
+
+  const createdBy = await currentUserId(supabase);
+  const { data, error } = await supabase
+    .from('activos')
+    .insert({
+      tenant_id: input.tenantId,
+      instalacion_id: input.installationId,
+      ubicacion_id: input.locationId || null,
+      nombre: input.name.trim(),
+      tipo: nullableText(input.type) ?? 'general',
+      marca: nullableText(input.brand),
+      modelo: nullableText(input.model),
+      numero_serie: nullableText(input.serialNumber),
+      referencia: nullableText(input.reference),
+      criticidad: nullableText(input.criticality) ?? 'media',
+      estado: 'correcto',
+      descripcion: nullableText(input.description),
+      observaciones: nullableText(input.notes),
+      created_by: createdBy,
+    })
+    .select('id,instalacion_id,ubicacion_id,nombre')
+    .single();
+
+  if (error) throw error;
+
+  const row = data as unknown as CreatedAssetRow | null;
+  if (!row?.id) throw new Error('La base de datos no devolvió el equipo creado.');
+
+  return {
+    id: String(row.id),
+    installationId: String(row.instalacion_id),
+    locationId: row.ubicacion_id ? String(row.ubicacion_id) : null,
+    name: String(row.nombre),
   };
 }
 
