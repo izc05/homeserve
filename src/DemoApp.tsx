@@ -31,11 +31,12 @@ import {
   DemoInstallationsScreen,
   DemoReportsScreen,
   DemoTechniciansScreen,
+  type DemoInstallationSeed,
 } from './features/demo/DemoModuleScreens';
 import DemoPlanningScreen from './features/demo/DemoPlanningScreen';
 import DemoTechnicianScreen, { type TechnicianQuickAction } from './features/demo/DemoTechnicianScreen';
 import type { WorkOrderListItem } from './features/work-orders/api/workOrdersRepository';
-import DemoCreateWorkOrder, { type DemoCreateAssetSeed } from './features/work-orders/demo/DemoCreateWorkOrder';
+import DemoCreateWorkOrder, { type DemoCreateAssetSeed, type DemoCreateInstallationSeed } from './features/work-orders/demo/DemoCreateWorkOrder';
 import DemoEditWorkOrder from './features/work-orders/demo/DemoEditWorkOrder';
 import PersistentWorkOrderDetailWorkspace from './features/work-orders/demo/PersistentWorkOrderDetailWorkspace';
 import { demoWorkOrders, DEMO_TECHNICIAN_ID, DEMO_TENANT_ID } from './features/work-orders/demo/demoWorkOrders';
@@ -138,6 +139,15 @@ function DemoOrders({ orders, open, create, canCreate }: { orders: WorkOrderList
   return <><div className="page-heading page-heading-row"><div><span className="section-kicker">Gestión diaria</span><h1>Órdenes de trabajo</h1><p>{filtered.length} de {orders.length} órdenes ficticias.</p></div>{canCreate && <button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}</div><section className="panel table-panel"><div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OT, título, equipo o ubicación" value={search} /></label><select aria-label="Filtrar por estado" onChange={(event) => setStatus(event.target.value as typeof status)} value={status}><option value="all">Todos los estados</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select aria-label="Filtrar por prioridad" onChange={(event) => setPriority(event.target.value as typeof priority)} value={priority}><option value="all">Todas las prioridades</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button className="filter-button" onClick={clearFilters} type="button"><RotateCcw size={15} /> Limpiar</button></div><div className="orders-table"><div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / ubicación</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span /></div>{filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan con los filtros.</p> : filtered.map((order) => <button className="orders-table-row" key={order.id} onClick={() => open(order.id)} type="button"><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName} · {order.locationName}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span>{priorityLabels[order.priority]}</span><span>{compactDate(order.plannedAt)}</span><span><ChevronRight size={17} /></span></button>)}</div></section></>;
 }
 
+function toCreateInstallationSeed(installation: DemoInstallationSeed): DemoCreateInstallationSeed {
+  return {
+    siteId: installation.siteId,
+    siteName: installation.siteName,
+    locationId: installation.locationId,
+    locationName: installation.locationName,
+  };
+}
+
 export default function DemoApp() {
   const [role, setRole] = useState<DemoRole | null>(null);
   const [view, setView] = useState<DemoView>('dashboard');
@@ -146,6 +156,7 @@ export default function DemoApp() {
   const [detailTab, setDetailTab] = useState<DetailTab>('detail');
   const [menuOpen, setMenuOpen] = useState(false);
   const [createAsset, setCreateAsset] = useState<DemoCreateAssetSeed | null>(null);
+  const [createInstallation, setCreateInstallation] = useState<DemoCreateInstallationSeed | null>(null);
 
   useEffect(() => saveDemoState(state), [state]);
 
@@ -157,8 +168,20 @@ export default function DemoApp() {
   const selected = orders.find((order) => order.id === selectedId) ?? null;
   const selectedMemory = selected ? state.memory[selected.id] ?? createDefaultOrderMemory(selected) : null;
   const open = (id: string) => { setSelectedId(id); setDetailTab('detail'); setView('detail'); };
-  const openCreate = (asset: DemoCreateAssetSeed | null = null) => { setCreateAsset(asset); setView('create'); setMenuOpen(false); };
-  const navigate = (next: DemoView) => { if (next !== 'create') setCreateAsset(null); setView(next); setMenuOpen(false); };
+  const openCreate = (context?: { asset?: DemoCreateAssetSeed | null; installation?: DemoCreateInstallationSeed | null }) => {
+    setCreateAsset(context?.asset ?? null);
+    setCreateInstallation(context?.installation ?? null);
+    setView('create');
+    setMenuOpen(false);
+  };
+  const navigate = (next: DemoView) => {
+    if (next !== 'create') {
+      setCreateAsset(null);
+      setCreateInstallation(null);
+    }
+    setView(next);
+    setMenuOpen(false);
+  };
   const updateOrder = (orderId: string, changes: Partial<WorkOrderListItem>) => setState((current) => ({ ...current, orders: current.orders.map((order) => order.id === orderId ? { ...order, ...changes } : order) }));
   const updateMemory = (orderId: string, updater: (current: DemoOrderMemory) => DemoOrderMemory) => setState((current) => {
     const order = current.orders.find((item) => item.id === orderId);
@@ -173,6 +196,7 @@ export default function DemoApp() {
     setState(loadDemoState(demoWorkOrders));
     setSelectedId('');
     setCreateAsset(null);
+    setCreateInstallation(null);
     setView('dashboard');
   };
   const runTechnicianAction = (order: WorkOrderListItem, action: TechnicianQuickAction) => {
@@ -212,12 +236,12 @@ export default function DemoApp() {
   else if (view === 'planning') content = <DemoPlanningScreen orders={orders} open={open} onReschedule={(orderId, plannedAt, dueAt, note) => { updateOrder(orderId, { plannedAt, dueAt, updatedAt: new Date().toISOString() }); addHistory(orderId, 'Planificación actualizada', note); }} />;
   else if (view === 'technician') content = <DemoTechnicianScreen orders={orders} technicianId={DEMO_TECHNICIAN_ID} technicianName="Carlos Martínez" open={open} onQuickAction={runTechnicianAction} />;
   else if (view === 'technicians') content = <DemoTechniciansScreen orders={orders} open={open} />;
-  else if (view === 'installations') content = <DemoInstallationsScreen orders={orders} open={open} />;
-  else if (view === 'assets') content = <DemoAssetsScreen orders={orders} open={open} onCreateFromAsset={(asset) => openCreate(asset)} />;
+  else if (view === 'installations') content = <DemoInstallationsScreen orders={orders} open={open} onCreateFromInstallation={(installation) => openCreate({ installation: toCreateInstallationSeed(installation) })} />;
+  else if (view === 'assets') content = <DemoAssetsScreen orders={orders} open={open} onCreateFromAsset={(asset) => openCreate({ asset })} />;
   else if (view === 'reports') content = <DemoReportsScreen orders={orders} open={open} />;
   else if (view === 'detail') content = <PersistentWorkOrderDetailWorkspace activeTab={detailTab} memory={selectedMemory} onBack={() => setView('orders')} onEdit={() => setView('edit')} onTabChange={setDetailTab} onUpdateMemory={(updater) => selected && updateMemory(selected.id, updater)} onUpdateOrder={(changes) => selected && updateOrder(selected.id, changes)} order={selected} viewerRole={role} />;
   else if (view === 'edit' && selected && canManage) content = <DemoEditWorkOrder order={selected} onCancel={() => setView('detail')} onSave={(changes) => { updateOrder(selected.id, changes); addHistory(selected.id, 'Orden editada', `Cambios guardados por ${roleNames[role]}.`); setView('detail'); }} />;
-  else if (view === 'create' && canManage) content = <DemoCreateWorkOrder initialAsset={createAsset} tenantId={DEMO_TENANT_ID} orders={orders} onCancel={() => { const backToAssets = Boolean(createAsset); setCreateAsset(null); setView(backToAssets ? 'assets' : 'orders'); }} onCreate={(order) => { setState((current) => ({ ...current, orders: [order, ...current.orders], memory: { ...current.memory, [order.id]: createDefaultOrderMemory(order) } })); setCreateAsset(null); setSelectedId(order.id); setDetailTab('detail'); setView('detail'); }} />;
+  else if (view === 'create' && canManage) content = <DemoCreateWorkOrder initialAsset={createAsset} initialInstallation={createInstallation} tenantId={DEMO_TENANT_ID} orders={orders} onCancel={() => { const backView: DemoView = createAsset ? 'assets' : createInstallation ? 'installations' : 'orders'; setCreateAsset(null); setCreateInstallation(null); setView(backView); }} onCreate={(order) => { setState((current) => ({ ...current, orders: [order, ...current.orders], memory: { ...current.memory, [order.id]: createDefaultOrderMemory(order) } })); setCreateAsset(null); setCreateInstallation(null); setSelectedId(order.id); setDetailTab('detail'); setView('detail'); }} />;
   else content = <DemoDashboard orders={orders} name={viewerName} open={open} />;
 
   const navigation = [
