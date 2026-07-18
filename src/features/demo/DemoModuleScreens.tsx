@@ -57,7 +57,7 @@ function csvValue(value: string | number | null | undefined): string {
   return `"${safeText.replaceAll('"', '""')}"`;
 }
 
-function downloadReportCsv(orders: WorkOrderListItem[]): void {
+function downloadReportCsv(orders: WorkOrderListItem[], prefix = 'informe-ot'): void {
   const headers = ['codigo', 'titulo', 'estado', 'prioridad', 'instalacion', 'ubicacion', 'tecnico', 'fecha_prevista'];
   const rows = orders.map((order) => [
     order.code,
@@ -74,16 +74,16 @@ function downloadReportCsv(orders: WorkOrderListItem[]): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `informe-ot-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `${prefix}-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
 
-function printReport(orders: WorkOrderListItem[]): void {
+function printReport(orders: WorkOrderListItem[], title = 'Informe de órdenes de trabajo'): void {
   const printable = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
   if (!printable) return;
   const rows = orders.map((order) => `<tr><td>${order.code}</td><td>${order.title}</td><td>${statusLabels[order.status]}</td><td>${order.priority}</td><td>${order.locationName ?? ''}</td><td>${order.assignedToName ?? ''}</td></tr>`).join('');
-  printable.document.write(`<!doctype html><html><head><title>Informe OT</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:12px}th{background:#f8fafc}</style></head><body><h1>Informe de órdenes de trabajo</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Ubicación</th><th>Técnico</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  printable.document.write(`<!doctype html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:12px}th{background:#f8fafc}</style></head><body><h1>${title}</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Ubicación</th><th>Técnico</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   printable.document.close();
   printable.focus();
   printable.print();
@@ -106,22 +106,33 @@ function ModuleOrderList({ orders, open, empty }: { orders: WorkOrderListItem[];
 
 export function DemoTechniciansScreen({ orders, open }: { orders: WorkOrderListItem[]; open: (id: string) => void }) {
   const groups = useMemo(() => groupBy(orders, (order) => order.assignedToName ?? 'Sin asignar').sort((a, b) => b.rows.length - a.rows.length), [orders]);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const selected = groups.find((group) => group.name === selectedName) ?? groups[0] ?? null;
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Personal</span><h1>Técnicos</h1><p>Carga de trabajo, estado y acceso directo a la última OT de cada técnico.</p></div>
+      <div className="page-heading"><span className="section-kicker">Personal</span><h1>Técnicos</h1><p>Carga de trabajo, estado, exportación e impresión por técnico.</p></div>
       <section className="demo-module-grid">
         {groups.map(({ name, rows }) => {
           const last = latestOrder(rows);
           const openCount = rows.filter(isOpen).length;
           return (
-            <article className="panel demo-module-card" key={name}>
+            <article className={`panel demo-module-card ${selected?.name === name ? 'active-module-card' : ''}`} key={name}>
               <header><span className="avatar avatar-small">{name === 'Sin asignar' ? '—' : initials(name)}</span><div><strong>{name}</strong><small>{openCount} abiertas · {rows.length} totales</small></div></header>
               <div className="demo-module-stats"><span><b>{rows.filter((order) => order.status === 'EN_CURSO').length}</b>En curso</span><span><b>{rows.filter((order) => order.status === 'BLOQUEADA').length}</b>Bloqueadas</span><span><b>{rows.filter((order) => order.status === 'FINALIZADA_TECNICO').length}</b>Validar</span></div>
-              {last && <button className="secondary-button" onClick={() => open(last.id)} type="button"><Wrench size={17} /> Abrir última OT</button>}
+              <div className="demo-module-actions">
+                <button className="primary-button" onClick={() => setSelectedName(name)} type="button"><ClipboardList size={17} /> Ver trabajos</button>
+                {last && <button className="secondary-button" onClick={() => open(last.id)} type="button"><Wrench size={17} /> Abrir última OT</button>}
+              </div>
             </article>
           );
         })}
       </section>
+      {selected && (
+        <section className="panel demo-module-detail-panel">
+          <div className="panel-heading"><div><h2>{selected.name}</h2><small>{selected.rows.length} órdenes · {selected.rows.filter(isOpen).length} abiertas</small></div><div className="demo-module-actions"><button className="filter-button" onClick={() => downloadReportCsv(selected.rows, `tecnico-${selected.name.toLowerCase().replaceAll(' ', '-')}`)} type="button"><Download size={15} /> CSV</button><button className="filter-button" onClick={() => printReport(selected.rows, `Informe técnico · ${selected.name}`)} type="button"><Printer size={15} /> Imprimir</button></div></div>
+          <ModuleOrderList orders={selected.rows} open={open} empty="Este técnico no tiene trabajos." />
+        </section>
+      )}
     </>
   );
 }
