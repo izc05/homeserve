@@ -7,6 +7,7 @@ import './styles/global.css';
 import './styles/auth.css';
 import './styles/real-data.css';
 import './styles/work-order-create.css';
+import './styles/ui-polish.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
