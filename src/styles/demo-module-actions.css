@@ -1,0 +1,41 @@
+.demo-module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.demo-module-actions button {
+  flex: 1 1 150px;
+  justify-content: center;
+}
+
+.readonly-summary {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.readonly-summary strong,
+.readonly-summary span {
+  display: block;
+}
+
+.readonly-summary strong {
+  color: var(--navy);
+  font-size: 11px;
+}
+
+.readonly-summary span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+@media (max-width: 620px) {
+  .demo-module-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
