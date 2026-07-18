@@ -122,6 +122,65 @@
   min-height: 34px;
 }
 
+.orders-quick-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.orders-quick-filter-grid button {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--navy);
+  text-align: left;
+  cursor: pointer;
+}
+
+.orders-quick-filter-grid button:hover,
+.orders-quick-filter-grid button.active {
+  border-color: rgba(214, 36, 48, 0.25);
+  background: linear-gradient(135deg, #fff, var(--brand-soft));
+}
+
+.orders-quick-filter-grid button > svg {
+  flex: 0 0 auto;
+  color: var(--brand);
+}
+
+.orders-quick-filter-grid button strong,
+.orders-quick-filter-grid button small {
+  display: block;
+}
+
+.orders-quick-filter-grid button strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.orders-quick-filter-grid button small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.orders-action-panel .demo-filters-row .filter-button {
+  min-height: 38px;
+}
+
+@media (max-width: 900px) {
+  .orders-quick-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 620px) {
   .demo-module-actions {
     display: grid;
@@ -139,5 +198,9 @@
 
   .dashboard-clickable-metrics .dashboard-metric-button {
     grid-template-columns: auto 1fr auto;
+  }
+
+  .orders-quick-filter-grid {
+    grid-template-columns: 1fr;
   }
 }
