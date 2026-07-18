@@ -7,10 +7,12 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardList,
+  Download,
   Home,
   LogOut,
   Menu,
   Plus,
+  Printer,
   RotateCcw,
   Search,
   ShieldCheck,
@@ -43,6 +45,7 @@ import { demoWorkOrders, DEMO_TECHNICIAN_ID, DEMO_TENANT_ID } from './features/w
 
 type DemoView = 'dashboard' | 'orders' | 'planning' | 'technician' | 'technicians' | 'installations' | 'assets' | 'reports' | 'detail' | 'create' | 'edit';
 type DetailTab = 'detail' | 'execution' | 'tasks' | 'photos' | 'documents' | 'history';
+type OrderStatusFilter = 'all' | 'open' | WorkOrderListItem['status'];
 
 const roleNames: Record<DemoRole, string> = {
   admin_cliente: 'Administrador',
@@ -90,6 +93,56 @@ function newId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 }
 
+function csvValue(value: string | number | null | undefined): string {
+  const text = String(value ?? '');
+  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safeText.replaceAll('"', '""')}"`;
+}
+
+function safeSlug(value: string): string {
+  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'ot';
+}
+
+function escapeHtml(value: string | number | null | undefined): string {
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function downloadOrdersCsv(orders: WorkOrderListItem[], prefix = 'ordenes-trabajo'): void {
+  const headers = ['codigo', 'titulo', 'estado', 'prioridad', 'instalacion', 'ubicacion', 'equipo', 'tecnico', 'fecha_prevista'];
+  const rows = orders.map((order) => [
+    order.code,
+    order.title,
+    statusLabels[order.status],
+    priorityLabels[order.priority],
+    order.siteName,
+    order.locationName ?? '',
+    order.assetName ?? '',
+    order.assignedToName ?? '',
+    order.plannedAt ?? '',
+  ]);
+  const csv = [headers, ...rows].map((row) => row.map(csvValue).join(';')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${safeSlug(prefix)}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function printOrdersReport(orders: WorkOrderListItem[], title = 'Listado de órdenes de trabajo'): void {
+  const printable = window.open('', '_blank', 'noopener,noreferrer,width=950,height=720');
+  if (!printable) return;
+  const rows = orders.map((order) => `<tr><td>${escapeHtml(order.code)}</td><td>${escapeHtml(order.title)}</td><td>${escapeHtml(statusLabels[order.status])}</td><td>${escapeHtml(priorityLabels[order.priority])}</td><td>${escapeHtml(order.siteName)}</td><td>${escapeHtml(order.locationName ?? '')}</td><td>${escapeHtml(order.assetName ?? '')}</td><td>${escapeHtml(order.assignedToName ?? '')}</td><td>${escapeHtml(compactDate(order.plannedAt))}</td></tr>`).join('');
+  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${orders.length} registros · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Prioridad</th><th>Instalación</th><th>Ubicación</th><th>Equipo</th><th>Técnico</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  printable.document.close();
+  printable.focus();
+  printable.print();
+}
+
+function isOpenOrder(order: WorkOrderListItem): boolean {
+  return !['VALIDADA', 'CANCELADA'].includes(order.status);
+}
+
 function DemoDashboard({
   orders,
   name,
@@ -105,7 +158,7 @@ function DemoDashboard({
   create: () => void;
   canCreate: boolean;
 }) {
-  const openCount = orders.filter((order) => !['VALIDADA', 'CANCELADA'].includes(order.status)).length;
+  const openCount = orders.filter(isOpenOrder).length;
   const blocked = orders.filter((order) => order.status === 'BLOQUEADA').length;
   const review = orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length;
   const validated = orders.filter((order) => order.status === 'VALIDADA').length;
@@ -156,18 +209,65 @@ function DemoDashboard({
 
 function DemoOrders({ orders, open, create, canCreate }: { orders: WorkOrderListItem[]; open: (id: string) => void; create: () => void; canCreate: boolean }) {
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | WorkOrderListItem['status']>('all');
+  const [status, setStatus] = useState<OrderStatusFilter>('all');
   const [priority, setPriority] = useState<'all' | WorkOrderListItem['priority']>('all');
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return orders.filter((order) => {
-      const matchesText = !term || [order.code, order.title, order.locationName, order.assignedToName, order.assetName].some((value) => value?.toLowerCase().includes(term));
-      return matchesText && (status === 'all' || order.status === status) && (priority === 'all' || order.priority === priority);
+      const matchesText = !term || [order.code, order.title, order.locationName, order.assignedToName, order.assetName, order.siteName].some((value) => value?.toLowerCase().includes(term));
+      const matchesStatus = status === 'all' || (status === 'open' ? isOpenOrder(order) : order.status === status);
+      return matchesText && matchesStatus && (priority === 'all' || order.priority === priority);
     });
   }, [orders, priority, search, status]);
 
+  const orderMetrics: Array<{ label: string; value: number; filter: OrderStatusFilter; Icon: typeof ClipboardList }> = [
+    { label: 'Todas', value: orders.length, filter: 'all', Icon: ClipboardList },
+    { label: 'Abiertas', value: orders.filter(isOpenOrder).length, filter: 'open', Icon: Wrench },
+    { label: 'Bloqueadas', value: orders.filter((order) => order.status === 'BLOQUEADA').length, filter: 'BLOQUEADA', Icon: ShieldCheck },
+    { label: 'Por validar', value: orders.filter((order) => order.status === 'FINALIZADA_TECNICO').length, filter: 'FINALIZADA_TECNICO', Icon: CalendarDays },
+    { label: 'Validadas', value: orders.filter((order) => order.status === 'VALIDADA').length, filter: 'VALIDADA', Icon: CheckCircle2 },
+  ];
+
   const clearFilters = () => { setSearch(''); setStatus('all'); setPriority('all'); };
-  return <><div className="page-heading page-heading-row"><div><span className="section-kicker">Gestión diaria</span><h1>Órdenes de trabajo</h1><p>{filtered.length} de {orders.length} órdenes ficticias.</p></div>{canCreate && <button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}</div><section className="panel table-panel"><div className="filters-row demo-filters-row"><label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OT, título, equipo o ubicación" value={search} /></label><select aria-label="Filtrar por estado" onChange={(event) => setStatus(event.target.value as typeof status)} value={status}><option value="all">Todos los estados</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select aria-label="Filtrar por prioridad" onChange={(event) => setPriority(event.target.value as typeof priority)} value={priority}><option value="all">Todas las prioridades</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button className="filter-button" onClick={clearFilters} type="button"><RotateCcw size={15} /> Limpiar</button></div><div className="orders-table"><div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / ubicación</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span /></div>{filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan con los filtros.</p> : filtered.map((order) => <button className="orders-table-row" key={order.id} onClick={() => open(order.id)} type="button"><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName} · {order.locationName}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span>{priorityLabels[order.priority]}</span><span>{compactDate(order.plannedAt)}</span><span><ChevronRight size={17} /></span></button>)}</div></section></>;
+  const reportName = status === 'all' ? 'Listado completo de OT' : status === 'open' ? 'OT abiertas' : `OT · ${statusLabels[status]}`;
+
+  return (
+    <>
+      <div className="page-heading page-heading-row">
+        <div><span className="section-kicker">Gestión diaria</span><h1>Órdenes de trabajo</h1><p>{filtered.length} de {orders.length} órdenes ficticias.</p></div>
+        {canCreate && <button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}
+      </div>
+      <section className="orders-quick-filter-grid">
+        {orderMetrics.map(({ label, value, filter, Icon }) => (
+          <button className={status === filter ? 'active' : ''} key={label} onClick={() => setStatus(filter)} type="button">
+            <Icon size={17} />
+            <span><strong>{value}</strong><small>{label}</small></span>
+          </button>
+        ))}
+      </section>
+      <section className="panel table-panel orders-action-panel">
+        <div className="filters-row demo-filters-row">
+          <label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OT, título, equipo, instalación o ubicación" value={search} /></label>
+          <select aria-label="Filtrar por estado" onChange={(event) => setStatus(event.target.value as OrderStatusFilter)} value={status}>
+            <option value="all">Todos los estados</option>
+            <option value="open">Todas las abiertas</option>
+            {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <select aria-label="Filtrar por prioridad" onChange={(event) => setPriority(event.target.value as typeof priority)} value={priority}>
+            <option value="all">Todas las prioridades</option>
+            {Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <button className="filter-button" onClick={clearFilters} type="button"><RotateCcw size={15} /> Limpiar</button>
+          <button className="filter-button" onClick={() => downloadOrdersCsv(filtered, reportName)} type="button"><Download size={15} /> CSV</button>
+          <button className="filter-button" onClick={() => printOrdersReport(filtered, reportName)} type="button"><Printer size={15} /> Imprimir</button>
+        </div>
+        <div className="orders-table">
+          <div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / ubicación</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span /></div>
+          {filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan con los filtros.</p> : filtered.map((order) => <button className="orders-table-row" key={order.id} onClick={() => open(order.id)} type="button"><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName} · {order.locationName}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span>{priorityLabels[order.priority]}</span><span>{compactDate(order.plannedAt)}</span><span><ChevronRight size={17} /></span></button>)}
+        </div>
+      </section>
+    </>
+  );
 }
 
 function toCreateInstallationSeed(installation: DemoInstallationSeed): DemoCreateInstallationSeed {
