@@ -1,8 +1,15 @@
-import { BarChart3, Building2, CheckCircle2, ChevronRight, ClipboardList, Download, Printer, Search, Wrench } from 'lucide-react';
+import { BarChart3, Building2, CheckCircle2, ChevronRight, ClipboardList, Download, Plus, Printer, Search, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { WorkOrderListItem } from '../work-orders/api/workOrdersRepository';
 
 export { default as DemoAssetsScreen } from './DemoAssetsWorkspace';
+
+export type DemoInstallationSeed = {
+  siteId: string;
+  siteName: string;
+  locationId: string | null;
+  locationName: string | null;
+};
 
 const statusLabels: Record<WorkOrderListItem['status'], string> = {
   BORRADOR: 'Borrador',
@@ -119,20 +126,29 @@ export function DemoTechniciansScreen({ orders, open }: { orders: WorkOrderListI
   );
 }
 
-export function DemoInstallationsScreen({ orders, open }: { orders: WorkOrderListItem[]; open: (id: string) => void }) {
+export function DemoInstallationsScreen({ orders, open, onCreateFromInstallation }: { orders: WorkOrderListItem[]; open: (id: string) => void; onCreateFromInstallation?: (installation: DemoInstallationSeed) => void }) {
   const groups = useMemo(() => groupBy(orders, (order) => order.siteName).sort((a, b) => a.name.localeCompare(b.name)), [orders]);
   return (
     <>
-      <div className="page-heading"><span className="section-kicker">Activos e instalaciones</span><h1>Instalaciones</h1><p>Cada instalación muestra ubicaciones, OT abiertas y acceso a trabajos relacionados.</p></div>
+      <div className="page-heading"><span className="section-kicker">Activos e instalaciones</span><h1>Instalaciones</h1><p>Cada instalación muestra ubicaciones, OT abiertas y permite crear trabajos vinculados.</p></div>
       <section className="demo-module-grid">
         {groups.map(({ name, rows }) => {
           const locations = new Set(rows.map((order) => order.locationName ?? 'Sin ubicación'));
           const last = latestOrder(rows);
+          const seed: DemoInstallationSeed = {
+            siteId: rows[0]?.siteId ?? 'demo-site-pts',
+            siteName: name,
+            locationId: null,
+            locationName: null,
+          };
           return (
             <article className="panel demo-module-card" key={name}>
               <header><span className="metric-icon tone-blue"><Building2 size={22} /></span><div><strong>{name}</strong><small>{locations.size} ubicaciones · {rows.filter(isOpen).length} OT abiertas</small></div></header>
               <ModuleOrderList orders={rows.slice(0, 3)} open={open} empty="Sin órdenes asociadas." />
-              {last && <button className="secondary-button" onClick={() => open(last.id)} type="button">Abrir ficha relacionada <ChevronRight size={17} /></button>}
+              <div className="demo-module-actions">
+                {onCreateFromInstallation && <button className="primary-button" onClick={() => onCreateFromInstallation(seed)} type="button"><Plus size={17} /> Nueva OT</button>}
+                {last && <button className="secondary-button" onClick={() => open(last.id)} type="button">Abrir ficha relacionada <ChevronRight size={17} /></button>}
+              </div>
             </article>
           );
         })}
