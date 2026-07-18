@@ -67,12 +67,16 @@ export function humanAuditAction(action: string): string {
     accept_work_order: 'OT aceptada',
     start_work_order_visit: 'Intervención iniciada',
     finalize_work_order_visit: 'Intervención finalizada',
+    finalize_active_work_order_visit: 'Intervención finalizada',
     block_work_order: 'OT bloqueada / pendiente',
     resume_work_order: 'OT reanudada',
     review_work_order: 'Revisión administrativa',
     annul_work_order: 'OT anulada',
+    soft_delete_work_order: 'OT anulada',
     create_work_order: 'OT creada',
     update_work_order: 'OT actualizada',
+    ensure_work_order_default_checklist: 'Checklist preparado',
+    register_work_order_report: 'Informe registrado',
   };
 
   return labels[action] ?? action.replaceAll('_', ' ');
