@@ -84,6 +84,12 @@ function requireUuid(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
 }
 
+function requireText(value: string | null | undefined, message: string) {
+  const clean = value?.trim();
+  if (!clean) throw new Error(message);
+  return clean;
+}
+
 function toNumber(value: number | string | null | undefined): number {
   if (typeof value === 'number') return value;
   const parsed = Number(value ?? 0);
@@ -180,6 +186,56 @@ export async function generateDueScheduledMaintenances(
   return mapGenerateScheduledMaintenancesResult(data as GenerateScheduledMaintenancesRow | null);
 }
 
+export async function rescheduleScheduledMaintenance(
+  supabase: SupabaseClient,
+  input: { scheduledMaintenanceId: string; scheduledDate: string; dueDate?: string | null; reason?: string | null },
+): Promise<ScheduledMaintenance> {
+  requireUuid(input.scheduledMaintenanceId, 'No se ha indicado el mantenimiento programado.');
+  const scheduledDate = requireText(input.scheduledDate, 'Indica la nueva fecha programada.');
+
+  const { data, error } = await supabase.rpc('reschedule_scheduled_maintenance', {
+    scheduled_maintenance_uuid: input.scheduledMaintenanceId,
+    scheduled_date: scheduledDate,
+    due_date: input.dueDate?.trim() || null,
+    reason_text: input.reason?.trim() || null,
+  });
+
+  if (error) throw error;
+  return mapScheduledMaintenance(data as ScheduledMaintenanceRow);
+}
+
+export async function cancelScheduledMaintenance(
+  supabase: SupabaseClient,
+  input: { scheduledMaintenanceId: string; reason: string },
+): Promise<ScheduledMaintenance> {
+  requireUuid(input.scheduledMaintenanceId, 'No se ha indicado el mantenimiento programado.');
+  const reason = requireText(input.reason, 'Indica el motivo de cancelación.');
+
+  const { data, error } = await supabase.rpc('cancel_scheduled_maintenance', {
+    scheduled_maintenance_uuid: input.scheduledMaintenanceId,
+    reason_text: reason,
+  });
+
+  if (error) throw error;
+  return mapScheduledMaintenance(data as ScheduledMaintenanceRow);
+}
+
+export async function skipScheduledMaintenance(
+  supabase: SupabaseClient,
+  input: { scheduledMaintenanceId: string; reason: string },
+): Promise<ScheduledMaintenance> {
+  requireUuid(input.scheduledMaintenanceId, 'No se ha indicado el mantenimiento programado.');
+  const reason = requireText(input.reason, 'Indica el motivo para marcar como no aplica.');
+
+  const { data, error } = await supabase.rpc('skip_scheduled_maintenance', {
+    scheduled_maintenance_uuid: input.scheduledMaintenanceId,
+    reason_text: reason,
+  });
+
+  if (error) throw error;
+  return mapScheduledMaintenance(data as ScheduledMaintenanceRow);
+}
+
 export async function generateWorkOrderFromScheduledMaintenance(
   supabase: SupabaseClient,
   input: { scheduledMaintenanceId: string; technicianId?: string | null },
@@ -196,6 +252,10 @@ export async function generateWorkOrderFromScheduledMaintenance(
 }
 
 export function canGenerateWorkOrderFromScheduledMaintenance(status: ScheduledMaintenanceStatus, workOrderId?: string | null) {
+  return !workOrderId && !['completado', 'cancelado', 'no_aplica', 'ot_generada'].includes(status);
+}
+
+export function canEditScheduledMaintenance(status: ScheduledMaintenanceStatus, workOrderId?: string | null) {
   return !workOrderId && !['completado', 'cancelado', 'no_aplica', 'ot_generada'].includes(status);
 }
 
