@@ -67,6 +67,61 @@
   line-height: 1.35;
 }
 
+.dashboard-clickable-metrics .dashboard-metric-button {
+  width: 100%;
+  border: 1px solid transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-clickable-metrics .dashboard-metric-button:hover {
+  border-color: rgba(214, 36, 48, 0.22);
+  background: linear-gradient(135deg, #fff, var(--brand-soft));
+  transform: translateY(-1px);
+}
+
+.dashboard-clickable-metrics .dashboard-metric-button > svg {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.dashboard-action-panel {
+  align-content: start;
+}
+
+.dashboard-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.dashboard-quick-actions button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.dashboard-quick-actions button:hover {
+  border-color: #f1a5aa;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.recent-orders-panel .panel-heading .filter-button {
+  min-height: 34px;
+}
+
 @media (max-width: 620px) {
   .demo-module-actions {
     display: grid;
@@ -76,5 +131,13 @@
   .demo-module-detail-panel .panel-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .dashboard-quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-clickable-metrics .dashboard-metric-button {
+    grid-template-columns: auto 1fr auto;
   }
 }
