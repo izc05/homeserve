@@ -3,17 +3,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   ArrowLeft,
+  Boxes,
+  Building2,
   CheckCircle2,
   ClipboardList,
   LoaderCircle,
+  Plus,
   Save,
   Send,
   ShieldCheck,
 } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { getSupabaseClient } from '../../../lib/supabase';
 import {
+  createAsset,
+  createInstallation,
   createWorkOrder,
   loadWorkOrderCreationCatalog,
   type CreateWorkOrderInput,
@@ -90,6 +95,19 @@ export default function CreateWorkOrderForm({
   onCreated,
 }: CreateWorkOrderFormProps) {
   const queryClient = useQueryClient();
+  const [installationDraft, setInstallationDraft] = useState({
+    name: '',
+    code: '',
+    type: 'general',
+    address: '',
+  });
+  const [assetDraft, setAssetDraft] = useState({
+    name: '',
+    type: 'general',
+    reference: '',
+    criticality: 'media',
+  });
+
   const catalogQuery = useQuery({
     queryKey: ['work-order-creation-catalog', tenantId],
     queryFn: () => loadWorkOrderCreationCatalog(getSupabaseClient(), tenantId),
@@ -128,6 +146,54 @@ export default function CreateWorkOrderForm({
     )) ?? [],
     [catalog, installationId, locationId],
   );
+
+  const quickInstallationMutation = useMutation({
+    mutationFn: () => createInstallation(getSupabaseClient(), {
+      tenantId,
+      name: installationDraft.name,
+      code: installationDraft.code,
+      type: installationDraft.type,
+      address: installationDraft.address,
+      description: 'Instalación creada desde alta rápida del formulario de OT.',
+    }),
+    onSuccess: async (created) => {
+      await queryClient.invalidateQueries({ queryKey: ['work-order-creation-catalog', tenantId] });
+      await catalogQuery.refetch();
+      form.setValue('installationId', created.id, { shouldDirty: true, shouldValidate: true });
+      form.setValue('locationId', '', { shouldDirty: true });
+      form.setValue('assetId', '', { shouldDirty: true });
+      if (!form.getValues('title')) form.setValue('title', `Intervención en ${created.name}`);
+      setInstallationDraft({ name: '', code: '', type: 'general', address: '' });
+      form.clearErrors('root');
+    },
+    onError: (error) => form.setError('root', {
+      message: error instanceof Error ? error.message : 'No se pudo crear la instalación.',
+    }),
+  });
+
+  const quickAssetMutation = useMutation({
+    mutationFn: () => createAsset(getSupabaseClient(), {
+      tenantId,
+      installationId,
+      locationId: locationId || null,
+      name: assetDraft.name,
+      type: assetDraft.type,
+      reference: assetDraft.reference,
+      criticality: assetDraft.criticality,
+      description: 'Equipo creado desde alta rápida del formulario de OT.',
+    }),
+    onSuccess: async (created) => {
+      await queryClient.invalidateQueries({ queryKey: ['work-order-creation-catalog', tenantId] });
+      await catalogQuery.refetch();
+      form.setValue('assetId', created.id, { shouldDirty: true, shouldValidate: true });
+      if (!form.getValues('title')) form.setValue('title', `Revisión de ${created.name}`);
+      setAssetDraft({ name: '', type: 'general', reference: '', criticality: 'media' });
+      form.clearErrors('root');
+    },
+    onError: (error) => form.setError('root', {
+      message: error instanceof Error ? error.message : 'No se pudo crear el equipo.',
+    }),
+  });
 
   const mutation = useMutation({
     mutationFn: async ({
@@ -218,19 +284,20 @@ export default function CreateWorkOrderForm({
     );
   }
 
-  if (!catalog || catalog.installations.length === 0) {
+  if (!catalog) {
     return (
       <section className="panel data-state">
         <ClipboardList size={32} />
-        <strong>No hay instalaciones disponibles</strong>
-        <p>Se necesita al menos una instalación activa para crear una orden de trabajo.</p>
+        <strong>No hay catálogo disponible</strong>
+        <p>No se pudo cargar el catálogo necesario para crear una orden de trabajo.</p>
         <button className="secondary-button" onClick={onCancel} type="button"><ArrowLeft size={17} /> Volver</button>
       </section>
     );
   }
 
   const errors = form.formState.errors;
-  const busy = mutation.isPending;
+  const busy = mutation.isPending || quickInstallationMutation.isPending || quickAssetMutation.isPending;
+  const canCreateAsset = Boolean(installationId);
 
   return (
     <>
@@ -244,6 +311,98 @@ export default function CreateWorkOrderForm({
         {initialValues && Object.keys(initialValues).length > 0 && (
           <p className="read-only-note"><CheckCircle2 size={16} /> Formulario precargado desde el módulo seleccionado.</p>
         )}
+
+        <div className="creation-section-heading">
+          <div><span>+</span><strong>Alta rápida de inventario</strong></div>
+          <small>Crea instalaciones y equipos sin salir del flujo de OT.</small>
+        </div>
+
+        <div className="form-grid">
+          <label>Nombre instalación
+            <input
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, name: event.target.value }))}
+              placeholder="Ej. Cubierta FV edificio A"
+              value={installationDraft.name}
+            />
+          </label>
+          <label>Código
+            <input
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, code: event.target.value }))}
+              placeholder="FV-CUB-001"
+              value={installationDraft.code}
+            />
+          </label>
+          <label>Tipo
+            <input
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, type: event.target.value }))}
+              placeholder="fotovoltaica"
+              value={installationDraft.type}
+            />
+          </label>
+          <label>Dirección / zona
+            <input
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, address: event.target.value }))}
+              placeholder="Cubierta, parking, sala técnica..."
+              value={installationDraft.address}
+            />
+          </label>
+          <button
+            className="secondary-button"
+            disabled={busy || !installationDraft.name.trim()}
+            onClick={() => quickInstallationMutation.mutate()}
+            type="button"
+          >
+            {quickInstallationMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Building2 size={17} />} Crear instalación
+          </button>
+        </div>
+
+        <div className="form-grid">
+          <label>Nombre equipo
+            <input
+              disabled={!canCreateAsset}
+              onChange={(event) => setAssetDraft((draft) => ({ ...draft, name: event.target.value }))}
+              placeholder="Ej. Inversor FV 50 kW"
+              value={assetDraft.name}
+            />
+          </label>
+          <label>Tipo equipo
+            <input
+              disabled={!canCreateAsset}
+              onChange={(event) => setAssetDraft((draft) => ({ ...draft, type: event.target.value }))}
+              placeholder="inversor_fotovoltaico"
+              value={assetDraft.type}
+            />
+          </label>
+          <label>Referencia
+            <input
+              disabled={!canCreateAsset}
+              onChange={(event) => setAssetDraft((draft) => ({ ...draft, reference: event.target.value }))}
+              placeholder="INV-FV-001"
+              value={assetDraft.reference}
+            />
+          </label>
+          <label>Criticidad
+            <select
+              disabled={!canCreateAsset}
+              onChange={(event) => setAssetDraft((draft) => ({ ...draft, criticality: event.target.value }))}
+              value={assetDraft.criticality}
+            >
+              <option value="baja">Baja</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+              <option value="critica">Crítica</option>
+            </select>
+          </label>
+          <button
+            className="secondary-button"
+            disabled={busy || !canCreateAsset || !assetDraft.name.trim()}
+            onClick={() => quickAssetMutation.mutate()}
+            type="button"
+          >
+            {quickAssetMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Boxes size={17} />} Crear equipo
+          </button>
+          {!canCreateAsset && <p className="read-only-note"><Plus size={16} /> Selecciona o crea una instalación antes de crear el equipo.</p>}
+        </div>
 
         <div className="creation-section-heading">
           <div><span>1</span><strong>Trabajo y ubicación</strong></div>
