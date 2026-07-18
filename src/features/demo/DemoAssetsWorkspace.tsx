@@ -108,7 +108,7 @@ export default function DemoAssetsWorkspace({
 }: {
   orders: WorkOrderListItem[];
   open: (id: string) => void;
-  onCreateFromAsset: (asset: DemoAssetSeed) => void;
+  onCreateFromAsset?: (asset: DemoAssetSeed) => void;
 }) {
   const [search, setSearch] = useState('');
   const assets = useMemo(() => buildAssetItems(orders), [orders]);
@@ -134,7 +134,7 @@ export default function DemoAssetsWorkspace({
         <div>
           <span className="section-kicker">Inventario técnico</span>
           <h1>Equipos</h1>
-          <p>Ficha de activo, OT asociadas, histórico y creación directa de trabajo desde el equipo.</p>
+          <p>Ficha de activo, OT asociadas, histórico y salto directo a trabajos del equipo.</p>
         </div>
         <span className="source-badge">Ficha operativa</span>
       </div>
@@ -176,7 +176,7 @@ export default function DemoAssetsWorkspace({
                   <p>{selected.assetReference ?? 'Sin referencia'} · {selected.assetType ?? 'Tipo no indicado'} · {selected.assetCriticality ?? 'Criticidad no indicada'}</p>
                 </div>
                 <div className="asset-detail-actions">
-                  <button className="primary-button" onClick={() => onCreateFromAsset(selected)} type="button"><Plus size={17} /> Nueva OT</button>
+                  {onCreateFromAsset && <button className="primary-button" onClick={() => onCreateFromAsset(selected)} type="button"><Plus size={17} /> Nueva OT</button>}
                   {selected.lastOrder && <button className="secondary-button" onClick={() => open(selected.lastOrder!.id)} type="button">Abrir última <ChevronRight size={17} /></button>}
                 </div>
               </div>
