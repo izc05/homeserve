@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { type FormEvent, useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, ClipboardList, RotateCcw, Save, ShieldCheck } from 'lucide-react';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
 import type { WorkOrderPriority, WorkOrderStatus, WorkOrderType } from '../types/workOrder';
@@ -171,7 +171,7 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
     }
   };
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedTitle = title.trim();
     if (normalizedTitle.length < 3) {
@@ -235,11 +235,11 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
   return (
     <section className="demo-create-page">
       <div className="page-heading page-heading-row">
-        <div><span className="section-kicker">Edición local</span><h1>Editar {order.code}</h1><p>Ahora también puedes modificar estado, fechas límite, instrucciones, riesgos y requisitos.</p></div>
+        <div><span className="section-kicker">Edición FV local</span><h1>Editar {order.code}</h1><p>Modifica estado, fechas límite, instrucciones, riesgos y requisitos de la OT de mantenimiento FV.</p></div>
         <button className="secondary-button" onClick={onCancel} type="button"><ArrowLeft size={17} /> Volver</button>
       </div>
       <form className="panel demo-create-form" onSubmit={submit}>
-        <div className="demo-form-banner"><ShieldCheck size={21} /><span><strong>Modo demo persistente</strong><small>{changedCount} cambios pendientes · se guardan únicamente en este navegador.</small></span></div>
+        <div className="demo-form-banner"><ShieldCheck size={21} /><span><strong>Modo presentación persistente</strong><small>{changedCount} cambios pendientes · se guardan únicamente en este navegador.</small></span></div>
         <div className="demo-form-toolbar demo-form-toolbar-wrap">
           <button className="filter-button" onClick={() => applyPreset('draft')} type="button"><ClipboardList size={15} /> Borrador</button>
           <button className="filter-button" onClick={() => applyPreset('assign')} type="button"><CheckCircle2 size={15} /> Asignar</button>
@@ -263,7 +263,7 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
           {order.assetName && <div className="demo-field demo-field-wide readonly-summary"><strong>Equipo vinculado</strong><span>{order.assetName} · {order.assetReference ?? 'Sin referencia'} · {order.assetType ?? 'Tipo no indicado'}</span></div>}
           <label className="demo-field demo-field-wide">Descripción<textarea onChange={(event) => setDescription(event.target.value)} rows={4} value={description} /></label>
           <label className="demo-field demo-field-wide">Instrucciones al técnico<textarea onChange={(event) => setInstructions(event.target.value)} placeholder="Indicaciones, acceso, prioridad del trabajo..." rows={3} value={instructions} /></label>
-          <label className="demo-field demo-field-wide">Riesgos y seguridad<textarea onChange={(event) => setSafetyNotes(event.target.value)} placeholder="EPIs, consignación, zonas críticas..." rows={3} value={safetyNotes} /></label>
+          <label className="demo-field demo-field-wide">Riesgos y seguridad<textarea onChange={(event) => setSafetyNotes(event.target.value)} placeholder="EPIs, consignación DC/AC, cubierta, zonas críticas..." rows={3} value={safetyNotes} /></label>
           <label className="demo-field demo-field-wide">Resultado esperado<textarea onChange={(event) => setExpectedResult(event.target.value)} placeholder="Qué debe quedar comprobado al finalizar" rows={3} value={expectedResult} /></label>
         </div>
         <div className="demo-requirements-edit-grid">
