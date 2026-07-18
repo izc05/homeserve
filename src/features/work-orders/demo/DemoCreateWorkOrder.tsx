@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ClipboardList, Plus, RotateCcw, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardList, Plus, RotateCcw, ShieldCheck } from 'lucide-react';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
 import type { WorkOrderPriority, WorkOrderType } from '../types/workOrder';
 import {
@@ -77,6 +77,21 @@ const requirementOptions: Array<{ key: keyof WorkOrderListItem['requirements']; 
   { key: 'administrativeReview', label: 'Validación responsable' },
 ];
 
+function newDemoId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+}
+
+function toLocalDateTime(date: Date): string {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function defaultDateTime(hours = 2): string {
+  const date = new Date(Date.now() + hours * 60 * 60 * 1000);
+  date.setMinutes(0, 0, 0);
+  return toLocalDateTime(date);
+}
+
 function seedTitle(asset: DemoCreateAssetSeed | null | undefined, installation: DemoCreateInstallationSeed | null | undefined): string {
   if (asset) return `Revisar ${asset.assetName}`;
   if (installation) return `Intervención en ${installation.locationName ?? installation.siteName}`;
@@ -130,8 +145,8 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
   const [priority, setPriority] = useState<WorkOrderPriority>(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
   const [technicianId, setTechnicianId] = useState('');
   const [location, setLocation] = useState(contextSite?.locationName ?? 'Planta 2 · Área asistencial');
-  const [plannedAt, setPlannedAt] = useState('2026-07-21T08:00');
-  const [dueAt, setDueAt] = useState('');
+  const [plannedAt, setPlannedAt] = useState(defaultDateTime(2));
+  const [dueAt, setDueAt] = useState(defaultDateTime(26));
   const [estimatedMinutes, setEstimatedMinutes] = useState('60');
   const [instructions, setInstructions] = useState(seedInstructions(initialAsset, initialInstallation));
   const [safetyNotes, setSafetyNotes] = useState('');
@@ -144,6 +159,31 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
     [technicianId],
   );
 
+  const applyTemplate = (template: 'draft' | 'assigned' | 'urgent') => {
+    setError('');
+    if (template === 'draft') {
+      setTechnicianId('');
+      setPriority(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
+      setType(hasContext ? 'revision' : 'averia');
+      setPlannedAt('');
+      setDueAt('');
+    }
+    if (template === 'assigned') {
+      setTechnicianId(DEMO_TECHNICIAN_ID);
+      setPriority(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
+      setPlannedAt(defaultDateTime(2));
+      setDueAt(defaultDateTime(26));
+    }
+    if (template === 'urgent') {
+      setTechnicianId(DEMO_TECHNICIAN_ID);
+      setType('urgencia');
+      setPriority('urgente');
+      setPlannedAt(defaultDateTime(1));
+      setDueAt(defaultDateTime(8));
+      setRequirements((current) => ({ ...current, checklist: true, initialPhotos: true, finalPhotos: true, technicianSignature: true, report: true }));
+    }
+  };
+
   const resetForm = () => {
     setTitle(seedTitle(initialAsset, initialInstallation));
     setDescription(seedDescription(initialAsset, initialInstallation));
@@ -151,8 +191,8 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
     setPriority(initialAsset?.assetCriticality === 'critica' ? 'alta' : 'normal');
     setTechnicianId('');
     setLocation(contextSite?.locationName ?? 'Planta 2 · Área asistencial');
-    setPlannedAt('2026-07-21T08:00');
-    setDueAt('');
+    setPlannedAt(defaultDateTime(2));
+    setDueAt(defaultDateTime(26));
     setEstimatedMinutes('60');
     setInstructions(seedInstructions(initialAsset, initialInstallation));
     setSafetyNotes('');
@@ -193,7 +233,7 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
     const now = new Date().toISOString();
     const assigned = Boolean(technicianId);
     const order: WorkOrderListItem = {
-      id: `demo-${crypto.randomUUID()}`,
+      id: `demo-${newDemoId()}`,
       tenantId,
       code: nextDemoOrderCode(orders),
       title: normalizedTitle,
@@ -249,7 +289,13 @@ export default function DemoCreateWorkOrder({ tenantId, orders, initialAsset, in
           <ShieldCheck size={21} />
           <span><strong>{initialAsset ? 'Equipo vinculado' : initialInstallation ? 'Instalación vinculada' : 'Sin escritura en Supabase'}</strong><small>{initialAsset ? 'La nueva OT queda conectada al activo seleccionado.' : initialInstallation ? 'La nueva OT queda conectada a la instalación seleccionada.' : 'Puedes probar el flujo completo con tranquilidad.'}</small></span>
         </div>
-        <div className="demo-form-toolbar"><button className="filter-button" onClick={resetForm} type="button"><RotateCcw size={15} /> Restaurar formulario</button><span><ClipboardList size={15} /> {technicianId ? 'Se creará asignada' : 'Se guardará como borrador'}</span></div>
+        <div className="demo-form-toolbar">
+          <button className="filter-button" onClick={() => applyTemplate('draft')} type="button"><ClipboardList size={15} /> Borrador</button>
+          <button className="filter-button" onClick={() => applyTemplate('assigned')} type="button"><CheckCircle2 size={15} /> Asignar a Carlos</button>
+          <button className="filter-button" onClick={() => applyTemplate('urgent')} type="button"><CalendarDays size={15} /> Urgente hoy</button>
+          <button className="filter-button" onClick={resetForm} type="button"><RotateCcw size={15} /> Restaurar</button>
+          <span><ClipboardList size={15} /> {technicianId ? 'Se creará asignada' : 'Se guardará como borrador'}</span>
+        </div>
 
         <div className="demo-form-grid">
           <label className="demo-field demo-field-wide">
