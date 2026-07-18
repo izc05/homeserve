@@ -17,6 +17,7 @@ import './styles/demo-technician.css';
 import './styles/demo-assets.css';
 import './styles/demo-detail-actions.css';
 import './styles/demo-module-actions.css';
+import './styles/demo-report-actions.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
