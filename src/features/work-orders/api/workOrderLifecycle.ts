@@ -1,0 +1,164 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+export type WorkOrderLifecycleStatus =
+  | 'ASIGNADA'
+  | 'ACEPTADA'
+  | 'EN_CURSO'
+  | 'PAUSADA'
+  | 'PENDIENTE_MATERIAL'
+  | 'PENDIENTE_CLIENTE'
+  | 'FINALIZADA'
+  | 'VALIDADA'
+  | 'CANCELADA';
+
+export type WorkOrderLifecycleResult = {
+  id: string;
+  estado: WorkOrderLifecycleStatus;
+  updated_at?: string | null;
+};
+
+export type WorkOrderVisitResult = {
+  id: string;
+  ot_id: string;
+  estado: string;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+};
+
+export type BlockWorkOrderInput = {
+  workOrderId: string;
+  status: 'PAUSADA' | 'PENDIENTE_MATERIAL' | 'PENDIENTE_CLIENTE';
+  reason: string;
+};
+
+export type FinalizeWorkOrderVisitInput = {
+  visitId: string;
+  result?: 'trabajo_completado' | 'pendiente_material' | 'pendiente_cliente' | 'necesita_otra_visita';
+  workDone: string;
+  diagnosis?: string;
+  tests?: string;
+  recommendations?: string;
+  pendingWork?: string;
+  closingReason?: string;
+  nextAction?: string;
+  finalAssetStatus?: string;
+};
+
+function requireUuid(value: string, message: string) {
+  if (!value?.trim()) throw new Error(message);
+}
+
+function requireText(value: string, message: string) {
+  if (!value?.trim()) throw new Error(message);
+}
+
+function mapWorkOrderResult(data: unknown): WorkOrderLifecycleResult {
+  const row = data as { id?: string; estado?: WorkOrderLifecycleStatus; updated_at?: string | null } | null;
+  if (!row?.id || !row.estado) throw new Error('La base de datos no devolvió la OT actualizada.');
+  return { id: String(row.id), estado: row.estado, updated_at: row.updated_at ?? null };
+}
+
+function mapVisitResult(data: unknown): WorkOrderVisitResult {
+  const row = data as {
+    id?: string;
+    ot_id?: string;
+    estado?: string;
+    fecha_inicio?: string | null;
+    fecha_fin?: string | null;
+  } | null;
+  if (!row?.id || !row.ot_id || !row.estado) {
+    throw new Error('La base de datos no devolvió la intervención actualizada.');
+  }
+  return {
+    id: String(row.id),
+    ot_id: String(row.ot_id),
+    estado: String(row.estado),
+    fecha_inicio: row.fecha_inicio ?? null,
+    fecha_fin: row.fecha_fin ?? null,
+  };
+}
+
+export async function acceptWorkOrder(
+  supabase: SupabaseClient,
+  workOrderId: string,
+): Promise<WorkOrderLifecycleResult> {
+  requireUuid(workOrderId, 'No se ha indicado la OT a aceptar.');
+
+  const { data, error } = await supabase.rpc('accept_work_order', {
+    work_order_uuid: workOrderId,
+  });
+
+  if (error) throw error;
+  return mapWorkOrderResult(data);
+}
+
+export async function startWorkOrderVisit(
+  supabase: SupabaseClient,
+  workOrderId: string,
+): Promise<WorkOrderVisitResult> {
+  requireUuid(workOrderId, 'No se ha indicado la OT a iniciar.');
+
+  const { data, error } = await supabase.rpc('start_work_order_visit', {
+    work_order_uuid: workOrderId,
+  });
+
+  if (error) throw error;
+  return mapVisitResult(data);
+}
+
+export async function blockWorkOrder(
+  supabase: SupabaseClient,
+  input: BlockWorkOrderInput,
+): Promise<WorkOrderLifecycleResult> {
+  requireUuid(input.workOrderId, 'No se ha indicado la OT a bloquear.');
+  requireText(input.reason, 'Indica el motivo del bloqueo.');
+
+  const { data, error } = await supabase.rpc('block_work_order', {
+    work_order_uuid: input.workOrderId,
+    block_status: input.status,
+    reason_text: input.reason.trim(),
+  });
+
+  if (error) throw error;
+  return mapWorkOrderResult(data);
+}
+
+export async function resumeWorkOrder(
+  supabase: SupabaseClient,
+  workOrderId: string,
+): Promise<WorkOrderLifecycleResult> {
+  requireUuid(workOrderId, 'No se ha indicado la OT a reanudar.');
+
+  const { data, error } = await supabase.rpc('resume_work_order', {
+    work_order_uuid: workOrderId,
+  });
+
+  if (error) throw error;
+  return mapWorkOrderResult(data);
+}
+
+export async function finalizeWorkOrderVisit(
+  supabase: SupabaseClient,
+  input: FinalizeWorkOrderVisitInput,
+): Promise<WorkOrderVisitResult> {
+  requireUuid(input.visitId, 'No se ha indicado la intervención a finalizar.');
+  requireText(input.workDone, 'Indica el trabajo realizado antes de finalizar.');
+
+  const { data, error } = await supabase.rpc('finalize_work_order_visit', {
+    visit_uuid: input.visitId,
+    payload_json: {
+      resultado_cierre: input.result ?? 'trabajo_completado',
+      trabajo_realizado: input.workDone.trim(),
+      diagnostico: input.diagnosis?.trim() || null,
+      pruebas_realizadas: input.tests?.trim() || null,
+      recomendaciones: input.recommendations?.trim() || null,
+      trabajo_pendiente: input.pendingWork?.trim() || null,
+      motivo_cierre: input.closingReason?.trim() || null,
+      proxima_accion: input.nextAction?.trim() || null,
+      estado_final_activo: input.finalAssetStatus?.trim() || null,
+    },
+  });
+
+  if (error) throw error;
+  return mapVisitResult(data);
+}
