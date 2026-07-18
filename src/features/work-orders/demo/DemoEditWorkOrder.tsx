@@ -72,6 +72,13 @@ function nullable(value: string): string | null {
   return value.trim() || null;
 }
 
+function defaultLocalDateTime(hours = 2): string {
+  const date = new Date(Date.now() + hours * 60 * 60 * 1000);
+  date.setMinutes(0, 0, 0);
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditWorkOrderProps) {
   const [title, setTitle] = useState(order.title);
   const [description, setDescription] = useState(order.description ?? '');
@@ -132,6 +139,38 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
     setError('');
   };
 
+  const applyPreset = (preset: 'draft' | 'assign' | 'block' | 'finish' | 'validate' | 'cancel') => {
+    setError('');
+    if (preset === 'draft') {
+      setStatus('BORRADOR');
+      setTechnicianId('');
+    }
+    if (preset === 'assign') {
+      setStatus('ASIGNADA');
+      setTechnicianId(order.assignedTo ?? DEMO_TECHNICIAN_ID);
+      if (!plannedAt) setPlannedAt(defaultLocalDateTime(2));
+    }
+    if (preset === 'block') {
+      setStatus('BLOQUEADA');
+      setTechnicianId(technicianId || DEMO_TECHNICIAN_ID);
+      setSafetyNotes((current) => current || 'OT bloqueada temporalmente. Revisar causa antes de reanudar.');
+    }
+    if (preset === 'finish') {
+      setStatus('FINALIZADA_TECNICO');
+      setTechnicianId(technicianId || DEMO_TECHNICIAN_ID);
+      setRequirements((current) => ({ ...current, checklist: true, finalPhotos: true, technicianSignature: true, report: true, administrativeReview: true }));
+      setExpectedResult((current) => current || 'Intervención terminada y pendiente de validación responsable.');
+    }
+    if (preset === 'validate') {
+      setStatus('VALIDADA');
+      setRequirements((current) => ({ ...current, responsibleSignature: true, administrativeReview: true, report: true }));
+    }
+    if (preset === 'cancel') {
+      setStatus('CANCELADA');
+      setExpectedResult((current) => current || 'OT cancelada desde edición demo. Revisar trazabilidad en historial.');
+    }
+  };
+
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedTitle = title.trim();
@@ -151,8 +190,21 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
       return;
     }
 
+    if (!['BORRADOR', 'CANCELADA'].includes(status) && !technician.id) {
+      setError('Para este estado debe haber un técnico asignado. Usa el atajo “Asignar”.');
+      return;
+    }
+
     const plannedDate = plannedAt ? new Date(plannedAt) : null;
     const dueDate = dueAt ? new Date(dueAt) : null;
+    if (plannedDate && Number.isNaN(plannedDate.getTime())) {
+      setError('La fecha prevista no es válida.');
+      return;
+    }
+    if (dueDate && Number.isNaN(dueDate.getTime())) {
+      setError('La fecha límite no es válida.');
+      return;
+    }
     if (plannedDate && dueDate && dueDate.getTime() < plannedDate.getTime()) {
       setError('La fecha límite no puede ser anterior a la fecha prevista.');
       return;
@@ -188,7 +240,16 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
       </div>
       <form className="panel demo-create-form" onSubmit={submit}>
         <div className="demo-form-banner"><ShieldCheck size={21} /><span><strong>Modo demo persistente</strong><small>{changedCount} cambios pendientes · se guardan únicamente en este navegador.</small></span></div>
-        <div className="demo-form-toolbar"><button className="filter-button" onClick={resetForm} type="button"><RotateCcw size={15} /> Restaurar original</button><span><ClipboardList size={15} /> Estado actual: {statuses.find((item) => item.value === order.status)?.label ?? order.status}</span></div>
+        <div className="demo-form-toolbar demo-form-toolbar-wrap">
+          <button className="filter-button" onClick={() => applyPreset('draft')} type="button"><ClipboardList size={15} /> Borrador</button>
+          <button className="filter-button" onClick={() => applyPreset('assign')} type="button"><CheckCircle2 size={15} /> Asignar</button>
+          <button className="filter-button" onClick={() => applyPreset('block')} type="button"><ClipboardList size={15} /> Bloquear</button>
+          <button className="filter-button" onClick={() => applyPreset('finish')} type="button"><Save size={15} /> Pendiente validar</button>
+          <button className="filter-button" onClick={() => applyPreset('validate')} type="button"><ShieldCheck size={15} /> Validar</button>
+          <button className="filter-button" onClick={() => applyPreset('cancel')} type="button"><RotateCcw size={15} /> Cancelar OT</button>
+          <button className="filter-button" onClick={resetForm} type="button"><RotateCcw size={15} /> Restaurar original</button>
+          <span><ClipboardList size={15} /> Estado actual: {statuses.find((item) => item.value === order.status)?.label ?? order.status}</span>
+        </div>
         <div className="demo-form-grid">
           <label className="demo-field demo-field-wide">Título<input onChange={(event) => setTitle(event.target.value)} value={title} /></label>
           <label className="demo-field">Tipo<select onChange={(event) => setType(event.target.value as WorkOrderType)} value={type}>{types.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
