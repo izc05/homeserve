@@ -1,6 +1,8 @@
-import { BarChart3, Boxes, Building2, CheckCircle2, ChevronRight, ClipboardList, Search, Wrench } from 'lucide-react';
+import { BarChart3, Building2, CheckCircle2, ChevronRight, ClipboardList, Search, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { WorkOrderListItem } from '../work-orders/api/workOrdersRepository';
+
+export { default as DemoAssetsScreen } from './DemoAssetsWorkspace';
 
 const statusLabels: Record<WorkOrderListItem['status'], string> = {
   BORRADOR: 'Borrador',
@@ -93,27 +95,6 @@ export function DemoInstallationsScreen({ orders, open }: { orders: WorkOrderLis
               <header><span className="metric-icon tone-blue"><Building2 size={22} /></span><div><strong>{name}</strong><small>{locations.size} ubicaciones · {rows.filter(isOpen).length} OT abiertas</small></div></header>
               <ModuleOrderList orders={rows.slice(0, 3)} open={open} empty="Sin órdenes asociadas." />
               {last && <button className="secondary-button" onClick={() => open(last.id)} type="button">Abrir ficha relacionada <ChevronRight size={17} /></button>}
-            </article>
-          );
-        })}
-      </section>
-    </>
-  );
-}
-
-export function DemoAssetsScreen({ orders, open }: { orders: WorkOrderListItem[]; open: (id: string) => void }) {
-  const assets = useMemo(() => groupBy(orders.filter((order) => order.assetId), (order) => order.assetName ?? order.assetId ?? 'Equipo sin nombre').sort((a, b) => a.name.localeCompare(b.name)), [orders]);
-  return (
-    <>
-      <div className="page-heading"><span className="section-kicker">Inventario técnico</span><h1>Equipos</h1><p>Ficha rápida de equipos con órdenes relacionadas e histórico simulado.</p></div>
-      <section className="demo-module-grid">
-        {assets.map(({ name, rows }) => {
-          const last = latestOrder(rows);
-          return (
-            <article className="panel demo-module-card" key={name}>
-              <header><span className="metric-icon tone-purple"><Boxes size={22} /></span><div><strong>{name}</strong><small>{rows[0]?.assetReference ?? 'Sin referencia'} · {rows[0]?.assetCriticality ?? 'criticidad no indicada'}</small></div></header>
-              <div className="demo-module-stats"><span><b>{rows.length}</b>OT vinculadas</span><span><b>{rows.filter(isOpen).length}</b>Abiertas</span><span><b>{rows.filter((order) => order.status === 'VALIDADA').length}</b>Histórico</span></div>
-              {last && <button className="secondary-button" onClick={() => open(last.id)} type="button"><Boxes size={17} /> Abrir equipo / última OT</button>}
             </article>
           );
         })}
