@@ -99,8 +99,8 @@ function escapeHtml(value: string | number | null | undefined): string {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
-function downloadPlanningCsv(orders: WorkOrderListItem[], prefix = 'planificacion-ot'): void {
-  const headers = ['codigo', 'titulo', 'estado', 'instalacion', 'ubicacion', 'equipo', 'tecnico', 'fecha_prevista', 'fecha_limite'];
+function downloadPlanningCsv(orders: WorkOrderListItem[], prefix = 'planificacion-fv-ot'): void {
+  const headers = ['codigo', 'titulo', 'estado', 'cliente_instalacion', 'ubicacion', 'equipo', 'referencia_equipo', 'tecnico', 'fecha_prevista', 'fecha_limite'];
   const rows = orders.map((order) => [
     order.code,
     order.title,
@@ -108,6 +108,7 @@ function downloadPlanningCsv(orders: WorkOrderListItem[], prefix = 'planificacio
     order.siteName,
     order.locationName ?? '',
     order.assetName ?? '',
+    order.assetReference ?? '',
     order.assignedToName ?? '',
     order.plannedAt ?? '',
     order.dueAt ?? '',
@@ -121,11 +122,11 @@ function downloadPlanningCsv(orders: WorkOrderListItem[], prefix = 'planificacio
   URL.revokeObjectURL(url);
 }
 
-function printPlanningReport(orders: WorkOrderListItem[], title = 'Informe de planificación'): void {
+function printPlanningReport(orders: WorkOrderListItem[], title = 'Planificación FV y mantenimiento'): void {
   const printable = window.open('', '_blank', 'noopener,noreferrer,width=950,height=720');
   if (!printable) return;
-  const rows = orders.map((order) => `<tr><td>${escapeHtml(order.code)}</td><td>${escapeHtml(order.title)}</td><td>${escapeHtml(statusLabels[order.status])}</td><td>${escapeHtml(order.siteName)}</td><td>${escapeHtml(order.locationName ?? '')}</td><td>${escapeHtml(order.assignedToName ?? '')}</td><td>${escapeHtml(formatDateTime(order.plannedAt ?? order.dueAt))}</td></tr>`).join('');
-  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${orders.length} trabajos · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Instalación</th><th>Ubicación</th><th>Técnico</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  const rows = orders.map((order) => `<tr><td>${escapeHtml(order.code)}</td><td>${escapeHtml(order.title)}</td><td>${escapeHtml(statusLabels[order.status])}</td><td>${escapeHtml(order.siteName)}</td><td>${escapeHtml(order.locationName ?? '')}</td><td>${escapeHtml(order.assetName ?? '')}</td><td>${escapeHtml(order.assignedToName ?? '')}</td><td>${escapeHtml(formatDateTime(order.plannedAt ?? order.dueAt))}</td></tr>`).join('');
+  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${orders.length} trabajos · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Cliente / instalación</th><th>Ubicación</th><th>Equipo</th><th>Técnico</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   printable.document.close();
   printable.focus();
   printable.print();
@@ -154,7 +155,7 @@ export default function DemoPlanningScreen({
 
   const filtered = planned.filter((order) => {
     const term = search.trim().toLowerCase();
-    const matchesText = !term || [order.code, order.title, order.siteName, order.locationName, order.assignedToName, order.assetName]
+    const matchesText = !term || [order.code, order.title, order.siteName, order.locationName, order.assignedToName, order.assetName, order.assetReference]
       .some((value) => value?.toLowerCase().includes(term));
     if (!matchesText) return false;
     if (filter === 'overdue') return isOverdue(order, today);
@@ -167,13 +168,13 @@ export default function DemoPlanningScreen({
   const reschedule = (order: WorkOrderListItem, daysFromToday: number) => {
     const { plannedAt, dueAt } = nextPlanDates(daysFromToday);
     const label = daysFromToday === 0 ? 'a hoy' : daysFromToday === 1 ? 'a mañana' : `+${daysFromToday} días`;
-    onReschedule(order.id, plannedAt, dueAt, `Reprogramada ${label} desde planificación.`);
+    onReschedule(order.id, plannedAt, dueAt, `Reprogramada ${label} desde planificación FV.`);
   };
 
   const metricCards: Array<{ label: string; value: number; filter: PlanningFilter; icon: typeof TimerReset; tone: string; helper: string }> = [
     { label: 'Vencidas', value: metrics.overdue, filter: 'overdue', icon: TimerReset, tone: 'red', helper: 'Reprogramar o abrir OT' },
-    { label: 'Hoy', value: metrics.today, filter: 'today', icon: CalendarDays, tone: 'blue', helper: 'Trabajo diario' },
-    { label: '7 días', value: metrics.week, filter: 'week', icon: CalendarClock, tone: 'purple', helper: 'Próxima carga' },
+    { label: 'Hoy', value: metrics.today, filter: 'today', icon: CalendarDays, tone: 'blue', helper: 'Jornada FV' },
+    { label: '7 días', value: metrics.week, filter: 'week', icon: CalendarClock, tone: 'purple', helper: 'Preventivos y correctivos' },
     { label: 'Validar', value: metrics.review, filter: 'review', icon: CheckCircle2, tone: 'green', helper: 'Cierre responsable' },
   ];
 
@@ -181,11 +182,11 @@ export default function DemoPlanningScreen({
     <>
       <div className="page-heading page-heading-row">
         <div>
-          <span className="section-kicker">Organización</span>
-          <h1>Planificación</h1>
-          <p>Agenda accionable: vencidas, próximos trabajos, reprogramación rápida y salto directo a OT.</p>
+          <span className="section-kicker">Agenda FV</span>
+          <h1>Planificación FV</h1>
+          <p>Agenda accionable para preventivos, correctivos, revisiones de planta, equipos FV y técnicos de mantenimiento.</p>
         </div>
-        <span className="source-badge">Demo persistente</span>
+        <span className="source-badge">Presentación local</span>
       </div>
 
       <section className="metrics-grid planning-metrics-grid planning-clickable-metrics">
@@ -200,13 +201,13 @@ export default function DemoPlanningScreen({
 
       <section className="panel planning-workspace-panel">
         <div className="filters-row demo-filters-row planning-toolbar">
-          <label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por OT, equipo, ubicación o técnico" value={search} /></label>
+          <label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por OT, cliente, equipo FV, referencia o técnico" value={search} /></label>
           <select aria-label="Filtro de planificación" onChange={(event) => setFilter(event.target.value as PlanningFilter)} value={filter}>
             {Object.entries(filterLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <button className="filter-button" onClick={() => { setFilter('all'); setSearch(''); }} type="button"><RotateCcw size={15} /> Limpiar</button>
           <button className="filter-button" onClick={() => downloadPlanningCsv(filtered)} type="button"><Download size={15} /> CSV</button>
-          <button className="filter-button" onClick={() => printPlanningReport(filtered, `Planificación · ${filterLabels[filter]}`)} type="button"><Printer size={15} /> Imprimir</button>
+          <button className="filter-button" onClick={() => printPlanningReport(filtered, `Planificación FV · ${filterLabels[filter]}`)} type="button"><Printer size={15} /> Imprimir</button>
         </div>
 
         <div className="planning-work-list">
@@ -214,7 +215,7 @@ export default function DemoPlanningScreen({
             <article className={`planning-work-card ${isOverdue(order, today) ? 'is-overdue' : ''}`} key={order.id}>
               <button className="planning-work-main" onClick={() => open(order.id)} type="button">
                 <time>{formatDateTime(order.plannedAt ?? order.dueAt)}</time>
-                <span><strong>{order.code} · {order.title}</strong><small>{order.siteName} · {order.locationName ?? 'Sin ubicación'} · {order.assignedToName ?? 'Sin técnico'}</small></span>
+                <span><strong>{order.code} · {order.title}</strong><small>{order.siteName} · {order.locationName ?? 'Sin ubicación'} · {order.assetName ?? 'Sin equipo'} · {order.assignedToName ?? 'Sin técnico'}</small></span>
                 <i className={statusClass(order.status)}>{statusLabels[order.status]}</i>
                 <ChevronRight size={17} />
               </button>
