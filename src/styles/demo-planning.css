@@ -1,0 +1,146 @@
+.planning-metrics-grid {
+  margin-bottom: 14px;
+}
+
+.planning-workspace-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.planning-toolbar {
+  align-items: stretch;
+}
+
+.planning-toolbar .table-search {
+  min-width: min(420px, 100%);
+}
+
+.planning-work-list {
+  display: grid;
+  gap: 12px;
+}
+
+.planning-work-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.planning-work-card.is-overdue {
+  border-color: rgba(214, 36, 48, 0.36);
+  background: linear-gradient(135deg, #fff, #fff7f7);
+}
+
+.planning-work-main {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 108px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.planning-work-main time {
+  display: grid;
+  place-items: center;
+  min-height: 58px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.planning-work-main span strong,
+.planning-work-main span small {
+  display: block;
+}
+
+.planning-work-main span strong {
+  color: var(--navy);
+  font-size: 14px;
+}
+
+.planning-work-main span small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.planning-work-main i.status {
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.planning-work-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 14px 134px;
+}
+
+.planning-work-actions button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.planning-work-actions button:hover {
+  border-color: #f1a5aa;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.planning-work-actions .primary-link-button {
+  border-color: rgba(214, 36, 48, 0.28);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+@media (max-width: 760px) {
+  .planning-work-main {
+    grid-template-columns: 1fr auto;
+  }
+
+  .planning-work-main time,
+  .planning-work-main span,
+  .planning-work-main i.status {
+    grid-column: 1 / -1;
+  }
+
+  .planning-work-main svg {
+    display: none;
+  }
+
+  .planning-work-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0 14px 14px;
+  }
+
+  .planning-work-actions button {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .planning-work-actions {
+    grid-template-columns: 1fr;
+  }
+}
