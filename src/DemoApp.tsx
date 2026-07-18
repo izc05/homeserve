@@ -35,7 +35,7 @@ import {
 import DemoPlanningScreen from './features/demo/DemoPlanningScreen';
 import DemoTechnicianScreen, { type TechnicianQuickAction } from './features/demo/DemoTechnicianScreen';
 import type { WorkOrderListItem } from './features/work-orders/api/workOrdersRepository';
-import DemoCreateWorkOrder from './features/work-orders/demo/DemoCreateWorkOrder';
+import DemoCreateWorkOrder, { type DemoCreateAssetSeed } from './features/work-orders/demo/DemoCreateWorkOrder';
 import DemoEditWorkOrder from './features/work-orders/demo/DemoEditWorkOrder';
 import PersistentWorkOrderDetailWorkspace from './features/work-orders/demo/PersistentWorkOrderDetailWorkspace';
 import { demoWorkOrders, DEMO_TECHNICIAN_ID, DEMO_TENANT_ID } from './features/work-orders/demo/demoWorkOrders';
@@ -145,6 +145,7 @@ export default function DemoApp() {
   const [selectedId, setSelectedId] = useState('');
   const [detailTab, setDetailTab] = useState<DetailTab>('detail');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [createAsset, setCreateAsset] = useState<DemoCreateAssetSeed | null>(null);
 
   useEffect(() => saveDemoState(state), [state]);
 
@@ -156,7 +157,8 @@ export default function DemoApp() {
   const selected = orders.find((order) => order.id === selectedId) ?? null;
   const selectedMemory = selected ? state.memory[selected.id] ?? createDefaultOrderMemory(selected) : null;
   const open = (id: string) => { setSelectedId(id); setDetailTab('detail'); setView('detail'); };
-  const navigate = (next: DemoView) => { setView(next); setMenuOpen(false); };
+  const openCreate = (asset: DemoCreateAssetSeed | null = null) => { setCreateAsset(asset); setView('create'); setMenuOpen(false); };
+  const navigate = (next: DemoView) => { if (next !== 'create') setCreateAsset(null); setView(next); setMenuOpen(false); };
   const updateOrder = (orderId: string, changes: Partial<WorkOrderListItem>) => setState((current) => ({ ...current, orders: current.orders.map((order) => order.id === orderId ? { ...order, ...changes } : order) }));
   const updateMemory = (orderId: string, updater: (current: DemoOrderMemory) => DemoOrderMemory) => setState((current) => {
     const order = current.orders.find((item) => item.id === orderId);
@@ -170,6 +172,7 @@ export default function DemoApp() {
     clearDemoState();
     setState(loadDemoState(demoWorkOrders));
     setSelectedId('');
+    setCreateAsset(null);
     setView('dashboard');
   };
   const runTechnicianAction = (order: WorkOrderListItem, action: TechnicianQuickAction) => {
@@ -205,16 +208,16 @@ export default function DemoApp() {
   };
 
   let content;
-  if (view === 'orders') content = <DemoOrders canCreate={canManage} orders={orders} open={open} create={() => setView('create')} />;
+  if (view === 'orders') content = <DemoOrders canCreate={canManage} orders={orders} open={open} create={() => openCreate()} />;
   else if (view === 'planning') content = <DemoPlanningScreen orders={orders} open={open} onReschedule={(orderId, plannedAt, dueAt, note) => { updateOrder(orderId, { plannedAt, dueAt, updatedAt: new Date().toISOString() }); addHistory(orderId, 'Planificación actualizada', note); }} />;
   else if (view === 'technician') content = <DemoTechnicianScreen orders={orders} technicianId={DEMO_TECHNICIAN_ID} technicianName="Carlos Martínez" open={open} onQuickAction={runTechnicianAction} />;
   else if (view === 'technicians') content = <DemoTechniciansScreen orders={orders} open={open} />;
   else if (view === 'installations') content = <DemoInstallationsScreen orders={orders} open={open} />;
-  else if (view === 'assets') content = <DemoAssetsScreen orders={orders} open={open} />;
+  else if (view === 'assets') content = <DemoAssetsScreen orders={orders} open={open} onCreateFromAsset={(asset) => openCreate(asset)} />;
   else if (view === 'reports') content = <DemoReportsScreen orders={orders} open={open} />;
   else if (view === 'detail') content = <PersistentWorkOrderDetailWorkspace activeTab={detailTab} memory={selectedMemory} onBack={() => setView('orders')} onEdit={() => setView('edit')} onTabChange={setDetailTab} onUpdateMemory={(updater) => selected && updateMemory(selected.id, updater)} onUpdateOrder={(changes) => selected && updateOrder(selected.id, changes)} order={selected} viewerRole={role} />;
   else if (view === 'edit' && selected && canManage) content = <DemoEditWorkOrder order={selected} onCancel={() => setView('detail')} onSave={(changes) => { updateOrder(selected.id, changes); addHistory(selected.id, 'Orden editada', `Cambios guardados por ${roleNames[role]}.`); setView('detail'); }} />;
-  else if (view === 'create' && canManage) content = <DemoCreateWorkOrder tenantId={DEMO_TENANT_ID} orders={orders} onCancel={() => setView('orders')} onCreate={(order) => { setState((current) => ({ ...current, orders: [order, ...current.orders], memory: { ...current.memory, [order.id]: createDefaultOrderMemory(order) } })); setSelectedId(order.id); setDetailTab('detail'); setView('detail'); }} />;
+  else if (view === 'create' && canManage) content = <DemoCreateWorkOrder initialAsset={createAsset} tenantId={DEMO_TENANT_ID} orders={orders} onCancel={() => { const backToAssets = Boolean(createAsset); setCreateAsset(null); setView(backToAssets ? 'assets' : 'orders'); }} onCreate={(order) => { setState((current) => ({ ...current, orders: [order, ...current.orders], memory: { ...current.memory, [order.id]: createDefaultOrderMemory(order) } })); setCreateAsset(null); setSelectedId(order.id); setDetailTab('detail'); setView('detail'); }} />;
   else content = <DemoDashboard orders={orders} name={viewerName} open={open} />;
 
   const navigation = [
@@ -230,5 +233,5 @@ export default function DemoApp() {
     { id: 'reports' as const, label: 'Informes', icon: BarChart3 },
   ];
 
-  return <div className="app-shell"><button className={`sidebar-backdrop ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" /><aside className={`sidebar ${menuOpen ? 'open' : ''}`}><div className="sidebar-brand-row"><div className="brand"><span className="brand-symbol"><Zap size={25} /></span><div><strong>IsiVoltPro OT</strong><span>Prototipo sin Supabase</span></div></div></div><nav className="sidebar-nav"><span className="nav-caption">Panel demo</span>{navigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}<span className="nav-caption nav-caption-spaced">Módulos conectados</span>{moduleNavigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}</nav><div className="sidebar-footer"><div className="organisation-card"><span className="avatar avatar-small">OT</span><span><strong>Hospital PTS · Demo</strong><small>{roleNames[role]}</small></span></div><button className="logout-button demo-reset-button" onClick={resetDemo} type="button"><RotateCcw size={18} /> Restablecer demo</button><button className="logout-button" onClick={() => setRole(null)} type="button"><LogOut size={18} /> Cambiar perfil</button></div></aside><div className="app-workspace"><header className="topbar"><button className="icon-button menu-button" onClick={() => setMenuOpen(true)} type="button"><Menu size={21} /></button><div className="demo-topbar-title"><strong>{viewerName}</strong><small>{roleNames[role]} · Demo operativo</small></div><div className="topbar-actions">{canManage && <button className="primary-button top-create" onClick={() => setView('create')} type="button"><Plus size={18} /> Nueva OT</button>}</div></header><main className="main-content"><div className="demo-context-banner"><ShieldCheck size={17} /><span><strong>Modo demo local:</strong> todo lo visible en pantalla tiene navegación o acción funcional.</span></div>{content}</main></div></div>;
+  return <div className="app-shell"><button className={`sidebar-backdrop ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" /><aside className={`sidebar ${menuOpen ? 'open' : ''}`}><div className="sidebar-brand-row"><div className="brand"><span className="brand-symbol"><Zap size={25} /></span><div><strong>IsiVoltPro OT</strong><span>Prototipo sin Supabase</span></div></div></div><nav className="sidebar-nav"><span className="nav-caption">Panel demo</span>{navigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}<span className="nav-caption nav-caption-spaced">Módulos conectados</span>{moduleNavigation.map(({ id, label, icon: Icon }) => <button className={`nav-item ${view === id ? 'active' : ''}`} key={id} onClick={() => navigate(id)} type="button"><Icon size={19} /><span>{label}</span></button>)}</nav><div className="sidebar-footer"><div className="organisation-card"><span className="avatar avatar-small">OT</span><span><strong>Hospital PTS · Demo</strong><small>{roleNames[role]}</small></span></div><button className="logout-button demo-reset-button" onClick={resetDemo} type="button"><RotateCcw size={18} /> Restablecer demo</button><button className="logout-button" onClick={() => setRole(null)} type="button"><LogOut size={18} /> Cambiar perfil</button></div></aside><div className="app-workspace"><header className="topbar"><button className="icon-button menu-button" onClick={() => setMenuOpen(true)} type="button"><Menu size={21} /></button><div className="demo-topbar-title"><strong>{viewerName}</strong><small>{roleNames[role]} · Demo operativo</small></div><div className="topbar-actions">{canManage && <button className="primary-button top-create" onClick={() => openCreate()} type="button"><Plus size={18} /> Nueva OT</button>}</div></header><main className="main-content"><div className="demo-context-banner"><ShieldCheck size={17} /><span><strong>Modo demo local:</strong> todo lo visible en pantalla tiene navegación o acción funcional.</span></div>{content}</main></div></div>;
 }
