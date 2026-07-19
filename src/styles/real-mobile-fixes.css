@@ -110,6 +110,37 @@
     margin: 0;
   }
 
+  .account-dock {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+    z-index: 79 !important;
+    max-width: none !important;
+    min-height: 52px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 7px !important;
+    border-radius: 18px !important;
+  }
+
+  .account-dock .account-avatar,
+  .account-dock .account-identity,
+  .account-dock .single-tenant,
+  .account-dock .tenant-select,
+  .account-dock .dock-logout {
+    display: none !important;
+  }
+
+  .account-dock .dock-button:not(.dock-logout) {
+    width: 100% !important;
+    min-height: 42px !important;
+    justify-content: center !important;
+    border: 1px solid rgba(227, 6, 19, 0.16) !important;
+    background: #fff5f6 !important;
+    color: var(--brand) !important;
+    font-weight: 900 !important;
+  }
+
   .mobile-nav {
     position: fixed !important;
     left: 10px !important;
@@ -158,7 +189,7 @@
   }
 
   .main-content {
-    padding-bottom: 124px !important;
+    padding-bottom: 184px !important;
   }
 
   .source-panel .read-only-note {
