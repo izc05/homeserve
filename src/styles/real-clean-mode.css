@@ -1,0 +1,172 @@
+/* Capa final de limpieza visual para el modo real.
+   Mantiene la creación de OT real y reduce elementos no esenciales en presentación/uso diario. */
+
+:root {
+  --clean-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* Menos ruido en cabecera: la búsqueda global y la campana aún no tienen flujo completo. */
+.topbar .search-box,
+.topbar .notification-button {
+  display: none !important;
+}
+
+.topbar {
+  min-height: 66px;
+  gap: 14px;
+}
+
+.topbar-actions {
+  margin-left: auto;
+}
+
+/* Oculta la navegación de configuración hasta que esos módulos estén conectados de punta a punta. */
+.sidebar-nav .nav-caption-spaced,
+.sidebar-nav .nav-caption-spaced ~ .nav-item {
+  display: none !important;
+}
+
+.sidebar-nav {
+  gap: 5px;
+}
+
+.nav-item.muted-nav {
+  opacity: 0.92;
+}
+
+.nav-item span,
+.logout-button,
+.organisation-card small {
+  letter-spacing: -0.01em;
+}
+
+/* Tarjetas más limpias, menos sombras y menos sensación de prototipo cargado. */
+.panel,
+.metric-card,
+.workload-row,
+.day-plan-list button,
+.orders-table-row,
+.agenda-item,
+.recent-order {
+  box-shadow: var(--clean-shadow) !important;
+}
+
+.metric-card {
+  min-height: 94px;
+}
+
+.source-badge {
+  background: #f8fafc !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  color: #64748b !important;
+}
+
+.page-heading p,
+.panel-heading p,
+.description-box p,
+.empty-state {
+  line-height: 1.45;
+}
+
+/* Listado real de OT más compacto y útil. */
+.orders-table {
+  gap: 6px;
+}
+
+.orders-table-row {
+  border-radius: 12px;
+}
+
+.orders-table-row .form-actions {
+  gap: 6px;
+}
+
+.orders-table-row .text-link {
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+/* Crear OT: baja ruido visual sin eliminar la función real de alta rápida. */
+.work-order-create-form {
+  gap: 14px;
+}
+
+.creation-section-heading {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.creation-section-heading small {
+  color: #64748b;
+}
+
+.work-order-create-form .form-grid {
+  gap: 10px;
+}
+
+.work-order-create-form label {
+  font-size: 12px;
+}
+
+.work-order-create-form input,
+.work-order-create-form select,
+.work-order-create-form textarea {
+  min-height: 40px;
+}
+
+.requirements-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.requirement-option {
+  min-height: 44px !important;
+  border-radius: 10px !important;
+}
+
+.requirement-option span strong {
+  font-size: 11px;
+}
+
+/* Detalle: agrupa acciones sin llenar demasiado la pantalla. */
+.source-panel .work-order-form-actions {
+  gap: 8px;
+}
+
+.source-panel .work-order-form-actions button {
+  min-height: 38px;
+}
+
+.detail-grid {
+  gap: 14px;
+}
+
+.evidence-grid {
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    min-height: 58px;
+  }
+
+  .topbar .topbar-actions .user-menu {
+    display: none;
+  }
+
+  .topbar .top-create {
+    min-height: 38px;
+    padding-inline: 10px;
+  }
+
+  .metric-card {
+    min-height: 86px;
+  }
+
+  .work-order-create-form .form-grid,
+  .requirements-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
