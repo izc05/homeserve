@@ -7,6 +7,7 @@ import {
 const validValues = {
   title: 'Revisar cuadro principal',
   description: '',
+  clientId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   installationId: '11111111-1111-4111-8111-111111111111',
   locationId: '',
   assetId: '',

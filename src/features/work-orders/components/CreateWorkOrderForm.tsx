@@ -53,6 +53,7 @@ const PRIORITY_OPTIONS = [
 const DEFAULT_VALUES: CreateWorkOrderFormValues = {
   title: '',
   description: '',
+  clientId: '',
   installationId: '',
   locationId: '',
   assetId: '',
@@ -149,14 +150,29 @@ export default function CreateWorkOrderForm({
     });
   }, [form, initialValues]);
 
+  const clientId = form.watch('clientId');
   const installationId = form.watch('installationId');
   const locationId = form.watch('locationId');
   const catalog = catalogQuery.data;
+
+  const installations = useMemo(
+    () => catalog?.installations.filter((installation) => installation.clientId === clientId) ?? [],
+    [catalog, clientId],
+  );
 
   const locations = useMemo(
     () => catalog?.locations.filter((location) => location.installationId === installationId) ?? [],
     [catalog, installationId],
   );
+
+  useEffect(() => {
+    const selectedInstallation = catalog?.installations.find((installation) => installation.id === installationId);
+    if (selectedInstallation && selectedInstallation.clientId !== clientId) {
+      form.setValue('installationId', '', { shouldDirty: true, shouldValidate: true });
+      form.setValue('locationId', '', { shouldDirty: true });
+      form.setValue('assetId', '', { shouldDirty: true });
+    }
+  }, [catalog, clientId, form, installationId]);
 
   const assets = useMemo(
     () => catalog?.assets.filter((asset) => (
@@ -169,6 +185,7 @@ export default function CreateWorkOrderForm({
   const quickInstallationMutation = useMutation({
     mutationFn: () => createInstallation(getSupabaseClient(), {
       tenantId,
+      clientId,
       name: installationDraft.name,
       code: installationDraft.code,
       type: installationDraft.type,
@@ -331,6 +348,13 @@ export default function CreateWorkOrderForm({
         </div>
 
         <div className="form-grid installation-context-grid">
+          <label>Cliente
+            <select {...form.register('clientId')}>
+              <option value="">Seleccionar cliente</option>
+              {catalog.clients.map((client) => <option key={client.id} value={client.id}>{client.code ? `${client.code} · ` : ''}{client.name}</option>)}
+            </select>
+            {errors.clientId && <small className="field-error">{errors.clientId.message}</small>}
+          </label>
           <label>Nombre instalación
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, name: event.target.value }))}
@@ -390,7 +414,7 @@ export default function CreateWorkOrderForm({
           </label>
           <button
             className="secondary-button installation-create-button"
-            disabled={busy || !installationDraft.name.trim()}
+            disabled={busy || !clientId || !installationDraft.name.trim()}
             onClick={() => quickInstallationMutation.mutate()}
             type="button"
           >
@@ -459,11 +483,13 @@ export default function CreateWorkOrderForm({
 
           <label>Instalación
             <select {...form.register('installationId')}>
-              <option value="">Seleccionar instalación</option>
-              {catalog.installations.map((installation) => <option key={installation.id} value={installation.id}>{installation.code ? `${installation.code} · ` : ''}{installation.name}</option>)}
+              <option value="">{clientId ? 'Seleccionar instalación' : 'Selecciona antes un cliente'}</option>
+              {installations.map((installation) => <option key={installation.id} value={installation.id}>{installation.code ? `${installation.code} · ` : ''}{installation.name}</option>)}
             </select>
             {errors.installationId && <small className="field-error">{errors.installationId.message}</small>}
           </label>
+
+          {clientId && installations.length === 0 && <p className="read-only-note full-field"><MapPin size={16} /> Este cliente no tiene instalaciones activas. Crea una instalación desde la alta rápida antes de continuar.</p>}
 
           <label>Ubicación
             <select {...form.register('locationId')} disabled={!installationId}>

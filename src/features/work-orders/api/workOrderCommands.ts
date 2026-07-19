@@ -6,6 +6,13 @@ import type {
 
 export type InstallationOption = {
   id: string;
+  clientId: string;
+  name: string;
+  code: string | null;
+};
+
+export type ClientOption = {
+  id: string;
   name: string;
   code: string | null;
 };
@@ -30,6 +37,7 @@ export type TechnicianOption = {
 };
 
 export type WorkOrderCreationCatalog = {
+  clients: ClientOption[];
   installations: InstallationOption[];
   locations: LocationOption[];
   assets: AssetOption[];
@@ -76,6 +84,7 @@ export type CreatedWorkOrder = {
 
 export type CreateInstallationInput = {
   tenantId: string;
+  clientId: string;
   name: string;
   code?: string | null;
   type?: string | null;
@@ -101,7 +110,8 @@ export type CreateAssetInput = {
   notes?: string | null;
 };
 
-type InstallationRow = { id: string; nombre: string; codigo: string | null };
+type ClientRow = { id: string; nombre: string; codigo: string | null };
+type InstallationRow = { id: string; cliente_id: string; nombre: string; codigo: string | null };
 type LocationRow = { id: string; instalacion_id: string; nombre: string };
 type AssetRow = {
   id: string;
@@ -115,7 +125,7 @@ type MemberRow = {
 };
 type ProfileRow = { id: string; nombre: string | null };
 type CreatedWorkOrderRow = { id: string; codigo_ot: string; estado: string };
-type CreatedInstallationRow = { id: string; nombre: string; codigo: string | null };
+type CreatedInstallationRow = { id: string; cliente_id: string; nombre: string; codigo: string | null };
 type CreatedAssetRow = {
   id: string;
   instalacion_id: string;
@@ -178,11 +188,19 @@ export async function loadWorkOrderCreationCatalog(
 ): Promise<WorkOrderCreationCatalog> {
   if (!tenantId.trim()) throw new Error('Selecciona una organización antes de crear una OT.');
 
-  const [installationResult, locationResult, assetResult, memberResult] = await Promise.all([
+  const [clientResult, installationResult, locationResult, assetResult, memberResult] = await Promise.all([
     supabase
-      .from('instalaciones')
+      .from('clientes')
       .select('id,nombre,codigo')
       .eq('tenant_id', tenantId)
+      .eq('estado', 'activo')
+      .is('deleted_at', null)
+      .order('nombre'),
+    supabase
+      .from('instalaciones')
+      .select('id,cliente_id,nombre,codigo')
+      .eq('tenant_id', tenantId)
+      .eq('estado', 'activo')
       .is('deleted_at', null)
       .order('nombre'),
     supabase
@@ -206,7 +224,7 @@ export async function loadWorkOrderCreationCatalog(
       .order('created_at'),
   ]);
 
-  for (const result of [installationResult, locationResult, assetResult, memberResult]) {
+  for (const result of [clientResult, installationResult, locationResult, assetResult, memberResult]) {
     if (result.error) throw result.error;
   }
 
@@ -228,8 +246,14 @@ export async function loadWorkOrderCreationCatalog(
   );
 
   return {
+    clients: ((clientResult.data ?? []) as unknown as ClientRow[]).map((row) => ({
+      id: String(row.id),
+      name: String(row.nombre),
+      code: row.codigo ? String(row.codigo) : null,
+    })),
     installations: ((installationResult.data ?? []) as unknown as InstallationRow[]).map((row) => ({
       id: String(row.id),
+      clientId: String(row.cliente_id),
       name: String(row.nombre),
       code: row.codigo ? String(row.codigo) : null,
     })),
@@ -257,6 +281,7 @@ export async function createInstallation(
   input: CreateInstallationInput,
 ): Promise<InstallationOption> {
   if (!input.tenantId.trim()) throw new Error('Selecciona una organización antes de crear la instalación.');
+  if (!input.clientId.trim()) throw new Error('Selecciona un cliente antes de crear la instalación.');
   if (!input.name.trim()) throw new Error('Indica el nombre de la instalación.');
 
   const createdBy = await currentUserId(supabase);
@@ -264,6 +289,7 @@ export async function createInstallation(
     .from('instalaciones')
     .insert({
       tenant_id: input.tenantId,
+      cliente_id: input.clientId,
       nombre: input.name.trim(),
       codigo: nullableText(input.code),
       tipo: nullableText(input.type) ?? 'general',
@@ -272,10 +298,10 @@ export async function createInstallation(
       contacto_telefono: nullableText(input.contactPhone),
       contacto_email: nullableText(input.contactEmail),
       descripcion: nullableText(input.description),
-      estado: 'activa',
+      estado: 'activo',
       created_by: createdBy,
     })
-    .select('id,nombre,codigo')
+    .select('id,cliente_id,nombre,codigo')
     .single();
 
   if (error) throw error;
@@ -285,6 +311,7 @@ export async function createInstallation(
 
   return {
     id: String(row.id),
+    clientId: String(row.cliente_id),
     name: String(row.nombre),
     code: row.codigo ? String(row.codigo) : null,
   };

@@ -38,6 +38,8 @@ import { ensureWorkOrderDefaultChecklist, registerWorkOrderReport } from './feat
 import { cancelWorkOrder, canCancelWorkOrder } from './features/work-orders/api/workOrderCancellation';
 import type { WorkOrderPriority, WorkOrderStatus, WorkOrderType } from './features/work-orders/types/workOrder';
 import type { CreateWorkOrderFormValues } from './features/work-orders/forms/createWorkOrderSchema';
+import ClientsWorkspace from './features/clients/pages/ClientsWorkspace';
+import { canAccessClientNavigation, canManageClientRecords } from './features/clients/clientAccess';
 
 type View = 'dashboard' | 'orders' | 'planning' | 'detail' | 'create' | 'technician' | 'technicians' | 'clients' | 'assets' | 'reports' | 'audit';
 type NavItem = { id: View; label: string; icon: LucideIcon };
@@ -200,21 +202,6 @@ function makeAssetPreset(asset: WorkOrderCreationCatalog['assets'][number]): Cre
   };
 }
 
-function makeInstallationPreset(installation: WorkOrderCreationCatalog['installations'][number]): CreatePreset {
-  return {
-    installationId: installation.id,
-    title: `Intervención en ${installation.name}`,
-    description: `Orden creada desde la instalación ${installation.name}.`,
-    type: 'mantenimiento_preventivo',
-    priority: 'normal',
-    checklist: true,
-    finalPhotos: true,
-    technicianSignature: true,
-    report: true,
-    administrativeReview: true,
-  };
-}
-
 function auditDetail(event: WorkOrderAuditEvent) {
   const meta = event.metadata;
   const parts = [
@@ -232,7 +219,7 @@ function Brand() {
   return <div className="brand"><span className="brand-symbol"><Zap size={25} strokeWidth={2.8} /></span><div><strong>IsiVoltPro FV</strong><span>Órdenes de trabajo reales</span></div></div>;
 }
 
-function Sidebar({ active, open, tenantName, viewerRole, navigate, close, logout }: { active: View; open: boolean; tenantName: string; viewerRole: string; navigate: (view: View) => void; close: () => void; logout: () => void }) {
+function Sidebar({ active, open, tenantName, viewerRole, canAccessClients, navigate, close, logout }: { active: View; open: boolean; tenantName: string; viewerRole: string; canAccessClients: boolean; navigate: (view: View) => void; close: () => void; logout: () => void }) {
   const renderItem = ({ id, label, icon: Icon }: NavItem, muted = false) => (
     <button className={`nav-item ${active === id ? 'active' : ''} ${muted ? 'muted-nav' : ''}`} key={id} onClick={() => { navigate(id); close(); }} type="button">
       <Icon size={19} />
@@ -248,7 +235,7 @@ function Sidebar({ active, open, tenantName, viewerRole, navigate, close, logout
         <span className="nav-caption">Trabajo diario</span>
         {mainNavigation.map((item) => renderItem(item))}
         <span className="nav-caption nav-caption-spaced">Control</span>
-        {secondaryNavigation.map((item) => renderItem(item, true))}
+        {secondaryNavigation.filter((item) => item.id !== 'clients' || canAccessClients).map((item) => renderItem(item, true))}
       </nav>
       <div className="sidebar-footer">
         <div className="organisation-card"><span className="avatar avatar-small">FV</span><span><strong>{tenantName}</strong><small>{roleLabel(viewerRole)}</small></span></div>
@@ -392,11 +379,6 @@ function TechniciansPage({ orders, catalog, open, create, canCreate }: { orders:
   return <><ModuleMetrics orders={orders} catalog={catalog} /><section className="panel workload-panel"><div className="panel-heading"><h2>Carga por técnico</h2><span className="source-badge">{techs.length} técnicos</span></div><div className="workload-list">{techs.map(({ name, id, rows }) => { const latest = latestOrder(rows); return <div className="workload-row" key={id || name}><span className="avatar avatar-mini">{initials(name)}</span><strong>{name}</strong><b>{rows.length} OT</b><small>{rows.filter((order) => order.status === 'EN_CURSO').length} en curso · {rows.filter((order) => order.status === 'BLOQUEADA').length} bloqueadas</small>{latest && <button className="text-link" onClick={() => open(latest.id)} type="button">Última</button>}{canCreate && <button className="text-link" onClick={() => create({ technicianId: id, title: `Nueva intervención para ${name}` })} type="button">Nueva OT</button>}</div>; })}</div></section></>;
 }
 
-function ClientsPage({ orders, catalog, open, create, canCreate }: { orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null; open: (id: string) => void; create: OpenCreate; canCreate: boolean }) {
-  const sites = catalog?.installations.map((installation) => ({ installation, rows: orders.filter((order) => order.siteId === installation.id) })) ?? groupBy(orders, (order) => order.siteName).map((group) => ({ installation: { id: group.rows[0]?.siteId ?? '', name: group.name, code: null }, rows: group.rows }));
-  return <><ModuleMetrics orders={orders} catalog={catalog} /><section className="panel planning-list-panel"><div className="panel-heading"><h2>Instalaciones</h2><span className="source-badge">{sites.length}</span></div><div className="day-plan-list">{sites.map(({ installation, rows }) => { const latest = latestOrder(rows); return <button key={installation.id || installation.name} onClick={() => latest ? open(latest.id) : canCreate && create(makeInstallationPreset(installation))} type="button"><Building2 size={18} /><span><strong>{installation.code ? `${installation.code} · ` : ''}{installation.name}</strong><small>{uniqueCount(rows.map((order) => order.locationName))} ubicaciones · {uniqueCount(rows.map((order) => order.assetName || order.assetId))} equipos · {rows.filter(isOpenOrder).length} abiertas</small></span><ChevronRight size={17} /></button>; })}</div></section></>;
-}
-
 function AssetsPage({ orders, catalog, open, create, canCreate }: { orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null; open: (id: string) => void; create: OpenCreate; canCreate: boolean }) {
   const catalogAssets = catalog?.assets.map((asset) => ({ asset, rows: orders.filter((order) => order.assetId === asset.id) }));
   const groupedAssets = groupBy(orders, (order) => order.assetName || order.assetType || `Sin equipo · ${typeLabels[order.type]}`).map((group) => ({ asset: null as WorkOrderCreationCatalog['assets'][number] | null, rows: group.rows, name: group.name }));
@@ -415,9 +397,8 @@ function AuditPage({ events, loading, error }: { events: WorkOrderAuditEvent[]; 
   return <section className="panel planning-list-panel"><div className="panel-heading"><h2>Auditoría de OT</h2><span className="source-badge">{events.length}</span></div><div className="day-plan-list">{events.length === 0 ? <p className="empty-state">Sin eventos todavía.</p> : events.slice(0, 40).map((event) => <div className="orders-table-row" key={event.id}><span><strong>{humanAuditAction(event.action)}</strong><small>{auditDetail(event)}</small></span><span>{event.actorName ?? 'Sistema'}</span><small>{displayDate(event.createdAt)}</small></div>)}</div></section>;
 }
 
-function ModulePage({ view, orders, catalog, auditEvents, auditLoading, auditError, busyOrderId, openDetail, create, canCreate, viewerId, viewerRole, runEvidence }: { view: View; orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null; auditEvents: WorkOrderAuditEvent[]; auditLoading: boolean; auditError: string | null; busyOrderId: string | null; openDetail: (id: string) => void; create: OpenCreate; canCreate: boolean; viewerId: string; viewerRole: string; runEvidence: RunEvidence }) {
+function ModulePage({ view, orders, catalog, auditEvents, auditLoading, auditError, busyOrderId, openDetail, create, canCreate, viewerId, viewerRole, runEvidence }: { view: Exclude<View, 'clients'>; orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null; auditEvents: WorkOrderAuditEvent[]; auditLoading: boolean; auditError: string | null; busyOrderId: string | null; openDetail: (id: string) => void; create: OpenCreate; canCreate: boolean; viewerId: string; viewerRole: string; runEvidence: RunEvidence }) {
   if (view === 'technicians') return <TechniciansPage orders={orders} catalog={catalog} open={openDetail} create={create} canCreate={canCreate} />;
-  if (view === 'clients') return <ClientsPage orders={orders} catalog={catalog} open={openDetail} create={create} canCreate={canCreate} />;
   if (view === 'assets') return <AssetsPage orders={orders} catalog={catalog} open={openDetail} create={create} canCreate={canCreate} />;
   if (view === 'reports') return <ReportsPage orders={orders} open={openDetail} busyOrderId={busyOrderId} viewerId={viewerId} viewerRole={viewerRole} runEvidence={runEvidence} />;
   return <AuditPage events={auditEvents} loading={auditLoading} error={auditError} />;
@@ -435,6 +416,8 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   const [createPreset, setCreatePreset] = useState<CreatePreset | undefined>();
   const [notice, setNotice] = useState<Notice>(null);
   const canManage = isManagerRole(viewerRole);
+  const canAccessClients = canAccessClientNavigation(viewerRole);
+  const canManageClients = canManageClientRecords(viewerRole);
 
   const query = useQuery({
     queryKey: ['work-orders', tenantId],
@@ -552,13 +535,16 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   else if (view === 'orders') content = <OrdersPage orders={orders} create={() => openCreate()} canCreate={canManage} open={openDetail} viewerRole={viewerRole} busyOrderId={busyOrderId} cancelOrder={runCancelAction} />;
   else if (view === 'detail') content = <Detail order={selectedOrder} back={() => setView('orders')} create={openCreate} canCreate={canManage} viewerId={viewerId} viewerRole={viewerRole} busyOrderId={busyOrderId} notice={notice} runAction={runLifecycleAction} runReview={runReviewAction} runEvidence={runEvidenceAction} runCancel={runCancelAction} />;
   else if (view === 'create') content = <CreateWorkOrderForm tenantId={tenantId} canManage={canManage} initialValues={createPreset} onCancel={() => { setCreatePreset(undefined); setView('orders'); }} onCreated={(workOrderId) => { void finishCreate(workOrderId); }} />;
+  else if (view === 'clients') content = canAccessClients
+    ? <ClientsWorkspace tenantId={tenantId} canManage={canManageClients} onCreateWorkOrder={(client) => openCreate({ clientId: client.id })} />
+    : <section className="panel data-state error-state"><LockKeyhole size={28} /><strong>Acceso no disponible</strong><p>Tu rol no tiene acceso a la gestión administrativa de clientes.</p></section>;
   else if (view === 'planning') content = <Planning orders={orders} open={openDetail} />;
   else if (view === 'technician') content = <Technician orders={orders} viewerId={viewerId} open={openDetail} busyOrderId={busyOrderId} runAction={runLifecycleAction} />;
-  else if (['technicians', 'clients', 'assets', 'reports', 'audit'].includes(view)) content = <ModulePage view={view} orders={orders} catalog={catalogQuery.data} auditEvents={auditQuery.data ?? []} auditLoading={auditQuery.isLoading} auditError={auditQuery.error instanceof Error ? auditQuery.error.message : null} busyOrderId={busyOrderId} openDetail={openDetail} create={openCreate} canCreate={canManage} viewerId={viewerId} viewerRole={viewerRole} runEvidence={runEvidenceAction} />;
+  else if (['technicians', 'assets', 'reports', 'audit'].includes(view)) content = <ModulePage view={view} orders={orders} catalog={catalogQuery.data} auditEvents={auditQuery.data ?? []} auditLoading={auditQuery.isLoading} auditError={auditQuery.error instanceof Error ? auditQuery.error.message : null} busyOrderId={busyOrderId} openDetail={openDetail} create={openCreate} canCreate={canManage} viewerId={viewerId} viewerRole={viewerRole} runEvidence={runEvidenceAction} />;
   else content = <Dashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
 
   return <div className="app-shell">
-    <Sidebar active={view} open={menuOpen} tenantName={tenantName} viewerRole={viewerRole} navigate={(next) => { setCreatePreset(undefined); setView(next); }} close={() => setMenuOpen(false)} logout={onLogout} />
+    <Sidebar active={view} open={menuOpen} tenantName={tenantName} viewerRole={viewerRole} canAccessClients={canAccessClients} navigate={(next) => { if (next === 'clients' && !canAccessClients) return; setCreatePreset(undefined); setView(next); }} close={() => setMenuOpen(false)} logout={onLogout} />
     <div className="app-workspace"><Topbar viewerName={viewerName} viewerRole={viewerRole} menu={() => setMenuOpen(true)} create={() => openCreate()} canCreate={canManage} logout={onLogout} /><main className="main-content">{content}</main></div>
     <MobileNav active={view} navigate={(nextView) => { setCreatePreset(undefined); setView(nextView); }} />
     <PageNotice notice={notice} onClose={() => setNotice(null)} />
