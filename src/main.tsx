@@ -18,6 +18,7 @@ import './styles/demo-assets.css';
 import './styles/demo-detail-actions.css';
 import './styles/demo-module-actions.css';
 import './styles/demo-report-actions.css';
+import './styles/real-clean-mode.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
