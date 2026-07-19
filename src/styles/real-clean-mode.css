@@ -151,18 +151,25 @@
   font-size: 11px;
 }
 
-.work-order-form-actions {
+/* La botonera fija solo se aplica al formulario de creación.
+   Antes afectaba también a acciones del detalle, y podía generar ruido visual. */
+.work-order-create-form > .work-order-form-actions {
   position: sticky;
   bottom: 0;
   z-index: 4;
   padding-top: 10px;
   padding-bottom: max(10px, env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.12), #fff 44%);
+  border-top: 1px solid rgba(226, 232, 240, 0.82);
 }
 
 /* Detalle: agrupa acciones sin llenar demasiado la pantalla. */
 .source-panel .work-order-form-actions {
   gap: 8px;
+  position: static;
+  padding: 0;
+  border-top: 0;
+  background: transparent;
 }
 
 .source-panel .work-order-form-actions button {
@@ -210,7 +217,7 @@
     grid-template-columns: 1fr !important;
   }
 
-  .work-order-form-actions {
+  .work-order-create-form > .work-order-form-actions {
     display: grid;
     grid-template-columns: 1fr;
   }
