@@ -1,0 +1,13 @@
+{
+  "name": "IsiVoltPro FV · Mantenimiento fotovoltaico",
+  "short_name": "IsiVoltPro FV",
+  "description": "Gestión de órdenes de trabajo, técnicos, activos, evidencias e informes para empresas de fotovoltaica y mantenimiento.",
+  "start_url": "/homeserve/",
+  "scope": "/homeserve/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#18212f",
+  "lang": "es",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"]
+}
