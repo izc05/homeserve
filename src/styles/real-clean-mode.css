@@ -179,7 +179,15 @@
   border-top: 1px solid rgba(226, 232, 240, 0.82);
 }
 
-/* Detalle: agrupa acciones sin llenar demasiado la pantalla. */
+/* Detalle: tarjetas más compactas y mensajes menos alarmistas. */
+.source-panel {
+  min-height: auto !important;
+}
+
+.source-panel .panel-heading {
+  margin-bottom: 12px;
+}
+
 .source-panel .work-order-form-actions {
   gap: 8px;
   position: static;
@@ -190,6 +198,19 @@
 
 .source-panel .work-order-form-actions button {
   min-height: 38px;
+}
+
+/* El informe no debe parecer una acción de emergencia roja mientras se trabaja la OT. */
+.source-panel:has(.lucide-list-checks) .primary-button {
+  border-color: #cbd5e1 !important;
+  background: #fff !important;
+  color: #18212f !important;
+  box-shadow: none !important;
+}
+
+.source-panel:has(.lucide-list-checks) .primary-button:hover {
+  border-color: #94a3b8 !important;
+  background: #f8fafc !important;
 }
 
 .detail-grid {
@@ -204,6 +225,30 @@
 .read-only-note,
 .form-global-error {
   border-radius: 11px;
+}
+
+.source-panel .read-only-note {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1e3a8a !important;
+}
+
+.source-panel .read-only-note svg {
+  color: #2563eb !important;
+}
+
+.source-panel .read-only-note:has(.lucide-circle-check-big),
+.source-panel .read-only-note:has(.lucide-check-circle-2),
+.source-panel .read-only-note:has(.lucide-circle-check) {
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+}
+
+.source-panel .read-only-note:has(.lucide-circle-check-big) svg,
+.source-panel .read-only-note:has(.lucide-check-circle-2) svg,
+.source-panel .read-only-note:has(.lucide-circle-check) svg {
+  color: #16a34a !important;
 }
 
 .global-notice {
@@ -222,6 +267,23 @@
   .topbar .top-create {
     min-height: 38px;
     padding-inline: 10px;
+  }
+
+  .main-content {
+    padding-bottom: 106px;
+  }
+
+  .panel {
+    padding: 14px !important;
+  }
+
+  .source-panel {
+    min-height: auto !important;
+  }
+
+  .source-panel .work-order-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .metric-card {
