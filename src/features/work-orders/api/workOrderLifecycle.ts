@@ -48,6 +48,13 @@ export type FinalizeActiveWorkOrderVisitInput = Omit<FinalizeWorkOrderVisitInput
   workOrderId: string;
 };
 
+type WorkOrderStatusRow = {
+  estado?: string | null;
+};
+
+const BLOCKABLE_STATUSES = ['EN_CURSO'] as const;
+const RESUMABLE_STATUSES = ['BLOQUEADA', 'PAUSADA', 'PENDIENTE_MATERIAL', 'PENDIENTE_CLIENTE'] as const;
+
 function requireUuid(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
 }
@@ -96,6 +103,66 @@ function buildClosePayload(input: Omit<FinalizeWorkOrderVisitInput, 'visitId'>) 
   };
 }
 
+async function readWorkOrderStatus(
+  supabase: SupabaseClient,
+  workOrderId: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from('ordenes_trabajo')
+    .select('estado')
+    .eq('id', workOrderId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const status = String(((data as WorkOrderStatusRow | null)?.estado ?? '')).trim();
+  if (!status) throw new Error('No se ha encontrado la OT o no tiene estado válido.');
+  return status;
+}
+
+async function assertCanStartWorkOrder(
+  supabase: SupabaseClient,
+  workOrderId: string,
+) {
+  const status = await readWorkOrderStatus(supabase, workOrderId);
+  if (status === 'ASIGNADA') {
+    throw new Error('Primero el técnico asignado debe aceptar la OT antes de iniciarla.');
+  }
+  if (status !== 'ACEPTADA') {
+    throw new Error('Solo se puede iniciar una OT aceptada y pendiente de comenzar.');
+  }
+}
+
+async function assertCanBlockWorkOrder(
+  supabase: SupabaseClient,
+  workOrderId: string,
+) {
+  const status = await readWorkOrderStatus(supabase, workOrderId);
+  if (!BLOCKABLE_STATUSES.includes(status as (typeof BLOCKABLE_STATUSES)[number])) {
+    throw new Error('Solo se puede pausar o dejar pendiente una OT que esté en curso.');
+  }
+}
+
+async function assertCanResumeWorkOrder(
+  supabase: SupabaseClient,
+  workOrderId: string,
+) {
+  const status = await readWorkOrderStatus(supabase, workOrderId);
+  if (!RESUMABLE_STATUSES.includes(status as (typeof RESUMABLE_STATUSES)[number])) {
+    throw new Error('Solo se puede reanudar una OT bloqueada o pendiente.');
+  }
+}
+
+async function assertCanFinishActiveVisit(
+  supabase: SupabaseClient,
+  workOrderId: string,
+) {
+  const status = await readWorkOrderStatus(supabase, workOrderId);
+  if (status !== 'EN_CURSO') {
+    throw new Error('Solo se puede finalizar una OT que esté en curso.');
+  }
+}
+
 export async function acceptWorkOrder(
   supabase: SupabaseClient,
   workOrderId: string,
@@ -115,6 +182,7 @@ export async function startWorkOrderVisit(
   workOrderId: string,
 ): Promise<WorkOrderVisitResult> {
   requireUuid(workOrderId, 'No se ha indicado la OT a iniciar.');
+  await assertCanStartWorkOrder(supabase, workOrderId);
 
   const { data, error } = await supabase.rpc('start_work_order_visit', {
     work_order_uuid: workOrderId,
@@ -130,6 +198,7 @@ export async function blockWorkOrder(
 ): Promise<WorkOrderLifecycleResult> {
   requireUuid(input.workOrderId, 'No se ha indicado la OT a bloquear.');
   requireText(input.reason, 'Indica el motivo del bloqueo.');
+  await assertCanBlockWorkOrder(supabase, input.workOrderId);
 
   const { data, error } = await supabase.rpc('block_work_order', {
     work_order_uuid: input.workOrderId,
@@ -146,6 +215,7 @@ export async function resumeWorkOrder(
   workOrderId: string,
 ): Promise<WorkOrderLifecycleResult> {
   requireUuid(workOrderId, 'No se ha indicado la OT a reanudar.');
+  await assertCanResumeWorkOrder(supabase, workOrderId);
 
   const { data, error } = await supabase.rpc('resume_work_order', {
     work_order_uuid: workOrderId,
@@ -177,6 +247,7 @@ export async function finalizeActiveWorkOrderVisit(
 ): Promise<WorkOrderVisitResult> {
   requireUuid(input.workOrderId, 'No se ha indicado la OT a finalizar.');
   requireText(input.workDone, 'Indica el trabajo realizado antes de finalizar.');
+  await assertCanFinishActiveVisit(supabase, input.workOrderId);
 
   const { data, error } = await supabase.rpc('finalize_active_work_order_visit', {
     work_order_uuid: input.workOrderId,
