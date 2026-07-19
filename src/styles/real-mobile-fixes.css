@@ -1,6 +1,16 @@
 /* Ajustes finales móviles para la app real.
    Se carga al final para corregir conflictos entre capas de estilos anteriores. */
 
+/* Flujo documental: el informe no debe registrarse mientras la OT sigue abierta.
+   Se mantiene el checklist operativo y el backend vuelve a validar el estado. */
+.main-content:has(.status-borrador) .source-panel:has(.lucide-list-checks) .primary-button,
+.main-content:has(.status-asignada) .source-panel:has(.lucide-list-checks) .primary-button,
+.main-content:has(.status-aceptada) .source-panel:has(.lucide-list-checks) .primary-button,
+.main-content:has(.status-en-curso) .source-panel:has(.lucide-list-checks) .primary-button,
+.main-content:has(.status-bloqueada) .source-panel:has(.lucide-list-checks) .primary-button {
+  display: none !important;
+}
+
 @media (max-width: 760px) {
   .sidebar.open {
     width: min(340px, 88vw) !important;
