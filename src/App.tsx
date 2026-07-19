@@ -115,12 +115,16 @@ function isOpenOrder(order: WorkOrderListItem) {
   return !['VALIDADA', 'CANCELADA'].includes(order.status);
 }
 
+function isAssignedTechnician(order: WorkOrderListItem, viewerId: string) {
+  return Boolean(order.assignedTo && order.assignedTo === viewerId);
+}
+
 function canPrepareEvidence(order: WorkOrderListItem) {
   return !['VALIDADA', 'CANCELADA'].includes(order.status);
 }
 
-function canExecuteOrder(order: WorkOrderListItem, viewerId: string, viewerRole: string) {
-  return isManagerRole(viewerRole) || order.assignedTo === viewerId;
+function canPrepareEvidenceByUser(order: WorkOrderListItem, viewerId: string, viewerRole: string) {
+  return canPrepareEvidence(order) && (isManagerRole(viewerRole) || isAssignedTechnician(order, viewerId));
 }
 
 function displayDate(value: string | null) {
@@ -254,12 +258,13 @@ function Sidebar({ active, open, tenantName, viewerRole, navigate, close, logout
   </>;
 }
 
-function Topbar({ viewerName, viewerRole, menu, create, canCreate }: { viewerName: string; viewerRole: string; menu: () => void; create: () => void; canCreate: boolean }) {
+function Topbar({ viewerName, viewerRole, menu, create, canCreate, logout }: { viewerName: string; viewerRole: string; menu: () => void; create: () => void; canCreate: boolean; logout: () => void }) {
   return <header className="topbar">
     <button className="icon-button menu-button" onClick={menu} aria-label="Abrir menú"><Menu size={21} /></button>
     <div className="topbar-actions">
       <div className="user-menu"><span className="avatar">{initials(viewerName)}</span><span><strong>{viewerName}</strong><small>{roleLabel(viewerRole)}</small></span></div>
       {canCreate && <button className="primary-button top-create" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}
+      <button className="secondary-button top-logout" onClick={logout} type="button"><LogOut size={17} /> Salir</button>
     </div>
   </header>;
 }
@@ -296,9 +301,10 @@ function OrderList({ orders, open, empty, limit }: { orders: WorkOrderListItem[]
   </div>;
 }
 
-function LifecycleActions({ order, canUse, busy, compact = false, run }: { order: WorkOrderListItem; canUse: boolean; busy: boolean; compact?: boolean; run: RunLifecycle }) {
-  const actions = compact ? availableLifecycleActions(order).slice(0, 2) : availableLifecycleActions(order);
-  if (!canUse || actions.length === 0) return compact ? null : <p className="read-only-note"><LockKeyhole size={16} /> No hay acciones técnicas disponibles para este estado.</p>;
+function LifecycleActions({ order, viewerId, busy, compact = false, run }: { order: WorkOrderListItem; viewerId: string; busy: boolean; compact?: boolean; run: RunLifecycle }) {
+  const assigned = isAssignedTechnician(order, viewerId);
+  const actions = assigned ? (compact ? availableLifecycleActions(order).slice(0, 2) : availableLifecycleActions(order)) : [];
+  if (actions.length === 0) return compact ? null : <p className="read-only-note"><LockKeyhole size={16} /> Solo el técnico asignado puede aceptar, iniciar, pausar, reanudar o finalizar esta OT.</p>;
   return <div className="form-actions work-order-form-actions">
     {actions.map((action) => <button className={['start', 'finish', 'resume'].includes(action) ? 'primary-button' : 'secondary-button'} disabled={busy} key={action} onClick={(event) => { event.stopPropagation(); run(action, order); }} type="button">
       {busy ? <LoaderCircle className="spin" size={17} /> : <Wrench size={17} />} {actionLabel(action)}
@@ -315,10 +321,7 @@ function ReviewActions({ order, canReview, busy, run }: { order: WorkOrderListIt
 function EvidenceActions({ order, canUse, busy, run }: { order: WorkOrderListItem; canUse: boolean; busy: boolean; run: RunEvidence }) {
   if (!canUse) return <p className="read-only-note"><LockKeyhole size={16} /> No tienes permisos para preparar evidencias de esta OT.</p>;
   if (!canPrepareEvidence(order)) return <p className="read-only-note"><LockKeyhole size={16} /> OT cerrada: las evidencias quedan bloqueadas para mantener trazabilidad.</p>;
-  return <div className="form-actions work-order-form-actions">
-    <button className="secondary-button" disabled={busy} onClick={() => run('checklist', order)} type="button"><ListChecks size={17} /> Preparar checklist</button>
-    <button className="primary-button" disabled={busy} onClick={() => run('report', order)} type="button"><FileCheck2 size={17} /> Registrar informe</button>
-  </div>;
+  return <div className="form-actions work-order-form-actions"><button className="secondary-button" disabled={busy} onClick={() => run('checklist', order)} type="button"><ListChecks size={17} /> Preparar checklist</button><button className="primary-button" disabled={busy} onClick={() => run('report', order)} type="button"><FileCheck2 size={17} /> Registrar informe</button></div>;
 }
 
 function CancelAction({ order, canCancel, busy, run }: { order: WorkOrderListItem; canCancel: boolean; busy: boolean; run: (order: WorkOrderListItem) => void }) {
@@ -352,21 +355,18 @@ function OrdersPage({ orders, open, create, canCreate, viewerRole, busyOrderId, 
     const term = search.trim().toLowerCase();
     return term ? orders.filter((order) => [order.code, order.title, order.siteName, order.locationName, order.assignedToName, order.assetName, order.assetReference].some((value) => value?.toLowerCase().includes(term))) : orders;
   }, [orders, search]);
-
-  return <>
-    <div className="page-heading page-heading-row"><div><span className="section-kicker">Gestión diaria</span><h1>Órdenes de trabajo</h1><p>{filtered.length} órdenes visibles.</p></div>{canCreate && <button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}</div>
-    <section className="panel table-panel"><div className="filters-row"><label className="table-search"><ClipboardList size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por OT, cliente, equipo, técnico o ubicación" value={search} /></label><span className="source-badge">Datos reales</span></div><div className="orders-table"><div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / equipo</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span>Acciones</span></div>{filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan.</p> : filtered.map((order) => <div className="orders-table-row" key={order.id}><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName}{order.assetName ? ` · ${order.assetName}` : ''}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span><i className={`priority-badge ${priorityClass(order.priority)}`}>{priorityLabels[order.priority]}</i></span><span>{compactDate(order.plannedAt)}</span><span className="form-actions"><button className="text-link" onClick={() => open(order.id)} type="button">Abrir</button>{isManagerRole(viewerRole) && canCancelWorkOrder(order.status) && <button className="text-link" disabled={busyOrderId === order.id} onClick={() => cancelOrder(order)} type="button">Anular</button>}</span></div>)}</div></section>
-  </>;
+  return <><div className="page-heading page-heading-row"><div><span className="section-kicker">Gestión diaria</span><h1>Órdenes de trabajo</h1><p>{filtered.length} órdenes visibles.</p></div>{canCreate && <button className="primary-button" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}</div><section className="panel table-panel"><div className="filters-row"><label className="table-search"><ClipboardList size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por OT, cliente, equipo, técnico o ubicación" value={search} /></label><span className="source-badge">Datos reales</span></div><div className="orders-table"><div className="orders-table-row orders-table-head"><span>ID</span><span>Trabajo</span><span>Instalación / equipo</span><span>Técnico</span><span>Estado</span><span>Prioridad</span><span>Fecha</span><span>Acciones</span></div>{filtered.length === 0 ? <p className="empty-table">No hay órdenes que coincidan.</p> : filtered.map((order) => <div className="orders-table-row" key={order.id}><strong>{order.code}</strong><span>{order.title}</span><span>{order.siteName}{order.assetName ? ` · ${order.assetName}` : ''}</span><span>{order.assignedToName ?? 'Sin asignar'}</span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i></span><span><i className={`priority-badge ${priorityClass(order.priority)}`}>{priorityLabels[order.priority]}</i></span><span>{compactDate(order.plannedAt)}</span><span className="form-actions"><button className="text-link" onClick={() => open(order.id)} type="button">Abrir</button>{isManagerRole(viewerRole) && canCancelWorkOrder(order.status) && <button className="text-link" disabled={busyOrderId === order.id} onClick={() => cancelOrder(order)} type="button">Anular</button>}</span></div>)}</div></section></>;
 }
 
 function Detail({ order, back, create, canCreate, viewerId, viewerRole, busyOrderId, notice, runAction, runReview, runEvidence, runCancel }: { order: WorkOrderListItem | null; back: () => void; create: OpenCreate; canCreate: boolean; viewerId: string; viewerRole: string; busyOrderId: string | null; notice: Notice; runAction: RunLifecycle; runReview: RunReview; runEvidence: RunEvidence; runCancel: (order: WorkOrderListItem) => void }) {
   if (!order) return <section className="panel data-state"><AlertTriangle size={28} /><strong>Orden no disponible</strong><button className="secondary-button" onClick={back} type="button">Volver</button></section>;
   const required = Object.entries(order.requirements).filter(([, value]) => value).map(([key]) => key.replaceAll(/([A-Z])/g, ' $1').toLowerCase());
+  const evidenceAllowed = canPrepareEvidenceByUser(order, viewerId, viewerRole);
   return <>
     <div className="detail-header"><button className="back-button" onClick={back} type="button"><ArrowLeft size={18} /> Volver</button><div><span className="section-kicker">Orden real</span><h1>{order.code}</h1><p>{order.title}</p></div><span className={statusClass(order.status)}>{statusLabels[order.status]}</span>{canCreate && <button className="filter-button detail-actions" onClick={() => create({ installationId: order.siteId, locationId: order.locationId ?? '', assetId: order.assetId ?? '', technicianId: order.assignedTo ?? '', title: `Seguimiento de ${order.title}`, description: `Nueva actuación relacionada con ${order.code}.`, type: order.type, priority: order.priority })} type="button">Nueva relacionada <Plus size={15} /></button>}</div>
     <section className="detail-grid"><article className="panel detail-main-card"><div className="panel-heading"><h2>Información del trabajo</h2><span className={`priority-badge ${priorityClass(order.priority)}`}>{priorityLabels[order.priority]}</span></div><dl className="detail-definition-grid"><div><dt>Instalación</dt><dd>{order.siteName}</dd></div><div><dt>Ubicación</dt><dd>{order.locationName ?? 'Sin ubicación'}</dd></div><div><dt>Equipo</dt><dd>{order.assetName ?? 'Sin equipo vinculado'}</dd></div><div><dt>Tipo</dt><dd>{typeLabels[order.type]}</dd></div><div><dt>Técnico</dt><dd>{order.assignedToName ?? 'Sin asignar'}</dd></div><div><dt>Planificada</dt><dd>{displayDate(order.plannedAt)}</dd></div></dl><div className="description-box"><strong>Descripción</strong><p>{order.description || 'Sin descripción registrada.'}</p></div><div className="evidence-grid"><div><ListChecks size={22} /><strong>{order.requirements.checklist ? 'Checklist requerido' : 'Sin checklist'}</strong><small>{required.length ? required.join(' · ') : 'Sin requisitos especiales'}</small></div><div><FileCheck2 size={22} /><strong>{order.requirements.report ? 'Informe requerido' : 'Informe opcional'}</strong><small>Registro documental</small></div><div><Clock3 size={22} /><strong>{order.dueAt ? displayDate(order.dueAt) : 'Sin fecha límite'}</strong><small>Vencimiento</small></div></div></article><aside className="panel detail-side-card"><h2>Estado actual</h2><div className="timeline"><div className="done"><i /><span><strong>OT creada</strong><small>{displayDate(order.createdAt)}</small></span></div><div className={order.assignedTo ? 'done' : 'current'}><i /><span><strong>{order.assignedTo ? 'Técnico asignado' : 'Pendiente de asignación'}</strong><small>{order.assignedToName ?? 'Sin técnico'}</small></span></div><div className="current"><i /><span><strong>{statusLabels[order.status]}</strong><small>Actualizada {displayDate(order.updatedAt)}</small></span></div></div></aside></section>
-    <article className="panel source-panel"><div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Ciclo real</span></div><LifecycleActions order={order} canUse={canExecuteOrder(order, viewerId, viewerRole)} busy={busyOrderId === order.id} run={runAction} /><NoticeLine notice={notice} orderId={order.id} /></article>
-    <article className="panel source-panel"><div className="panel-heading"><h2><ListChecks size={21} /> Evidencias y documentación</h2><span className="source-badge">Checklist / informe</span></div><EvidenceActions order={order} canUse={canExecuteOrder(order, viewerId, viewerRole)} busy={busyOrderId === order.id} run={runEvidence} /><NoticeLine notice={notice} orderId={order.id} /></article>
+    <article className="panel source-panel"><div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Solo técnico asignado</span></div><LifecycleActions order={order} viewerId={viewerId} busy={busyOrderId === order.id} run={runAction} /><NoticeLine notice={notice} orderId={order.id} /></article>
+    <article className="panel source-panel"><div className="panel-heading"><h2><ListChecks size={21} /> Evidencias y documentación</h2><span className="source-badge">Checklist / informe</span></div><EvidenceActions order={order} canUse={evidenceAllowed} busy={busyOrderId === order.id} run={runEvidence} /><NoticeLine notice={notice} orderId={order.id} /></article>
     <article className="panel source-panel"><div className="panel-heading"><h2><ShieldCheck size={21} /> Revisión administrativa</h2><span className="source-badge">Validación</span></div><ReviewActions order={order} canReview={isManagerRole(viewerRole)} busy={busyOrderId === order.id} run={runReview} /></article>
     <article className="panel source-panel"><div className="panel-heading"><h2><AlertTriangle size={21} /> Zona responsable</h2><span className="source-badge">Anulación segura</span></div><CancelAction order={order} canCancel={isManagerRole(viewerRole) && canCancelWorkOrder(order.status)} busy={busyOrderId === order.id} run={runCancel} /></article>
   </>;
@@ -378,9 +378,9 @@ function Planning({ orders, open }: { orders: WorkOrderListItem[]; open: (id: st
   return <><div className="page-heading"><span className="section-kicker">Organización</span><h1>Planificación real</h1><p>Agenda limpia de OT con fecha prevista.</p></div><Metrics orders={orders} /><section className="dashboard-grid dashboard-grid-bottom"><article className="panel planning-list-panel"><div className="panel-heading"><h2>Agenda de OT</h2><span className="source-badge">{planned.length}</span></div><OrderList orders={planned} open={open} empty="No hay OT planificadas." /></article><article className="panel alert-panel"><div className="panel-heading"><h2>Vencidas / riesgo</h2></div><OrderList orders={overdue} open={open} empty="Sin OT vencidas visibles." limit={6} /></article></section></>;
 }
 
-function Technician({ orders, viewerId, viewerRole, open, busyOrderId, runAction }: { orders: WorkOrderListItem[]; viewerId: string; viewerRole: string; open: (id: string) => void; busyOrderId: string | null; runAction: RunLifecycle }) {
-  const ownOrders = orders.filter((order) => order.assignedTo === viewerId || isManagerRole(viewerRole));
-  return <section className="technician-preview-page"><div className="technician-description"><span className="section-kicker">Zona técnico real</span><h1>OT ejecutables</h1><p>Aceptar, iniciar, pausar, reanudar y finalizar desde el móvil.</p><div className="technician-benefits"><span><CheckCircle2 size={18} /> {ownOrders.length} OT visibles</span><span><CheckCircle2 size={18} /> Acciones protegidas por RPC</span></div></div><div className="phone-shell"><div className="phone-screen"><header className="mobile-header"><Menu size={20} /><strong>IsiVoltPro FV</strong></header><main className="mobile-content"><h2>Mis órdenes</h2><p>{ownOrders.length} trabajos asignados o gestionables.</p><div className="mobile-orders">{ownOrders.length === 0 ? <p className="empty-state">No tienes OT asignadas.</p> : ownOrders.slice(0, 5).map((order) => <button key={order.id} onClick={() => open(order.id)} type="button"><span className="order-icon"><Wrench size={18} /></span><span><strong>{order.code}</strong><b>{order.title}</b><small>{order.siteName}</small><LifecycleActions order={order} canUse={canExecuteOrder(order, viewerId, viewerRole)} busy={busyOrderId === order.id} compact run={runAction} /></span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i><small>{compactDate(order.plannedAt)}</small><ChevronRight size={16} /></span></button>)}</div></main></div></div></section>;
+function Technician({ orders, viewerId, open, busyOrderId, runAction }: { orders: WorkOrderListItem[]; viewerId: string; open: (id: string) => void; busyOrderId: string | null; runAction: RunLifecycle }) {
+  const ownOrders = orders.filter((order) => order.assignedTo === viewerId);
+  return <section className="technician-preview-page"><div className="technician-description"><span className="section-kicker">Zona técnico real</span><h1>Mis OT asignadas</h1><p>Solo el técnico asignado puede aceptar, iniciar, pausar, reanudar y finalizar.</p><div className="technician-benefits"><span><CheckCircle2 size={18} /> {ownOrders.length} OT asignadas</span><span><CheckCircle2 size={18} /> Acciones protegidas por cuenta</span></div></div><div className="phone-shell"><div className="phone-screen"><header className="mobile-header"><Menu size={20} /><strong>IsiVoltPro FV</strong></header><main className="mobile-content"><h2>Mis órdenes</h2><p>{ownOrders.length} trabajos asignados a tu usuario.</p><div className="mobile-orders">{ownOrders.length === 0 ? <p className="empty-state">No tienes OT asignadas.</p> : ownOrders.slice(0, 5).map((order) => <button key={order.id} onClick={() => open(order.id)} type="button"><span className="order-icon"><Wrench size={18} /></span><span><strong>{order.code}</strong><b>{order.title}</b><small>{order.siteName}</small><LifecycleActions order={order} viewerId={viewerId} busy={busyOrderId === order.id} compact run={runAction} /></span><span><i className={statusClass(order.status)}>{statusLabels[order.status]}</i><small>{compactDate(order.plannedAt)}</small><ChevronRight size={16} /></span></button>)}</div></main></div></div></section>;
 }
 
 function ModuleMetrics({ orders, catalog }: { orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null }) {
@@ -404,9 +404,9 @@ function AssetsPage({ orders, catalog, open, create, canCreate }: { orders: Work
   return <><ModuleMetrics orders={orders} catalog={catalog} /><section className="panel planning-list-panel"><div className="panel-heading"><h2>Equipos FV</h2><span className="source-badge">{assets.length}</span></div><div className="day-plan-list">{assets.map(({ asset, name, rows }) => { const latest = latestOrder(rows); return <button key={asset?.id ?? name} onClick={() => latest ? open(latest.id) : asset && canCreate && create(makeAssetPreset(asset))} type="button"><Boxes size={18} /><span><strong>{name}</strong><small>{rows.length} OT · {rows.filter(isOpenOrder).length} abiertas</small></span><ChevronRight size={17} /></button>; })}</div></section></>;
 }
 
-function ReportsPage({ orders, open, busyOrderId, runEvidence }: { orders: WorkOrderListItem[]; open: (id: string) => void; busyOrderId: string | null; runEvidence: RunEvidence }) {
+function ReportsPage({ orders, open, busyOrderId, viewerId, viewerRole, runEvidence }: { orders: WorkOrderListItem[]; open: (id: string) => void; busyOrderId: string | null; viewerId: string; viewerRole: string; runEvidence: RunEvidence }) {
   const reportOrders = orders.filter((order) => order.requirements.report || ['FINALIZADA_TECNICO', 'VALIDADA'].includes(order.status));
-  return <><Metrics orders={orders} /><section className="panel planning-list-panel"><div className="panel-heading"><h2>Informes requeridos</h2><span className="source-badge">{reportOrders.length}</span></div><div className="day-plan-list">{reportOrders.length === 0 ? <p className="empty-state">Sin informes requeridos.</p> : reportOrders.map((order) => <div className="orders-table-row" key={order.id}><span><strong>{order.code} · {order.title}</strong><small>{order.siteName}</small></span><span className={statusClass(order.status)}>{statusLabels[order.status]}</span><span className="form-actions"><button className="text-link" onClick={() => open(order.id)} type="button">Abrir</button><button className="text-link" disabled={busyOrderId === order.id || !canPrepareEvidence(order)} onClick={() => runEvidence('report', order)} type="button">Registrar</button></span></div>)}</div></section></>;
+  return <><Metrics orders={orders} /><section className="panel planning-list-panel"><div className="panel-heading"><h2>Informes requeridos</h2><span className="source-badge">{reportOrders.length}</span></div><div className="day-plan-list">{reportOrders.length === 0 ? <p className="empty-state">Sin informes requeridos.</p> : reportOrders.map((order) => <div className="orders-table-row" key={order.id}><span><strong>{order.code} · {order.title}</strong><small>{order.siteName}</small></span><span className={statusClass(order.status)}>{statusLabels[order.status]}</span><span className="form-actions"><button className="text-link" onClick={() => open(order.id)} type="button">Abrir</button><button className="text-link" disabled={busyOrderId === order.id || !canPrepareEvidenceByUser(order, viewerId, viewerRole)} onClick={() => runEvidence('report', order)} type="button">Registrar</button></span></div>)}</div></section></>;
 }
 
 function AuditPage({ events, loading, error }: { events: WorkOrderAuditEvent[]; loading: boolean; error: string | null }) {
@@ -415,45 +415,41 @@ function AuditPage({ events, loading, error }: { events: WorkOrderAuditEvent[]; 
   return <section className="panel planning-list-panel"><div className="panel-heading"><h2>Auditoría de OT</h2><span className="source-badge">{events.length}</span></div><div className="day-plan-list">{events.length === 0 ? <p className="empty-state">Sin eventos todavía.</p> : events.slice(0, 40).map((event) => <div className="orders-table-row" key={event.id}><span><strong>{humanAuditAction(event.action)}</strong><small>{auditDetail(event)}</small></span><span>{event.actorName ?? 'Sistema'}</span><small>{displayDate(event.createdAt)}</small></div>)}</div></section>;
 }
 
-function ModulePage({ view, orders, catalog, auditEvents, auditLoading, auditError, openDetail, create, canCreate, busyOrderId, runEvidence }: { view: View; orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null; auditEvents: WorkOrderAuditEvent[]; auditLoading: boolean; auditError: string | null; openDetail: (id: string) => void; create: OpenCreate; canCreate: boolean; busyOrderId: string | null; runEvidence: RunEvidence }) {
+function ModulePage({ view, orders, catalog, auditEvents, auditLoading, auditError, busyOrderId, openDetail, create, canCreate, viewerId, viewerRole, runEvidence }: { view: View; orders: WorkOrderListItem[]; catalog?: WorkOrderCreationCatalog | null; auditEvents: WorkOrderAuditEvent[]; auditLoading: boolean; auditError: string | null; busyOrderId: string | null; openDetail: (id: string) => void; create: OpenCreate; canCreate: boolean; viewerId: string; viewerRole: string; runEvidence: RunEvidence }) {
   if (view === 'technicians') return <TechniciansPage orders={orders} catalog={catalog} open={openDetail} create={create} canCreate={canCreate} />;
   if (view === 'clients') return <ClientsPage orders={orders} catalog={catalog} open={openDetail} create={create} canCreate={canCreate} />;
   if (view === 'assets') return <AssetsPage orders={orders} catalog={catalog} open={openDetail} create={create} canCreate={canCreate} />;
-  if (view === 'reports') return <ReportsPage orders={orders} open={openDetail} busyOrderId={busyOrderId} runEvidence={runEvidence} />;
+  if (view === 'reports') return <ReportsPage orders={orders} open={openDetail} busyOrderId={busyOrderId} viewerId={viewerId} viewerRole={viewerRole} runEvidence={runEvidence} />;
   return <AuditPage events={auditEvents} loading={auditLoading} error={auditError} />;
 }
 
 function MobileNav({ active, navigate }: { active: View; navigate: (view: View) => void }) {
-  return <nav className="mobile-bottom-nav" aria-label="Navegación móvil">
-    {mainNavigation.map(({ id, label, icon: Icon }) => <button className={active === id ? 'active' : ''} key={id} onClick={() => navigate(id)} type="button"><Icon size={18} /><span>{label}</span></button>)}
-  </nav>;
+  return <nav className="mobile-nav">{mainNavigation.map(({ id, label, icon: Icon }) => <button className={active === id ? 'active' : ''} key={id} onClick={() => navigate(id)} type="button"><Icon size={18} /><span>{label}</span></button>)}</nav>;
 }
 
 export default function App({ tenantId, tenantName, viewerId, viewerName, viewerRole, onLogout }: AppProps) {
   const queryClient = useQueryClient();
   const [view, setView] = useState<View>('dashboard');
-  const [selectedOrderId, setSelectedOrderId] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState('');
   const [createPreset, setCreatePreset] = useState<CreatePreset | undefined>();
   const [notice, setNotice] = useState<Notice>(null);
   const canManage = isManagerRole(viewerRole);
 
   const query = useQuery({
     queryKey: ['work-orders', tenantId],
-    queryFn: () => listAccessibleWorkOrders(getSupabaseClient(), tenantId),
+    queryFn: () => listAccessibleWorkOrders(getSupabaseClient(), tenantId, 150),
     enabled: Boolean(tenantId),
   });
-
   const catalogQuery = useQuery({
     queryKey: ['work-order-creation-catalog', tenantId],
     queryFn: () => loadWorkOrderCreationCatalog(getSupabaseClient(), tenantId),
     enabled: Boolean(tenantId),
     staleTime: 60_000,
   });
-
   const auditQuery = useQuery({
     queryKey: ['work-order-audit', tenantId],
-    queryFn: () => listWorkOrderAuditEvents(getSupabaseClient(), tenantId),
+    queryFn: () => listWorkOrderAuditEvents(getSupabaseClient(), tenantId, 80),
     enabled: Boolean(tenantId),
     staleTime: 30_000,
   });
@@ -505,18 +501,12 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   const orders = query.data ?? [];
   const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? null;
   const busyOrderId = lifecycleMutation.variables?.order.id ?? reviewMutation.variables?.order.id ?? evidenceMutation.variables?.order.id ?? cancelMutation.variables?.order.id ?? null;
-
-  const openDetail = (id: string) => { setSelectedOrderId(id); setNotice(null); setView('detail'); };
-  const openCreate: OpenCreate = (preset) => {
-    if (!canManage) { setNotice({ kind: 'error', text: 'Solo un administrador o coordinador puede crear OT reales.' }); return; }
-    setCreatePreset(preset);
-    setNotice(null);
-    setView('create');
-  };
+  const openDetail = (id: string) => { setSelectedOrderId(id); setView('detail'); };
+  const openCreate: OpenCreate = (preset) => { if (!canManage) return; setCreatePreset(preset); setView('create'); };
   const finishCreate = async (workOrderId: string) => { await invalidateWorkOrderData(); setCreatePreset(undefined); setSelectedOrderId(workOrderId); setView('detail'); };
 
   const runLifecycleAction: RunLifecycle = (action, order) => {
-    if (!canExecuteOrder(order, viewerId, viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'No tienes permisos para ejecutar esta OT.' }); return; }
+    if (!isAssignedTechnician(order, viewerId)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo el técnico asignado puede iniciar o ejecutar esta OT desde su cuenta.' }); return; }
     if (action === 'pause' || action === 'material' || action === 'client') {
       const reason = window.prompt('Indica el motivo para dejar la OT bloqueada o pendiente:');
       if (!reason?.trim()) return;
@@ -533,7 +523,7 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   };
 
   const runReviewAction: RunReview = (action, order) => {
-    if (!isManagerRole(viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo un responsable puede revisar la OT.' }); return; }
+    if (!canManage) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo un responsable puede revisar la OT.' }); return; }
     if (order.status !== 'FINALIZADA_TECNICO') { setNotice({ kind: 'error', orderId: order.id, text: 'La OT debe estar finalizada por el técnico para revisarla.' }); return; }
     const notes = window.prompt(action === 'validate' ? 'Nota de validación administrativa:' : 'Indica qué debe corregir el técnico:', action === 'validate' ? 'OT validada desde revisión administrativa.' : '');
     if (!notes?.trim()) return;
@@ -541,8 +531,7 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   };
 
   const runEvidenceAction: RunEvidence = (action, order) => {
-    if (!canExecuteOrder(order, viewerId, viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'No tienes permisos para preparar evidencias.' }); return; }
-    if (!canPrepareEvidence(order)) { setNotice({ kind: 'error', orderId: order.id, text: 'Esta OT ya está cerrada y no admite nuevas evidencias.' }); return; }
+    if (!canPrepareEvidenceByUser(order, viewerId, viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'No puedes preparar evidencias en esta OT.' }); return; }
     if (action === 'checklist') { evidenceMutation.mutate({ action, order }); return; }
     const filename = window.prompt('Nombre del informe a registrar:', `${order.code}-informe.html`);
     if (!filename?.trim()) return;
@@ -550,7 +539,7 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   };
 
   const runCancelAction = (order: WorkOrderListItem) => {
-    if (!isManagerRole(viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo un responsable puede anular OT.' }); return; }
+    if (!canManage) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo un responsable puede anular OT.' }); return; }
     if (!canCancelWorkOrder(order.status)) { setNotice({ kind: 'error', orderId: order.id, text: 'Esta OT ya no se puede anular desde el flujo seguro.' }); return; }
     const reason = window.prompt(`Motivo de anulación de ${order.code}:`);
     if (!reason?.trim()) return;
@@ -564,13 +553,13 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   else if (view === 'detail') content = <Detail order={selectedOrder} back={() => setView('orders')} create={openCreate} canCreate={canManage} viewerId={viewerId} viewerRole={viewerRole} busyOrderId={busyOrderId} notice={notice} runAction={runLifecycleAction} runReview={runReviewAction} runEvidence={runEvidenceAction} runCancel={runCancelAction} />;
   else if (view === 'create') content = <CreateWorkOrderForm tenantId={tenantId} canManage={canManage} initialValues={createPreset} onCancel={() => { setCreatePreset(undefined); setView('orders'); }} onCreated={(workOrderId) => { void finishCreate(workOrderId); }} />;
   else if (view === 'planning') content = <Planning orders={orders} open={openDetail} />;
-  else if (view === 'technician') content = <Technician orders={orders} viewerId={viewerId} viewerRole={viewerRole} open={openDetail} busyOrderId={busyOrderId} runAction={runLifecycleAction} />;
-  else if (['technicians', 'clients', 'assets', 'reports', 'audit'].includes(view)) content = <ModulePage view={view} orders={orders} catalog={catalogQuery.data} auditEvents={auditQuery.data ?? []} auditLoading={auditQuery.isLoading} auditError={auditQuery.error instanceof Error ? auditQuery.error.message : null} busyOrderId={busyOrderId} openDetail={openDetail} create={openCreate} canCreate={canManage} runEvidence={runEvidenceAction} />;
+  else if (view === 'technician') content = <Technician orders={orders} viewerId={viewerId} open={openDetail} busyOrderId={busyOrderId} runAction={runLifecycleAction} />;
+  else if (['technicians', 'clients', 'assets', 'reports', 'audit'].includes(view)) content = <ModulePage view={view} orders={orders} catalog={catalogQuery.data} auditEvents={auditQuery.data ?? []} auditLoading={auditQuery.isLoading} auditError={auditQuery.error instanceof Error ? auditQuery.error.message : null} busyOrderId={busyOrderId} openDetail={openDetail} create={openCreate} canCreate={canManage} viewerId={viewerId} viewerRole={viewerRole} runEvidence={runEvidenceAction} />;
   else content = <Dashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
 
   return <div className="app-shell">
     <Sidebar active={view} open={menuOpen} tenantName={tenantName} viewerRole={viewerRole} navigate={(next) => { setCreatePreset(undefined); setView(next); }} close={() => setMenuOpen(false)} logout={onLogout} />
-    <div className="app-workspace"><Topbar viewerName={viewerName} viewerRole={viewerRole} menu={() => setMenuOpen(true)} create={() => openCreate()} canCreate={canManage} /><main className="main-content">{content}</main></div>
+    <div className="app-workspace"><Topbar viewerName={viewerName} viewerRole={viewerRole} menu={() => setMenuOpen(true)} create={() => openCreate()} canCreate={canManage} logout={onLogout} /><main className="main-content">{content}</main></div>
     <MobileNav active={view} navigate={(nextView) => { setCreatePreset(undefined); setView(nextView); }} />
     <PageNotice notice={notice} onClose={() => setNotice(null)} />
   </div>;
