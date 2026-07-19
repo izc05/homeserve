@@ -468,9 +468,9 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
       if (action === 'accept') return acceptWorkOrder(supabase, order.id);
       if (action === 'start') return startWorkOrderVisit(supabase, order.id);
       if (action === 'resume') return resumeWorkOrder(supabase, order.id);
-      if (action === 'pause') return blockWorkOrder(supabase, { workOrderId: order.id, status: 'PAUSADA', reason: reason ?? '' });
-      if (action === 'material') return blockWorkOrder(supabase, { workOrderId: order.id, status: 'PENDIENTE_MATERIAL', reason: reason ?? '' });
-      if (action === 'client') return blockWorkOrder(supabase, { workOrderId: order.id, status: 'PENDIENTE_CLIENTE', reason: reason ?? '' });
+      if (action === 'pause') return blockWorkOrder(supabase, { workOrderId: order.id, reason: reason ?? '' });
+      if (action === 'material') return blockWorkOrder(supabase, { workOrderId: order.id, reason: reason ?? '' });
+      if (action === 'client') return blockWorkOrder(supabase, { workOrderId: order.id, reason: reason ?? '' });
       return finalizeActiveWorkOrderVisit(supabase, { workOrderId: order.id, workDone: workDone ?? '', result: 'trabajo_completado' });
     },
     onSuccess: async (_, variables) => { await invalidateWorkOrderData(); setNotice({ kind: 'success', orderId: variables.order.id, text: `${actionLabel(variables.action)} realizado correctamente.` }); },
