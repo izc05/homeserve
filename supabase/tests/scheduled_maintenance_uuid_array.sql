@@ -61,15 +61,29 @@ select is(
   '1. devuelve un array vacío cuando no hay mantenimientos que generar'
 );
 
+create temporary table generated_maintenance_result (
+  payload jsonb not null
+) on commit drop;
+
+insert into generated_maintenance_result (payload)
+select public.generate_due_scheduled_maintenances(
+  '22000000-0000-0000-0000-000000000002',
+  0
+);
+
 select ok(
   (
-    public.generate_due_scheduled_maintenances('22000000-0000-0000-0000-000000000002', 0)->'generated_ids'->>0
-  )::uuid = (
-    select id
-    from public.mantenimientos_programados
-    where plan_id = '62000000-0000-0000-0000-000000000001'
+    select jsonb_array_length(payload->'generated_ids') = 1
+    from generated_maintenance_result
+  )
+  and exists (
+    select 1
+    from generated_maintenance_result result
+    join public.mantenimientos_programados maintenance
+      on maintenance.id = (result.payload->'generated_ids'->>0)::uuid
+    where maintenance.plan_id = '62000000-0000-0000-0000-000000000001'
   ),
-  '2. los identificadores generados se mantienen como UUID'
+  '2. el UUID generado coincide con el mantenimiento del plan de prueba'
 );
 
 select set_config('request.jwt.claim.sub', '12000000-0000-0000-0000-000000000002', true);
