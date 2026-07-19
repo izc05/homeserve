@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ClipboardList,
   LoaderCircle,
+  MapPin,
   Plus,
   Save,
   Send,
@@ -77,6 +78,24 @@ const DEFAULT_VALUES: CreateWorkOrderFormValues = {
   administrativeReview: true,
 };
 
+const EMPTY_INSTALLATION_DRAFT = {
+  name: '',
+  code: '',
+  type: 'fotovoltaica',
+  address: '',
+  gps: '',
+  mapUrl: '',
+  photoUrl: '',
+  details: '',
+};
+
+const EMPTY_ASSET_DRAFT = {
+  name: '',
+  type: 'inversor_fotovoltaico',
+  reference: '',
+  criticality: 'media',
+};
+
 type CreateMode = 'draft' | 'assigned';
 
 type CreateWorkOrderFormProps = {
@@ -87,6 +106,17 @@ type CreateWorkOrderFormProps = {
   onCreated: (workOrderId: string, code: string) => void;
 };
 
+function buildInstallationDescription(draft: typeof EMPTY_INSTALLATION_DRAFT): string {
+  const lines = [
+    'Instalación creada desde alta rápida del formulario de OT.',
+    draft.gps.trim() ? `Localización GPS: ${draft.gps.trim()}` : null,
+    draft.mapUrl.trim() ? `Mapa de ubicación: ${draft.mapUrl.trim()}` : null,
+    draft.photoUrl.trim() ? `Foto general de la instalación: ${draft.photoUrl.trim()}` : null,
+    draft.details.trim() ? `Detalles de acceso/instalación: ${draft.details.trim()}` : null,
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
 export default function CreateWorkOrderForm({
   tenantId,
   canManage,
@@ -95,18 +125,8 @@ export default function CreateWorkOrderForm({
   onCreated,
 }: CreateWorkOrderFormProps) {
   const queryClient = useQueryClient();
-  const [installationDraft, setInstallationDraft] = useState({
-    name: '',
-    code: '',
-    type: 'general',
-    address: '',
-  });
-  const [assetDraft, setAssetDraft] = useState({
-    name: '',
-    type: 'general',
-    reference: '',
-    criticality: 'media',
-  });
+  const [installationDraft, setInstallationDraft] = useState(EMPTY_INSTALLATION_DRAFT);
+  const [assetDraft, setAssetDraft] = useState(EMPTY_ASSET_DRAFT);
 
   const catalogQuery = useQuery({
     queryKey: ['work-order-creation-catalog', tenantId],
@@ -154,7 +174,7 @@ export default function CreateWorkOrderForm({
       code: installationDraft.code,
       type: installationDraft.type,
       address: installationDraft.address,
-      description: 'Instalación creada desde alta rápida del formulario de OT.',
+      description: buildInstallationDescription(installationDraft),
     }),
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ['work-order-creation-catalog', tenantId] });
@@ -163,7 +183,7 @@ export default function CreateWorkOrderForm({
       form.setValue('locationId', '', { shouldDirty: true });
       form.setValue('assetId', '', { shouldDirty: true });
       if (!form.getValues('title')) form.setValue('title', `Intervención en ${created.name}`);
-      setInstallationDraft({ name: '', code: '', type: 'general', address: '' });
+      setInstallationDraft(EMPTY_INSTALLATION_DRAFT);
       form.clearErrors('root');
     },
     onError: (error) => form.setError('root', {
@@ -187,7 +207,7 @@ export default function CreateWorkOrderForm({
       await catalogQuery.refetch();
       form.setValue('assetId', created.id, { shouldDirty: true, shouldValidate: true });
       if (!form.getValues('title')) form.setValue('title', `Revisión de ${created.name}`);
-      setAssetDraft({ name: '', type: 'general', reference: '', criticality: 'media' });
+      setAssetDraft(EMPTY_ASSET_DRAFT);
       form.clearErrors('root');
     },
     onError: (error) => form.setError('root', {
@@ -196,13 +216,7 @@ export default function CreateWorkOrderForm({
   });
 
   const mutation = useMutation({
-    mutationFn: async ({
-      values,
-      mode,
-    }: {
-      values: CreateWorkOrderFormValues;
-      mode: CreateMode;
-    }) => {
+    mutationFn: async ({ values, mode }: { values: CreateWorkOrderFormValues; mode: CreateMode }) => {
       if (mode === 'assigned' && !values.technicianId) {
         throw new Error('Selecciona un técnico para crear la OT como asignada.');
       }
@@ -304,7 +318,7 @@ export default function CreateWorkOrderForm({
       <div className="page-heading">
         <span className="section-kicker">Nueva intervención</span>
         <h1>Crear orden de trabajo</h1>
-        <p>Guárdala como borrador o déjala asignada a un técnico activo.</p>
+        <p>Primero selecciona instalación/equipo. Después guarda como borrador o asigna a un técnico.</p>
       </div>
 
       <form className="panel work-order-create-form" onSubmit={(event) => event.preventDefault()}>
@@ -313,11 +327,11 @@ export default function CreateWorkOrderForm({
         )}
 
         <div className="creation-section-heading">
-          <div><span>+</span><strong>Alta rápida de inventario</strong></div>
-          <small>Crea instalaciones y equipos sin salir del flujo de OT.</small>
+          <div><span>+</span><strong>Alta rápida de instalación FV</strong></div>
+          <small>Incluye mapa, localización, foto general y detalles de acceso.</small>
         </div>
 
-        <div className="form-grid">
+        <div className="form-grid installation-context-grid">
           <label>Nombre instalación
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, name: event.target.value }))}
@@ -346,13 +360,42 @@ export default function CreateWorkOrderForm({
               value={installationDraft.address}
             />
           </label>
+          <label>Localización GPS
+            <input
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, gps: event.target.value }))}
+              placeholder="37.18817, -3.60667"
+              value={installationDraft.gps}
+            />
+          </label>
+          <label>Mapa de ubicación
+            <input
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, mapUrl: event.target.value }))}
+              placeholder="Enlace Google Maps / Maps"
+              value={installationDraft.mapUrl}
+            />
+          </label>
+          <label>Foto instalación completa
+            <input
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, photoUrl: event.target.value }))}
+              placeholder="URL de foto general de la planta"
+              value={installationDraft.photoUrl}
+            />
+          </label>
+          <label className="full-field">Detalles de acceso / instalación
+            <textarea
+              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, details: event.target.value }))}
+              placeholder="Acceso, cubierta, llaves, sala técnica, contacto, riesgos, referencias visuales..."
+              rows={3}
+              value={installationDraft.details}
+            />
+          </label>
           <button
-            className="secondary-button"
+            className="secondary-button installation-create-button"
             disabled={busy || !installationDraft.name.trim()}
             onClick={() => quickInstallationMutation.mutate()}
             type="button"
           >
-            {quickInstallationMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Building2 size={17} />} Crear instalación
+            {quickInstallationMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <MapPin size={17} />} Crear instalación con ubicación
           </button>
         </div>
 
@@ -411,7 +454,7 @@ export default function CreateWorkOrderForm({
 
         <div className="form-grid">
           <label className="full-field">Título
-            <input {...form.register('title')} placeholder="Ej. Revisar cuadro eléctrico de planta 2" />
+            <input {...form.register('title')} placeholder="Ej. Revisar inversor FV de cubierta" />
             {errors.title && <small className="field-error">{errors.title.message}</small>}
           </label>
 
