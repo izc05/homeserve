@@ -119,6 +119,22 @@
   gap: 10px;
 }
 
+.installation-context-grid {
+  border: 1px solid rgba(226, 232, 240, 0.78);
+  border-radius: 14px;
+  padding: 12px;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+}
+
+.installation-context-grid .full-field {
+  grid-column: 1 / -1;
+}
+
+.installation-create-button {
+  align-self: end;
+  min-height: 40px;
+}
+
 .work-order-create-form label {
   font-size: 12px;
 }
@@ -215,6 +231,10 @@
   .work-order-create-form .form-grid,
   .requirements-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .installation-context-grid {
+    padding: 10px;
   }
 
   .work-order-create-form > .work-order-form-actions {
