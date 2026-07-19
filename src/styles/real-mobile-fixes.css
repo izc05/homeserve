@@ -1,0 +1,60 @@
+/* Ajustes finales móviles para la app real.
+   Se carga al final para corregir conflictos entre capas de estilos anteriores. */
+
+@media (max-width: 760px) {
+  .sidebar.open {
+    width: min(340px, 88vw) !important;
+  }
+
+  .sidebar-nav {
+    gap: 8px !important;
+  }
+
+  .sidebar-nav .nav-caption,
+  .sidebar-nav .nav-caption-spaced {
+    display: block !important;
+  }
+
+  .sidebar-nav .nav-item {
+    display: flex !important;
+  }
+
+  .sidebar-footer {
+    display: grid !important;
+    margin-top: auto !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .sidebar-footer .organisation-card {
+    display: grid !important;
+  }
+
+  .sidebar-footer .logout-button {
+    display: flex !important;
+  }
+
+  .topbar .topbar-actions {
+    display: flex !important;
+    margin-left: auto !important;
+  }
+
+  .topbar .topbar-actions .user-menu,
+  .topbar .topbar-actions .top-create {
+    display: none !important;
+  }
+
+  .topbar .top-logout {
+    width: 40px;
+    min-height: 38px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .topbar .top-logout svg {
+    margin: 0;
+  }
+
+  .source-panel .read-only-note {
+    margin-top: 10px !important;
+  }
+}
