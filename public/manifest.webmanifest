@@ -9,5 +9,13 @@
   "theme_color": "#18212f",
   "lang": "es",
   "orientation": "portrait-primary",
-  "categories": ["business", "productivity", "utilities"]
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/homeserve/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
