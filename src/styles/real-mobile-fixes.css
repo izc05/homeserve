@@ -1,6 +1,21 @@
 /* Ajustes finales móviles para la app real.
    Se carga al final para corregir conflictos entre capas de estilos anteriores. */
 
+/* Flujo de ejecución: una OT asignada primero debe ser aceptada por el técnico.
+   El backend también valida esta regla antes de iniciar la intervención. */
+.main-content:has(.status-asignada) .source-panel:has(.lucide-wrench) .primary-button {
+  display: none !important;
+}
+
+.main-content:has(.status-asignada) .source-panel:has(.lucide-wrench) .work-order-form-actions::after {
+  content: 'Después de aceptar la OT aparecerá el botón Iniciar.';
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+}
+
 /* Flujo documental: el informe no debe registrarse mientras la OT sigue abierta.
    Se mantiene el checklist operativo y el backend vuelve a validar el estado. */
 .main-content:has(.status-borrador) .source-panel:has(.lucide-list-checks) .primary-button,
