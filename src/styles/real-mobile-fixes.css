@@ -16,6 +16,20 @@
   font-weight: 750;
 }
 
+.main-content:has(.status-en-curso) .source-panel:has(.lucide-wrench) .work-order-form-actions::after {
+  content: 'Para cerrar: checklist obligatorio completo y firma del técnico si la OT los exige.';
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 /* Flujo documental: el informe no debe registrarse mientras la OT sigue abierta.
    Se mantiene el checklist operativo y el backend vuelve a validar el estado. */
 .main-content:has(.status-borrador) .source-panel:has(.lucide-list-checks) .primary-button,
