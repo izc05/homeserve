@@ -34,6 +34,12 @@ type ReportRow = {
   created_at?: string;
 };
 
+type WorkOrderStatusRow = {
+  estado?: string | null;
+};
+
+const REPORT_ALLOWED_STATUSES = ['FINALIZADA_TECNICO', 'FINALIZADA'] as const;
+
 function requireUuid(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
 }
@@ -65,6 +71,25 @@ function mapReportRow(data: unknown): RegisteredWorkOrderReport {
   };
 }
 
+async function assertReportCanBeRegistered(
+  supabase: SupabaseClient,
+  workOrderId: string,
+) {
+  const { data, error } = await supabase
+    .from('ordenes_trabajo')
+    .select('estado')
+    .eq('id', workOrderId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const status = String(((data as WorkOrderStatusRow | null)?.estado ?? '')).trim();
+  if (!status) throw new Error('No se ha encontrado la OT para registrar el informe.');
+  if (!REPORT_ALLOWED_STATUSES.includes(status as (typeof REPORT_ALLOWED_STATUSES)[number])) {
+    throw new Error('El informe solo se registra cuando el técnico ha finalizado la intervención.');
+  }
+}
+
 export async function ensureWorkOrderDefaultChecklist(
   supabase: SupabaseClient,
   workOrderId: string,
@@ -84,6 +109,7 @@ export async function registerWorkOrderReport(
   input: { workOrderId: string; filename?: string | null },
 ): Promise<RegisteredWorkOrderReport> {
   requireUuid(input.workOrderId, 'No se ha indicado la OT para registrar el informe.');
+  await assertReportCanBeRegistered(supabase, input.workOrderId);
 
   const { data, error } = await supabase.rpc('register_work_order_report', {
     work_order_uuid: input.workOrderId,
