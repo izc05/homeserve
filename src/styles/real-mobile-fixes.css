@@ -44,14 +44,70 @@
   }
 
   .topbar .top-logout {
-    width: 40px;
-    min-height: 38px;
-    padding: 0;
-    font-size: 0;
+    width: auto !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    padding: 0 11px !important;
+    border-color: #ffd2d5 !important;
+    background: #fff5f6 !important;
+    color: var(--brand) !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
   }
 
   .topbar .top-logout svg {
     margin: 0;
+  }
+
+  .mobile-nav {
+    position: fixed !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+    z-index: 80 !important;
+    min-height: 68px !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    border: 1px solid rgba(226, 232, 240, 0.92) !important;
+    border-radius: 22px !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 16px 38px rgba(15, 23, 42, 0.16) !important;
+    backdrop-filter: blur(16px) !important;
+  }
+
+  .mobile-nav button {
+    min-width: 0 !important;
+    min-height: 50px !important;
+    display: grid !important;
+    place-items: center !important;
+    gap: 3px !important;
+    padding: 5px 3px !important;
+    border: 0 !important;
+    border-radius: 16px !important;
+    background: transparent !important;
+    color: #64748b !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+    cursor: pointer !important;
+  }
+
+  .mobile-nav button svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .mobile-nav button.active {
+    background: var(--brand) !important;
+    color: #fff !important;
+    box-shadow: 0 10px 22px rgba(227, 6, 19, 0.22) !important;
+  }
+
+  .main-content {
+    padding-bottom: 124px !important;
   }
 
   .source-panel .read-only-note {
