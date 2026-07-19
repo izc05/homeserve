@@ -1,13 +1,16 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import { listAssetMaintenanceHistory, listWorkOrderAssetHistory } from './assetHistoryRepository';
 
 function createQueryMock(data: unknown[], error: unknown = null) {
+  const result = Promise.resolve({ data, error });
   const chain = {
     select: vi.fn(() => chain),
     eq: vi.fn(() => chain),
     is: vi.fn(() => chain),
     order: vi.fn(() => chain),
-    limit: vi.fn(() => Promise.resolve({ data, error })),
+    limit: vi.fn(() => chain),
+    then: result.then.bind(result),
   };
   return chain;
 }
@@ -42,7 +45,7 @@ describe('assetHistoryRepository', () => {
     const query = createQueryMock(rows);
     const supabase = { from: vi.fn(() => query) };
 
-    const result = await listAssetMaintenanceHistory(supabase as any, {
+    const result = await listAssetMaintenanceHistory(supabase as unknown as SupabaseClient, {
       tenantId: 'tenant-1',
       assetId: 'asset-1',
       limit: 20,
@@ -67,7 +70,7 @@ describe('assetHistoryRepository', () => {
     const query = createQueryMock([]);
     const supabase = { from: vi.fn(() => query) };
 
-    await listWorkOrderAssetHistory(supabase as any, {
+    await listWorkOrderAssetHistory(supabase as unknown as SupabaseClient, {
       tenantId: 'tenant-1',
       workOrderId: 'ot-1',
     });
@@ -80,7 +83,7 @@ describe('assetHistoryRepository', () => {
   it('bloquea consultas sin organización', async () => {
     const supabase = { from: vi.fn() };
 
-    await expect(listAssetMaintenanceHistory(supabase as any, { tenantId: '' })).rejects.toThrow(
+    await expect(listAssetMaintenanceHistory(supabase as unknown as SupabaseClient, { tenantId: '' })).rejects.toThrow(
       'Selecciona una organización',
     );
     expect(supabase.from).not.toHaveBeenCalled();

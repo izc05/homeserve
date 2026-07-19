@@ -7,6 +7,7 @@ export type WorkOrderAuditEvent = {
   entityType: string;
   entityId: string | null;
   userId: string | null;
+  actorName: string | null;
   metadata: Record<string, unknown>;
   createdAt: string;
 };
@@ -22,12 +23,17 @@ type AuditLogRow = {
   created_at: string;
 };
 
+type ProfileRow = {
+  id: string;
+  nombre: string | null;
+};
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
 }
 
-function mapAuditRow(row: AuditLogRow): WorkOrderAuditEvent {
+function mapAuditRow(row: AuditLogRow, actorName: string | null): WorkOrderAuditEvent {
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -35,9 +41,28 @@ function mapAuditRow(row: AuditLogRow): WorkOrderAuditEvent {
     entityType: String(row.entity_type),
     entityId: row.entity_id ? String(row.entity_id) : null,
     userId: row.user_id ? String(row.user_id) : null,
+    actorName,
     metadata: asRecord(row.metadata),
     createdAt: String(row.created_at),
   };
+}
+
+async function loadActorNames(
+  supabase: SupabaseClient,
+  userIds: Array<string | null>,
+): Promise<Map<string, string>> {
+  const ids = [...new Set(userIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await supabase.from('profiles').select('id,nombre').in('id', ids);
+  if (error) throw error;
+
+  return new Map(
+    ((data ?? []) as unknown as ProfileRow[]).map((profile) => [
+      String(profile.id),
+      profile.nombre?.trim() || 'Usuario sin nombre',
+    ]),
+  );
 }
 
 export async function listWorkOrderAuditEvents(
@@ -59,7 +84,10 @@ export async function listWorkOrderAuditEvents(
     .limit(limit);
 
   if (error) throw error;
-  return ((data ?? []) as unknown as AuditLogRow[]).map(mapAuditRow);
+
+  const rows = (data ?? []) as unknown as AuditLogRow[];
+  const actorNames = await loadActorNames(supabase, rows.map((row) => row.user_id));
+  return rows.map((row) => mapAuditRow(row, row.user_id ? actorNames.get(row.user_id) ?? null : null));
 }
 
 export function humanAuditAction(action: string): string {

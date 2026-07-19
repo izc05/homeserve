@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Boxes,
-  Building2,
   CheckCircle2,
   ClipboardList,
   LoaderCircle,
