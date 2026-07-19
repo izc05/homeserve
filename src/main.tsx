@@ -9,6 +9,7 @@ import './styles/real-data.css';
 import './styles/work-order-create.css';
 import './styles/ui-polish.css';
 import './styles/real-clean-mode.css';
+import './styles/real-mobile-fixes.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
