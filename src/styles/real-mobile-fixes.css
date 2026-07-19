@@ -26,6 +26,18 @@
   display: none !important;
 }
 
+/* Módulo Informes: solo muestra Registrar cuando la OT está finalizada por técnico.
+   Evita que el usuario pulse Registrar en trabajos todavía abiertos. */
+.planning-list-panel .orders-table-row:has(.status-borrador) .form-actions button:last-child,
+.planning-list-panel .orders-table-row:has(.status-asignada) .form-actions button:last-child,
+.planning-list-panel .orders-table-row:has(.status-aceptada) .form-actions button:last-child,
+.planning-list-panel .orders-table-row:has(.status-en-curso) .form-actions button:last-child,
+.planning-list-panel .orders-table-row:has(.status-bloqueada) .form-actions button:last-child,
+.planning-list-panel .orders-table-row:has(.status-validada) .form-actions button:last-child,
+.planning-list-panel .orders-table-row:has(.status-cancelada) .form-actions button:last-child {
+  display: none !important;
+}
+
 @media (max-width: 760px) {
   .sidebar.open {
     width: min(340px, 88vw) !important;
