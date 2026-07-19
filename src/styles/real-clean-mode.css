@@ -102,6 +102,19 @@
   color: #64748b;
 }
 
+.work-order-create-form > .creation-section-heading:first-of-type {
+  border: 1px dashed rgba(148, 163, 184, 0.36);
+  background: #fff;
+}
+
+.work-order-create-form > .creation-section-heading:first-of-type strong {
+  color: #475569;
+}
+
+.work-order-create-form > .creation-section-heading:first-of-type small {
+  color: #94a3b8;
+}
+
 .work-order-create-form .form-grid {
   gap: 10px;
 }
@@ -116,6 +129,14 @@
   min-height: 40px;
 }
 
+.work-order-create-form textarea {
+  resize: vertical;
+}
+
+.work-order-create-form .full-field textarea {
+  min-height: 88px;
+}
+
 .requirements-grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
   gap: 8px !important;
@@ -128,6 +149,15 @@
 
 .requirement-option span strong {
   font-size: 11px;
+}
+
+.work-order-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  padding-top: 10px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.12), #fff 44%);
 }
 
 /* Detalle: agrupa acciones sin llenar demasiado la pantalla. */
@@ -145,6 +175,16 @@
 
 .evidence-grid {
   gap: 10px;
+}
+
+/* Reduce avisos repetidos para que el usuario se centre en la acción siguiente. */
+.read-only-note,
+.form-global-error {
+  border-radius: 11px;
+}
+
+.global-notice {
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14) !important;
 }
 
 @media (max-width: 760px) {
@@ -168,5 +208,10 @@
   .work-order-create-form .form-grid,
   .requirements-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .work-order-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
