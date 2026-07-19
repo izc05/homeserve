@@ -1,13 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type WorkOrderLifecycleStatus =
+  | 'BORRADOR'
   | 'ASIGNADA'
   | 'ACEPTADA'
   | 'EN_CURSO'
   | 'PAUSADA'
   | 'PENDIENTE_MATERIAL'
   | 'PENDIENTE_CLIENTE'
+  | 'BLOQUEADA'
   | 'FINALIZADA'
+  | 'FINALIZADA_TECNICO'
   | 'VALIDADA'
   | 'CANCELADA';
 
@@ -120,6 +123,16 @@ async function readWorkOrderStatus(
   return status;
 }
 
+async function assertCanAcceptWorkOrder(
+  supabase: SupabaseClient,
+  workOrderId: string,
+) {
+  const status = await readWorkOrderStatus(supabase, workOrderId);
+  if (status !== 'ASIGNADA') {
+    throw new Error('Solo se puede aceptar una OT asignada y pendiente de aceptación.');
+  }
+}
+
 async function assertCanStartWorkOrder(
   supabase: SupabaseClient,
   workOrderId: string,
@@ -168,6 +181,7 @@ export async function acceptWorkOrder(
   workOrderId: string,
 ): Promise<WorkOrderLifecycleResult> {
   requireUuid(workOrderId, 'No se ha indicado la OT a aceptar.');
+  await assertCanAcceptWorkOrder(supabase, workOrderId);
 
   const { data, error } = await supabase.rpc('accept_work_order', {
     work_order_uuid: workOrderId,
