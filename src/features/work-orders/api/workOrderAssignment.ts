@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { WorkOrderStatus } from '../types/workOrder';
 
 export type AssignWorkOrderInput = {
   workOrderId: string;
@@ -13,6 +14,10 @@ export type AssignedWorkOrder = {
   status: string;
   assignedTo: string;
 };
+
+export function canAssignWorkOrder(status: WorkOrderStatus): boolean {
+  return status === 'BORRADOR' || status === 'ASIGNADA';
+}
 
 type AssignedWorkOrderRow = {
   id: string;

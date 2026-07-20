@@ -1,0 +1,423 @@
+.technicians-workspace,
+.technician-mobile-workspace {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+}
+
+.technician-action-bar,
+.technician-toolbar,
+.assignment-controls {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.technician-toolbar > label,
+.assignment-controls > label {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.technician-toolbar input,
+.technician-toolbar select,
+.assignment-controls input,
+.assignment-controls select {
+  width: 100%;
+  min-height: 42px;
+}
+
+.technician-invite-panel,
+.technician-invitation-ready,
+.technician-list-panel,
+.technician-invitations-panel,
+.assignment-panel {
+  margin-bottom: 16px;
+}
+
+.technician-invite-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.technician-invite-form > label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.technician-invite-form input,
+.technician-invite-form select {
+  width: 100%;
+  min-height: 42px;
+}
+
+.technician-invite-form .checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+}
+
+.technician-invite-form .checkbox-field input {
+  width: 17px;
+  min-height: 17px;
+}
+
+.technician-invite-form .full-field {
+  grid-column: 1 / -1;
+}
+
+.technician-invite-form > .primary-button {
+  justify-self: start;
+}
+
+.technician-invitation-ready {
+  display: grid;
+  grid-template-columns: auto minmax(140px, .5fr) minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #a9d7bf;
+  border-radius: 8px;
+  background: #f2fbf6;
+  color: #165b38;
+}
+
+.technician-invitation-ready span,
+.pending-invitations span,
+.technician-row > span {
+  min-width: 0;
+}
+
+.technician-invitation-ready small,
+.pending-invitations small,
+.technician-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.technician-invitation-ready input {
+  width: 100%;
+}
+
+.technician-list {
+  display: grid;
+}
+
+.technician-row {
+  display: grid;
+  grid-template-columns: 42px minmax(150px, 1.2fr) minmax(180px, 1.2fr) 76px 76px 78px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.technician-row:last-child {
+  border-bottom: 0;
+}
+
+.technician-row:hover {
+  background: #f8fafc;
+}
+
+.technician-avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9eef5;
+  color: #263444;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.technician-row > span:nth-child(3) {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.technician-row > span:nth-child(3) svg {
+  margin-right: 5px;
+  vertical-align: -2px;
+}
+
+.technician-load {
+  text-align: center;
+}
+
+.technician-load b {
+  display: block;
+  font-size: 18px;
+}
+
+.technician-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr);
+  gap: 16px;
+}
+
+.technician-data {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.technician-data dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.technician-data dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.technician-load-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.technician-load-grid span {
+  padding: 14px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.technician-load-grid strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--navy);
+  font-size: 24px;
+}
+
+.pending-invitations {
+  display: grid;
+  gap: 8px;
+}
+
+.pending-invitations article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 38px;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.pending-invitations article:last-child {
+  border-bottom: 0;
+}
+
+.technician-mobile-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.technician-mobile-metrics button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 3px 8px;
+  min-height: 78px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--navy);
+  text-align: left;
+}
+
+.technician-mobile-metrics strong {
+  font-size: 22px;
+}
+
+.technician-mobile-metrics span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.technician-group-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.technician-group-tabs button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.technician-group-tabs button.active {
+  border-color: #263444;
+  background: #263444;
+  color: #fff;
+}
+
+.technician-group-tabs b {
+  margin-left: 4px;
+}
+
+.technician-order-cards {
+  display: grid;
+  gap: 10px;
+}
+
+.technician-order-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow-small);
+}
+
+.technician-order-main {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.technician-order-main > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.technician-order-main h2 {
+  margin: 8px 0 5px;
+  font-size: 16px;
+}
+
+.technician-order-main p,
+.technician-order-main small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.technician-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #a9d7bf;
+  border-radius: 7px;
+  background: #f2fbf6;
+  color: #165b38;
+}
+
+@media (max-width: 820px) {
+  .technician-row {
+    grid-template-columns: 42px minmax(0, 1fr) 70px 76px;
+  }
+
+  .technician-row > span:nth-child(3),
+  .technician-row > span:nth-child(5) {
+    display: none;
+  }
+
+  .technician-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .technician-invite-form,
+  .technician-data {
+    grid-template-columns: 1fr;
+  }
+
+  .technician-toolbar,
+  .assignment-controls,
+  .technician-action-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .technician-toolbar .primary-button,
+  .assignment-controls .primary-button,
+  .technician-action-bar button {
+    width: 100%;
+  }
+
+  .technician-invitation-ready {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .technician-invitation-ready input,
+  .technician-invitation-ready button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .technician-mobile-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .technician-order-card {
+    grid-template-columns: 1fr;
+  }
+
+  .technician-order-card > .primary-button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .pending-invitations article {
+    grid-template-columns: auto minmax(0, 1fr) 38px;
+  }
+
+  .pending-invitations .secondary-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .mobile-nav:has(button:only-child) {
+    grid-template-columns: 1fr;
+  }
+}

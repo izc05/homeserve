@@ -103,7 +103,7 @@ type CreateWorkOrderFormProps = {
   canManage: boolean;
   initialValues?: Partial<CreateWorkOrderFormValues>;
   onCancel: () => void;
-  onCreated: (workOrderId: string, code: string) => void;
+  onCreated: (workOrderId: string, code: string, technicianName: string | null) => void;
 };
 
 function buildInstallationDescription(draft: typeof EMPTY_INSTALLATION_DRAFT): string {
@@ -269,12 +269,15 @@ export default function CreateWorkOrderForm({
 
       return createWorkOrder(getSupabaseClient(), input);
     },
-    onSuccess: async (created) => {
+    onSuccess: async (created, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['work-orders', tenantId] }),
         queryClient.invalidateQueries({ queryKey: ['work-order-creation-catalog', tenantId] }),
       ]);
-      onCreated(created.id, created.code);
+      const technicianName = variables.values.technicianId
+        ? catalog?.technicians.find((technician) => technician.id === variables.values.technicianId)?.name ?? 'Técnico asignado'
+        : null;
+      onCreated(created.id, created.code, technicianName);
     },
     onError: (error) => {
       form.setError('root', {

@@ -6,6 +6,7 @@ const orderRow = {
   id: '11111111-1111-4111-8111-111111111111',
   tenant_id: '22222222-2222-4222-8222-222222222222',
   codigo_ot: 'OT-2026-00001',
+  cliente_id: '77777777-7777-4777-8777-777777777777',
   instalacion_id: '33333333-3333-4333-8333-333333333333',
   ubicacion_id: '44444444-4444-4444-8444-444444444444',
   activo_id: null,
@@ -44,6 +45,7 @@ function createFakeClient() {
   orderChain.order.mockReturnValue(orderChain);
 
   const namedRows: Record<string, Array<{ id: string; nombre: string }>> = {
+    clientes: [{ id: orderRow.cliente_id, nombre: 'Servicio Andaluz de Salud' }],
     instalaciones: [{ id: orderRow.instalacion_id, nombre: 'Hospital Universitario' }],
     ubicaciones: [{ id: orderRow.ubicacion_id, nombre: 'Sala técnica' }],
     profiles: [{ id: orderRow.assigned_to, nombre: 'María López' }],
@@ -75,10 +77,12 @@ describe('work-orders repository', () => {
     expect(orderChain.is).toHaveBeenCalledWith('deleted_at', null);
     expect(orderChain.limit).toHaveBeenCalledWith(25);
     expect(from).toHaveBeenCalledWith('instalaciones');
+    expect(from).toHaveBeenCalledWith('clientes');
     expect(from).toHaveBeenCalledWith('ubicaciones');
     expect(from).toHaveBeenCalledWith('profiles');
     expect(result[0]).toMatchObject({
       code: 'OT-2026-00001',
+      clientName: 'Servicio Andaluz de Salud',
       siteName: 'Hospital Universitario',
       locationName: 'Sala técnica',
       assignedToName: 'María López',

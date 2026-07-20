@@ -11,6 +11,7 @@ import './styles/ui-polish.css';
 import './styles/real-clean-mode.css';
 import './styles/real-mobile-fixes.css';
 import './styles/clients.css';
+import './styles/technicians.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
