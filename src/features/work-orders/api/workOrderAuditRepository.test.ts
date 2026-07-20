@@ -1,6 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { listWorkOrderAuditEvents } from './workOrderAuditRepository';
+import {
+  humanAuditAction,
+  listWorkOrderAuditEvents,
+  workOrderAuditDetail,
+  type WorkOrderAuditEvent,
+} from './workOrderAuditRepository';
 
 function createQueryMock(data: unknown[], error: unknown = null) {
   const result = Promise.resolve({ data, error });
@@ -40,5 +45,28 @@ describe('workOrderAuditRepository', () => {
       userId: 'user-1',
       actorName: 'Laura Sánchez',
     })]);
+  });
+
+  it('presenta la asignación como evento independiente con el técnico y la transición', () => {
+    const event: WorkOrderAuditEvent = {
+      id: 'audit-assignment',
+      tenantId: 'tenant-1',
+      action: 'assign_work_order',
+      entityType: 'ordenes_trabajo',
+      entityId: 'ot-1',
+      userId: 'admin-1',
+      actorName: 'Administrador E2E',
+      metadata: {
+        assigned_to_name: 'Técnico E2E Ficticio',
+        estado_anterior: 'BORRADOR',
+        estado_nuevo: 'ASIGNADA',
+      },
+      createdAt: '2026-07-20T18:00:00.000Z',
+    };
+
+    expect(humanAuditAction(event.action)).toBe('OT asignada');
+    expect(workOrderAuditDetail(event)).toBe(
+      'BORRADOR → ASIGNADA · Técnico asignado: Técnico E2E Ficticio',
+    );
   });
 });

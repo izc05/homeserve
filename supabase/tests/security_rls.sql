@@ -3,7 +3,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(12);
+select plan(13);
 
 -- Usuarios y contexto de prueba aislados dentro de la transacción.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -45,18 +45,41 @@ select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 select is((select count(*)::integer from ordenes_trabajo), 3, '1. administrador ve las OT de su tenant');
 select is((select count(*)::integer from ordenes_trabajo where tenant_id='20000000-0000-0000-0000-000000000002'), 0, '2. administrador no ve otro tenant');
+select lives_ok(
+  $$
+    select create_work_order(
+      '20000000-0000-0000-0000-000000000001',
+      '40000000-0000-0000-0000-000000000001',
+      'Borrador creado con RLS',
+      null,
+      'mantenimiento_preventivo',
+      'normal',
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      '{}'::jsonb
+    )
+  $$,
+  '3. administrador crea una OT y recibe la fila mediante RETURNING'
+);
 
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
-select is((select count(*)::integer from ordenes_trabajo), 2, '3. técnico ve únicamente sus OT asignadas');
-select is((select count(*)::integer from ordenes_trabajo where id='50000000-0000-0000-0000-000000000002'), 0, '4. técnico no ve OT de otro técnico');
-select throws_matching($$ update ordenes_trabajo set assigned_to='10000000-0000-0000-0000-000000000003' where id='50000000-0000-0000-0000-000000000001' $$, '.*definición, prioridad ni asignación.*', '5. técnico no puede reasignar una OT');
-select throws_matching($$ update ordenes_trabajo set prioridad='critica' where id='50000000-0000-0000-0000-000000000001' $$, '.*definición, prioridad ni asignación.*', '6. técnico no puede cambiar prioridad ni cliente');
-select lives_ok($$ insert into ot_fotos(tenant_id,ot_id,tipo,path,created_by) values ('20000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','evidencia','20000000-0000-0000-0000-000000000001/50000000-0000-0000-0000-000000000001/foto/60000000-0000-0000-0000-000000000002-new.jpg','10000000-0000-0000-0000-000000000002') $$, '7. técnico puede añadir evidencia a su OT ejecutable');
-select throws_matching($$ insert into ot_fotos(tenant_id,ot_id,tipo,path,created_by) values ('20000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002','evidencia','20000000-0000-0000-0000-000000000001/50000000-0000-0000-0000-000000000002/foto/60000000-0000-0000-0000-000000000003-other.jpg','10000000-0000-0000-0000-000000000002') $$, '.*row-level security.*', '8. técnico no añade evidencia a OT ajena');
-select throws_matching($$ update ordenes_trabajo set titulo='Cambio prohibido' where id='50000000-0000-0000-0000-000000000004' $$, '.*inmutable.*', '9. una OT validada no puede modificarse');
-select throws_matching($$ select accept_work_order('50000000-0000-0000-0000-000000000001') $$, '.*Solo el técnico asignado.*', '10. transición inválida es rechazada');
-select is((select count(*)::integer from storage.objects where bucket_id='ot-photos' and name like '20000000-0000-0000-0000-000000000002/%'), 0, '11. Storage no permite acceso cruzado entre tenants');
-select throws_matching($$ select accept_tenant_invitation('80000000-0000-0000-0000-000000000001') $$, '.*otro correo.*', '12. invitación no se acepta por email diferente');
+select is((select count(*)::integer from ordenes_trabajo), 2, '4. técnico ve únicamente sus OT asignadas');
+select is((select count(*)::integer from ordenes_trabajo where id='50000000-0000-0000-0000-000000000002'), 0, '5. técnico no ve OT de otro técnico');
+select throws_matching($$ update ordenes_trabajo set assigned_to='10000000-0000-0000-0000-000000000003' where id='50000000-0000-0000-0000-000000000001' $$, '.*definición, prioridad ni asignación.*', '6. técnico no puede reasignar una OT');
+select throws_matching($$ update ordenes_trabajo set prioridad='critica' where id='50000000-0000-0000-0000-000000000001' $$, '.*definición, prioridad ni asignación.*', '7. técnico no puede cambiar prioridad ni cliente');
+select lives_ok($$ insert into ot_fotos(tenant_id,ot_id,tipo,path,created_by) values ('20000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','evidencia','20000000-0000-0000-0000-000000000001/50000000-0000-0000-0000-000000000001/foto/60000000-0000-0000-0000-000000000002-new.jpg','10000000-0000-0000-0000-000000000002') $$, '8. técnico puede añadir evidencia a su OT ejecutable');
+select throws_matching($$ insert into ot_fotos(tenant_id,ot_id,tipo,path,created_by) values ('20000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002','evidencia','20000000-0000-0000-0000-000000000001/50000000-0000-0000-0000-000000000002/foto/60000000-0000-0000-0000-000000000003-other.jpg','10000000-0000-0000-0000-000000000002') $$, '.*row-level security.*', '9. técnico no añade evidencia a OT ajena');
+select throws_matching($$ update ordenes_trabajo set titulo='Cambio prohibido' where id='50000000-0000-0000-0000-000000000004' $$, '.*inmutable.*', '10. una OT validada no puede modificarse');
+select throws_matching($$ select accept_work_order('50000000-0000-0000-0000-000000000001') $$, '.*Solo el técnico asignado.*', '11. transición inválida es rechazada');
+select is((select count(*)::integer from storage.objects where bucket_id='ot-photos' and name like '20000000-0000-0000-0000-000000000002/%'), 0, '12. Storage no permite acceso cruzado entre tenants');
+select throws_matching($$ select accept_tenant_invitation('80000000-0000-0000-0000-000000000001') $$, '.*otro correo.*', '13. invitación no se acepta por email diferente');
 
 select * from finish();
 rollback;

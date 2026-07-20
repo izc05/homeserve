@@ -142,6 +142,16 @@ function nullableText(value: string | null | undefined): string | null {
   return normalized || null;
 }
 
+function workOrderCommandError(error: unknown): Error {
+  if (error instanceof Error) return error;
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = String(error.message || '').trim();
+    const code = 'code' in error ? String(error.code || '').trim() : '';
+    if (message) return new Error(code ? `${message} (${code})` : message);
+  }
+  return new Error('No se pudo crear la orden de trabajo.');
+}
+
 async function currentUserId(supabase: SupabaseClient): Promise<string> {
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
@@ -369,7 +379,7 @@ export async function createWorkOrder(
     toCreateWorkOrderRpcArgs(input),
   );
 
-  if (error) throw error;
+  if (error) throw workOrderCommandError(error);
 
   const row = data as unknown as CreatedWorkOrderRow | null;
   if (!row?.id || !row.codigo_ot) {

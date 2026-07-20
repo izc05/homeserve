@@ -92,6 +92,9 @@ export async function listWorkOrderAuditEvents(
 
 export function humanAuditAction(action: string): string {
   const labels: Record<string, string> = {
+    assign_work_order: 'OT asignada',
+    reassign_work_order: 'OT reasignada',
+    update_work_order_assignment: 'Asignación actualizada',
     accept_work_order: 'OT aceptada',
     start_work_order_visit: 'Intervención iniciada',
     finalize_work_order_visit: 'Intervención finalizada',
@@ -108,4 +111,21 @@ export function humanAuditAction(action: string): string {
   };
 
   return labels[action] ?? action.replaceAll('_', ' ');
+}
+
+export function workOrderAuditDetail(event: WorkOrderAuditEvent): string {
+  const meta = event.metadata;
+  const parts = [
+    meta.estado_anterior && meta.estado_nuevo
+      ? `${String(meta.estado_anterior)} → ${String(meta.estado_nuevo)}`
+      : null,
+    meta.assigned_to_name ? `Técnico asignado: ${String(meta.assigned_to_name)}` : null,
+    meta.motivo ? String(meta.motivo) : null,
+    meta.reason ? String(meta.reason) : null,
+    meta.filename ? String(meta.filename) : null,
+    meta.created_items ? `${String(meta.created_items)} puntos creados` : null,
+    meta.decision ? String(meta.decision) : null,
+  ].filter(Boolean);
+
+  return parts.join(' · ') || event.entityType;
 }

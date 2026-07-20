@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  createWorkOrder,
   toCreateWorkOrderRpcArgs,
   type CreateWorkOrderInput,
 } from './workOrderCommands';
@@ -80,5 +82,25 @@ describe('toCreateWorkOrderRpcArgs', () => {
       planned_at_value: input.plannedAt,
       due_at_value: input.dueAt,
     });
+  });
+});
+
+describe('createWorkOrder', () => {
+  it('conserva el mensaje y código seguros de un error PostgREST plano', async () => {
+    const supabase = {
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: '42501',
+          details: null,
+          hint: null,
+          message: 'new row violates row-level security policy',
+        },
+      }),
+    } as unknown as SupabaseClient;
+
+    await expect(createWorkOrder(supabase, baseInput)).rejects.toThrow(
+      'new row violates row-level security policy (42501)',
+    );
   });
 });
