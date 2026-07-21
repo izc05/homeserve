@@ -188,13 +188,27 @@ function AccountDock({
 }) {
   const membership = identity.memberships.find((item) => item.tenantId === activeTenantId);
   const initials = identity.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const role = roleLabels[membership?.role ?? ''] ?? membership?.role ?? 'Usuario';
   return (
     <aside className="account-dock" aria-label="Cuenta y organización">
-      <span className="account-avatar">{initials || 'U'}</span>
-      <div className="account-identity"><strong>{identity.name}</strong><small>{roleLabels[membership?.role ?? ''] ?? membership?.role ?? 'Usuario'}</small></div>
-      {identity.memberships.length > 1 ? <label className="tenant-select"><Building2 size={15} /><select onChange={(event) => onTenantChange(event.target.value)} value={activeTenantId}>{identity.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select><ChevronDown size={15} /></label> : <span className="single-tenant"><Building2 size={15} /> {membership?.tenantName ?? 'Sin organización'}</span>}
-      {canManageUsers(membership?.role) && <button className="dock-button" onClick={onUsers} type="button"><UsersRound size={17} /> Usuarios</button>}
-      <button className="dock-button dock-logout" onClick={onLogout} type="button"><LogOut size={17} /> Salir</button>
+      <details className="account-disclosure">
+        <summary className="account-summary">
+          <span aria-hidden="true" className="account-avatar">{initials || 'U'}</span>
+          <span className="account-summary-identity"><strong>{identity.name}</strong><small>{role}</small></span>
+          <span className="account-summary-label">Cuenta</span>
+          <ChevronDown aria-hidden="true" className="account-summary-chevron" size={18} />
+        </summary>
+        <div className="account-dock-panel">
+          <div className="account-dock-context">
+            <div className="account-identity"><strong>{identity.name}</strong><small>{role}</small></div>
+            {identity.memberships.length > 1 ? <label className="tenant-select"><Building2 aria-hidden="true" size={15} /><select aria-label="Organización activa" onChange={(event) => onTenantChange(event.target.value)} value={activeTenantId}>{identity.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select><ChevronDown aria-hidden="true" size={15} /></label> : <span className="single-tenant"><Building2 aria-hidden="true" size={15} /> {membership?.tenantName ?? 'Sin organización'}</span>}
+          </div>
+          <div className="account-dock-actions">
+            {canManageUsers(membership?.role) && <button className="dock-button" onClick={onUsers} type="button"><UsersRound aria-hidden="true" size={17} /> Usuarios</button>}
+            <button className="dock-button dock-logout" onClick={onLogout} type="button"><LogOut aria-hidden="true" size={17} /> Salir</button>
+          </div>
+        </div>
+      </details>
     </aside>
   );
 }

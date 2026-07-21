@@ -54,4 +54,12 @@ The premium component is selected only for the administrator view. The existing 
 
 The selected mockup contains richer installation contact/address data than the current schema exposes. Those fields can be added later through additive migrations and a separate installation-ficha phase; they are intentionally not fabricated here.
 
+## Account dock mobile correction
+
+- Root cause: `AccountDock` was fixed at `top: 78px` by the ≤900px auth breakpoint while `real-mobile-fixes.css` also applied `bottom: 92px` and `z-index: 79` at ≤760px. At 390×844 the two insets stretched the dock across most of the viewport, intercepting the ficha and tabs; the same mobile rules also hid the profile, organization and `Salir` content.
+- Correction: the account area now uses a native `<details>/<summary>` disclosure. At mobile it participates in normal document flow after the ficha, retains identity, organization, `Usuarios` and `Salir`, and exposes 44px controls with visible focus. Desktop and tablet rules remain unchanged.
+- Captures: `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\account-dock-fix-mobile-top-390x844.png`, `...\account-dock-fix-mobile-tabs-390x844.png`, `...\account-dock-fix-mobile-footer-390x844.png`, `...\account-dock-fix-tablet-1024x768.png`, `...\account-dock-fix-desktop-1440x1024.png`.
+- Mobile QA: 390×844 retained the 204px premium header, all five 48px tabs, complete history/footer, and no horizontal overflow (`scrollWidth` 375). The disclosure opened and closed; `Usuarios` and `Salir` actions were exercised in the read-only QA harness. Tablet retained the 84px rail (`scrollWidth` 1009), and desktop kept the account dock hidden and the existing premium layout (`scrollWidth` 1425).
+- Validation: `typecheck`, ESLint, Vitest (17 files / 93 tests), build and `git diff --check` passed. No application errors were emitted in the fresh visual QA pass.
+
 final result: passed
