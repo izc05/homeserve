@@ -56,6 +56,7 @@
 .auth-reset { width: fit-content; margin-top: 16px; }
 .auth-mode-toggle { width: 100%; margin-top: 14px; }
 .auth-disclaimer { margin: auto 0 0; padding-top: 26px; color: #7a8494; font-size: 12px; }
+.auth-brand-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--auth-line); color: #7a8494; font-size: 12px; text-align: center; }
 .auth-feedback { margin: 0; padding: 11px 13px; border-radius: 10px; font-size: 13px; font-weight: 750; line-height: 1.45; }
 .auth-feedback.error { color: #a20f19; background: #fff0f1; border: 1px solid #ffcdd1; }
 .auth-feedback.success { color: #087443; background: #ecfdf3; border: 1px solid #b7e9cd; }

@@ -21,7 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import App from './App';
-import ProductBrand from './components/ProductBrand';
+import ProductBrand, { DemoBrandFooter } from './components/ProductBrand';
 import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
 
 type Membership = {
@@ -152,6 +152,7 @@ function AccessScreen({
           {!inviteMode && <button className="text-link auth-reset" disabled={!email || busy} onClick={() => void onReset(email)} type="button">¿Has olvidado tu contraseña?</button>}
           {hasInvitation && <button className="secondary-button auth-mode-toggle" onClick={() => setInviteMode((value) => !value)} type="button">{inviteMode ? 'Ya tengo una cuenta' : 'Crear cuenta con la invitación'}</button>}
           <p className="auth-disclaimer">El alta de administradores no es pública. Solo puede iniciarla otro administrador autorizado.</p>
+          <DemoBrandFooter className="auth-brand-footer" />
         </div>
         <div className="auth-visual" aria-hidden="true"><div className="auth-grid" /><div className="auth-visual-copy"><span><Wrench size={22} /></span><strong>Trabajo técnico, información clara.</strong><small>Planifica, ejecuta, documenta y valida cada intervención.</small></div></div>
       </section>
