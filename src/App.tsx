@@ -44,6 +44,7 @@ import TechniciansWorkspace from './features/technicians/pages/TechniciansWorksp
 import TechnicianMobileWorkspace from './features/technicians/components/TechnicianMobileWorkspace';
 import { createTechnicianActionGuard } from './features/technicians/technicianMobile';
 import WorkOrderAssignmentPanel from './features/technicians/components/WorkOrderAssignmentPanel';
+import PremiumWorkOrderDetail from './features/work-orders/components/PremiumWorkOrderDetail';
 import { canAccessTechnicianAdministration, canManageTechnicianInvitations, isTechnicianRole } from './features/technicians/technicianAccess';
 import { friendlyTechnicianError } from './features/technicians/api/technicianRepository';
 import { assignWorkOrder } from './features/work-orders/api/workOrderAssignment';
@@ -347,6 +348,30 @@ function OrdersPage({ orders, open, create, canCreate, viewerRole, busyOrderId, 
 
 function Detail({ order, catalog, auditEvents, back, create, canCreate, viewerId, viewerRole, busyOrderId, notice, runAction, runAssignment, runReview, runEvidence, runCancel }: { order: WorkOrderListItem | null; catalog?: WorkOrderCreationCatalog | null; auditEvents: WorkOrderAuditEvent[]; back: () => void; create: OpenCreate; canCreate: boolean; viewerId: string; viewerRole: string; busyOrderId: string | null; notice: Notice; runAction: RunLifecycle; runAssignment: RunAssignment; runReview: RunReview; runEvidence: RunEvidence; runCancel: (order: WorkOrderListItem) => void }) {
   if (!order) return <section className="panel data-state"><AlertTriangle size={28} /><strong>Orden no disponible</strong><button className="secondary-button" onClick={back} type="button">Volver</button></section>;
+  if (isTechnicianRole(viewerRole)) return <TechnicianDetail order={order} catalog={catalog} auditEvents={auditEvents} back={back} create={create} canCreate={canCreate} viewerId={viewerId} viewerRole={viewerRole} busyOrderId={busyOrderId} notice={notice} runAction={runAction} runAssignment={runAssignment} runReview={runReview} runEvidence={runEvidence} runCancel={runCancel} />;
+  const evidenceAllowed = canPrepareEvidenceByUser(order, viewerId, viewerRole);
+  return <PremiumWorkOrderDetail
+    order={order}
+    auditEvents={auditEvents}
+    back={back}
+    onNewRelated={() => create({ installationId: order.siteId, locationId: order.locationId ?? '', assetId: order.assetId ?? '', technicianId: order.assignedTo ?? '', title: `Seguimiento de ${order.title}`, description: `Nueva actuación relacionada con ${order.code}.`, type: order.type, priority: order.priority })}
+    statusLabel={statusLabels[order.status]}
+    priorityLabel={priorityLabels[order.priority]}
+    typeLabel={typeLabels[order.type]}
+    displayDate={displayDate}
+    statusClass={statusClass}
+    priorityClass={priorityClass}
+    operationalPanels={{
+      assignment: canCreate ? <WorkOrderAssignmentPanel order={order} technicians={catalog?.technicians ?? []} busy={busyOrderId === order.id} onAssign={(technicianId, reason) => runAssignment(order, technicianId, reason)} /> : undefined,
+      technical: <article className="panel source-panel"><div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Solo técnico asignado</span></div><LifecycleActions order={order} viewerId={viewerId} busy={busyOrderId === order.id} run={runAction} /><NoticeLine notice={notice} orderId={order.id} /></article>,
+      evidence: <article className="panel source-panel"><div className="panel-heading"><h2><ListChecks size={21} /> Evidencias y documentación</h2><span className="source-badge">Checklist / informe</span></div><EvidenceActions order={order} canUse={evidenceAllowed} busy={busyOrderId === order.id} run={runEvidence} /><NoticeLine notice={notice} orderId={order.id} /></article>,
+      review: <article className="panel source-panel"><div className="panel-heading"><h2><ShieldCheck size={21} /> Revisión administrativa</h2><span className="source-badge">Validación</span></div><ReviewActions order={order} canReview={isManagerRole(viewerRole)} busy={busyOrderId === order.id} run={runReview} /></article>,
+      cancel: <article className="panel source-panel"><div className="panel-heading"><h2><AlertTriangle size={21} /> Zona responsable</h2><span className="source-badge">Anulación segura</span></div><CancelAction order={order} canCancel={isManagerRole(viewerRole) && canCancelWorkOrder(order.status)} busy={busyOrderId === order.id} run={runCancel} /></article>,
+    }}
+  />;
+}
+
+function TechnicianDetail({ order, catalog, auditEvents, back, create, canCreate, viewerId, viewerRole, busyOrderId, notice, runAction, runAssignment, runReview, runEvidence, runCancel }: { order: WorkOrderListItem; catalog?: WorkOrderCreationCatalog | null; auditEvents: WorkOrderAuditEvent[]; back: () => void; create: OpenCreate; canCreate: boolean; viewerId: string; viewerRole: string; busyOrderId: string | null; notice: Notice; runAction: RunLifecycle; runAssignment: RunAssignment; runReview: RunReview; runEvidence: RunEvidence; runCancel: (order: WorkOrderListItem) => void }) {
   const required = Object.entries(order.requirements).filter(([, value]) => value).map(([key]) => key.replaceAll(/([A-Z])/g, ' $1').toLowerCase());
   const evidenceAllowed = canPrepareEvidenceByUser(order, viewerId, viewerRole);
   const nextAction = order.status === 'BORRADOR' ? 'Asignar un técnico' : order.status === 'ASIGNADA' ? 'El técnico debe aceptar' : order.status === 'ACEPTADA' ? 'Iniciar intervención' : order.status === 'EN_CURSO' ? 'Completar ejecución' : order.status === 'BLOQUEADA' ? 'Resolver bloqueo' : order.status === 'FINALIZADA_TECNICO' ? 'Validación administrativa' : 'Sin acciones pendientes';

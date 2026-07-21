@@ -12,6 +12,7 @@ import './styles/real-clean-mode.css';
 import './styles/real-mobile-fixes.css';
 import './styles/clients.css';
 import './styles/technicians.css';
+import './styles/premium-work-order.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
