@@ -1,19 +1,23 @@
-# Supabase conectado
+# Proyecto Supabase
 
-## Proyecto oficial
+## Estado de la demostración
 
-- Nombre: `izc05's Project`
-- Project ref: `ubfbhzovebrmmjpyygnm`
-- Región: `eu-west-1`
-- URL: `https://ubfbhzovebrmmjpyygnm.supabase.co`
-- PostgreSQL: 17
-- Estado comprobado el 17 de julio de 2026: `ACTIVE_HEALTHY`
+El nuevo proyecto de Supabase Cloud todavía no está creado ni enlazado. Su
+project ref, URL y claves se configuran fuera de Git. La plantilla del
+repositorio utiliza exclusivamente:
 
-El frontend usa una `publishable key`. Nunca añadir `service_role`, secret keys, contraseñas de base de datos ni tokens privados al repositorio.
+- `VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co`
+- `VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY`
+
+El frontend admite únicamente una clave publicable. Nunca añadir
+`service_role`, claves `sb_secret_...`, contraseñas de base de datos ni tokens
+privados al repositorio o al bundle de GitHub Pages.
 
 ## Decisión de integración
 
-Este proyecto no empieza con una base vacía. Ya contiene la base creada para `isivolpro-activos` y datos existentes. El nuevo gestor OT debe adaptarse a este esquema mediante migraciones compatibles.
+El proyecto Cloud de demostración empezará vacío y se reconstruirá únicamente
+con la cadena versionada de migraciones. El esquema local sirve como referencia
+de compatibilidad, pero no se copiarán volcados ni datos del entorno operativo.
 
 Reglas obligatorias:
 
@@ -58,22 +62,11 @@ Estas entidades permanecen como datos auxiliares. No se crearán módulos genera
 - `qr_registry`
 - `sync_queue`
 
-## Datos existentes observados
+## Datos de demostración
 
-La base no está vacía. En la revisión inicial se encontraron, entre otros:
-
-- 2 organizaciones.
-- 3 perfiles.
-- 4 miembros de organización.
-- 4 instalaciones.
-- 13 ubicaciones.
-- 22 activos.
-- 6 órdenes de trabajo.
-- 5 visitas.
-- 18 respuestas de checklist.
-- 735 registros de auditoría.
-
-Estos datos deben preservarse durante la transición.
+Esta preparación no crea usuarios ni datos. Cuando se autorice la fase Cloud,
+los datos de demostración se generarán de forma reproducible con identidades
+ficticias. No se copiarán usuarios, filas ni volcados de la base operativa.
 
 ## Diferencias con el producto definitivo
 
@@ -128,9 +121,11 @@ Primero se aplicará este mapeo en la capa de dominio. La migración física de 
 
 Para `BLOQUEADA` se añadirá un motivo estructurado, manteniendo compatibilidad con los estados antiguos mientras dure la transición.
 
-## Seguridad actual
+## Seguridad antes de Cloud
 
-Todas las tablas operativas revisadas tienen RLS activado, lo cual es una buena base. Sin embargo, los advisors detectan numerosos avisos sobre funciones `SECURITY DEFINER` ejecutables desde los roles `anon` o `authenticated`.
+Todas las tablas operativas expuestas deben conservar RLS. Antes de aplicar las
+migraciones al proyecto nuevo se revisarán también las ACL efectivas de las
+funciones y la configuración de Data API.
 
 Antes de producción se debe:
 
@@ -141,6 +136,8 @@ Antes de producción se debe:
 5. Preferir `SECURITY INVOKER` salvo necesidad demostrada.
 6. Revisar especialmente RPC de invitaciones, administración, auditoría, QR y OT.
 7. Activar protección frente a contraseñas filtradas en Auth.
+8. Confirmar que `private` no figura en **Exposed schemas** y que solo se
+   exponen los esquemas estrictamente necesarios.
 
 No corregir avisos de `SECURITY DEFINER` de forma masiva sin entender su uso en RLS; un cambio indiscriminado podría bloquear la aplicación o abrir accesos.
 
@@ -162,10 +159,11 @@ Prioridad para el módulo OT:
 
 ## Tipos TypeScript
 
-Los tipos deben generarse desde este proyecto, nunca escribirse manualmente:
+Los tipos deben generarse desde el proyecto seleccionado explícitamente, nunca
+escribirse manualmente ni guardar su project ref en el repositorio:
 
 ```bash
-npx supabase gen types typescript --project-id ubfbhzovebrmmjpyygnm > src/types/database.generated.ts
+npx supabase gen types typescript --project-id YOUR_PROJECT_REF > src/types/database.generated.ts
 ```
 
 Después:

@@ -12,14 +12,12 @@ No convertir el proyecto en un ERP, inventario general, módulo OCA ni gestor do
 
 El repositorio `izc05/isivolpro-activos` puede estudiarse para adaptar autenticación, Supabase, RLS, checklist, visitas, fotos, firmas, PDF y auditoría. No copiar módulos fuera de alcance, compatibilidad antigua, marcas de terceros ni código sin revisar.
 
-## Supabase oficial
+## Supabase
 
-- Proyecto: `izc05's Project`
-- Project ref: `ubfbhzovebrmmjpyygnm`
-- URL: `https://ubfbhzovebrmmjpyygnm.supabase.co`
-- Región: `eu-west-1`
-
-La base contiene datos y tablas heredadas de `isivolpro-activos`. Leer `docs/SUPABASE_PROJECT.md` antes de tocar el esquema.
+El proyecto de Supabase Cloud de la demostración se configura fuera de Git. El
+repositorio no debe contener un project ref, URL real ni claves. El frontend usa
+únicamente `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`; leer
+`docs/SUPABASE_PROJECT.md` antes de tocar el esquema o preparar un despliegue.
 
 Reglas obligatorias:
 

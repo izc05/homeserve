@@ -1,9 +1,12 @@
+[CmdletBinding()]
 param(
+  [Parameter(Mandatory = $true)]
+  [ValidatePattern('^[a-z0-9]{20}$')]
+  [string]$ProjectRef,
   [switch]$RefreshBaseline
 )
 
 $ErrorActionPreference = 'Stop'
-$ProjectRef = 'ubfbhzovebrmmjpyygnm'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $BaselinePath = Join-Path $RepoRoot 'supabase\migrations\20260717000000_remote_public_baseline.sql'
 $EnvPath = Join-Path $RepoRoot '.env.local'
@@ -34,6 +37,15 @@ function Get-JsonValue {
   return $null
 }
 
+function Confirm-SupabaseProjectLink {
+  Write-Host "Project ref de destino: $ProjectRef" -ForegroundColor Yellow
+  $Confirmation = Read-Host 'Escribe exactamente el project ref para confirmar el enlace'
+
+  if ($Confirmation -cne $ProjectRef) {
+    throw 'El project ref confirmado no coincide. No se ejecutará supabase link.'
+  }
+}
+
 Write-Host 'IsiVoltPro OT - Supabase local gratuito' -ForegroundColor Green
 Write-Host 'Este script no ejecuta db push ni db reset --linked.' -ForegroundColor Yellow
 Write-Host 'El proyecto remoto se usa solamente para leer su esquema público.' -ForegroundColor Yellow
@@ -48,6 +60,12 @@ try {
   $NodeMajor = [int](& node -p "process.versions.node.split('.')[0]")
   if ($LASTEXITCODE -ne 0 -or $NodeMajor -lt 20) {
     throw 'Se necesita Node.js 20 o posterior.'
+  }
+
+  $RequiresRemoteBaseline = $RefreshBaseline -or -not (Test-Path $BaselinePath)
+
+  if ($RequiresRemoteBaseline) {
+    Confirm-SupabaseProjectLink
   }
 
   if ($RefreshBaseline -and (Test-Path $BaselinePath)) {

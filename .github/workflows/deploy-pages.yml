@@ -26,17 +26,53 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
-      - name: Prepare public environment
+      - name: Validate public environment
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          cp .env.example .env.production
-          sed -i 's/VITE_APP_ENV=development/VITE_APP_ENV=production/' .env.production
+          set -euo pipefail
+
+          if [[ -z "${VITE_SUPABASE_URL:-}" ]]; then
+            echo "::error::Falta la variable de Actions VITE_SUPABASE_URL."
+            exit 1
+          fi
+
+          if [[ ! "$VITE_SUPABASE_URL" =~ ^https://[a-z0-9]{20}\.supabase\.co/?$ ]]; then
+            echo "::error::VITE_SUPABASE_URL debe ser una URL HTTPS válida de un proyecto Supabase."
+            exit 1
+          fi
+
+          if [[ -z "${VITE_SUPABASE_PUBLISHABLE_KEY:-}" ]]; then
+            echo "::error::Falta el secret de Actions VITE_SUPABASE_PUBLISHABLE_KEY."
+            exit 1
+          fi
+
+          normalized_key="${VITE_SUPABASE_PUBLISHABLE_KEY,,}"
+          if [[ "$normalized_key" == *service_role* ]] \
+            || [[ "$VITE_SUPABASE_PUBLISHABLE_KEY" == sb_secret_* ]] \
+            || [[ "$VITE_SUPABASE_PUBLISHABLE_KEY" == eyJ* ]]; then
+            echo "::error::La clave configurada tiene apariencia de credencial de servidor o clave heredada."
+            exit 1
+          fi
+
+          if [[ ! "$VITE_SUPABASE_PUBLISHABLE_KEY" =~ ^sb_publishable_[A-Za-z0-9_-]{16,}$ ]]; then
+            echo "::error::La clave debe tener formato sb_publishable_."
+            exit 1
+          fi
+
+          echo "Configuración pública validada sin mostrar valores."
 
       - name: Build public site
-        run: npx vite build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
