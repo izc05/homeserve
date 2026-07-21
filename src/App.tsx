@@ -25,8 +25,8 @@ import {
   UsersRound,
   Wrench,
   X,
-  Zap,
 } from 'lucide-react';
+import ProductBrand from './components/ProductBrand';
 import { getSupabaseClient } from './lib/supabase';
 import CreateWorkOrderForm from './features/work-orders/components/CreateWorkOrderForm';
 import { listAccessibleWorkOrders, type WorkOrderListItem } from './features/work-orders/api/workOrdersRepository';
@@ -211,10 +211,6 @@ function makeAssetPreset(asset: WorkOrderCreationCatalog['assets'][number]): Cre
   };
 }
 
-function Brand() {
-  return <div className="brand"><span className="brand-symbol"><Zap size={25} strokeWidth={2.8} /></span><div><strong>IsiVoltPro FV</strong><span>Órdenes de trabajo reales</span></div></div>;
-}
-
 function Sidebar({ active, open, tenantName, viewerRole, canAccessClients, navigate, close, logout }: { active: View; open: boolean; tenantName: string; viewerRole: string; canAccessClients: boolean; navigate: (view: View) => void; close: () => void; logout: () => void }) {
   const technicianMode = isTechnicianRole(viewerRole);
   const visibleMainNavigation = technicianMode ? mainNavigation.filter((item) => item.id === 'technician') : mainNavigation.filter((item) => item.id !== 'technician');
@@ -231,7 +227,7 @@ function Sidebar({ active, open, tenantName, viewerRole, canAccessClients, navig
   return <>
     <button className={`sidebar-backdrop ${open ? 'visible' : ''}`} onClick={close} aria-label="Cerrar menú" />
     <aside className={`sidebar ${open ? 'open' : ''}`}>
-      <div className="sidebar-brand-row"><Brand /><button className="icon-button sidebar-close" onClick={close} aria-label="Cerrar menú"><X size={20} /></button></div>
+      <div className="sidebar-brand-row"><ProductBrand variant="navigation" /><button className="icon-button sidebar-close" onClick={close} aria-label="Cerrar menú"><X size={20} /></button></div>
       <nav className="sidebar-nav">
         <span className="nav-caption">Trabajo diario</span>
         {visibleMainNavigation.map((item) => renderItem(item))}
@@ -249,6 +245,7 @@ function Sidebar({ active, open, tenantName, viewerRole, canAccessClients, navig
 function Topbar({ viewerName, viewerRole, menu, create, canCreate, logout }: { viewerName: string; viewerRole: string; menu: () => void; create: () => void; canCreate: boolean; logout: () => void }) {
   return <header className="topbar">
     <button className="icon-button menu-button" onClick={menu} aria-label="Abrir menú"><Menu size={21} /></button>
+    <ProductBrand className="topbar-product-brand" variant="compact" />
     <div className="topbar-actions">
       <div className="user-menu"><span className="avatar">{initials(viewerName)}</span><span><strong>{viewerName}</strong><small>{roleLabel(viewerRole)}</small></span></div>
       {canCreate && <button className="primary-button top-create" onClick={create} type="button"><Plus size={18} /> Nueva OT</button>}

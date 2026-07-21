@@ -19,9 +19,9 @@ import {
   UsersRound,
   Wrench,
   X,
-  Zap,
 } from 'lucide-react';
 import App from './App';
+import ProductBrand from './components/ProductBrand';
 import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
 
 type Membership = {
@@ -67,15 +67,6 @@ const roleLabels: Record<string, string> = {
 
 const canManageUsers = (role: string | undefined) => role === 'admin_cliente';
 
-function Logo() {
-  return (
-    <div className="auth-logo">
-      <span><Zap size={27} strokeWidth={2.8} /></span>
-      <div><strong>IsiVoltPro <b>OT</b></strong><small>Gestión de órdenes de trabajo</small></div>
-    </div>
-  );
-}
-
 async function loadIdentity(session: Session): Promise<Identity> {
   const supabase = getSupabaseClient();
   const [{ data: profile, error: profileError }, { data: memberRows, error: memberError }] = await Promise.all([
@@ -106,15 +97,15 @@ async function loadIdentity(session: Session): Promise<Identity> {
 }
 
 function LoadingScreen() {
-  return <main className="auth-loading"><LoaderCircle className="spin" size={34} /><strong>Cargando IsiVoltPro OT</strong></main>;
+  return <main className="auth-loading"><ProductBrand variant="auth" /><span className="auth-loading-status"><LoaderCircle className="spin" size={34} /><strong>Cargando HomeServe Operaciones</strong></span></main>;
 }
 
 function ConfigurationScreen() {
-  return <main className="auth-page"><section className="auth-card auth-message-card"><Logo /><AlertTriangle size={34} /><h1>Falta configurar Supabase</h1><p>Añade las variables <code>VITE_SUPABASE_URL</code> y <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> para activar el acceso real.</p></section></main>;
+  return <main className="auth-page"><section className="auth-card auth-message-card"><ProductBrand variant="auth" /><AlertTriangle size={34} /><h1>Falta configurar Supabase</h1><p>Añade las variables <code>VITE_SUPABASE_URL</code> y <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> para activar el acceso real.</p></section></main>;
 }
 
 function NoOrganisationScreen({ name, logout }: { name: string; logout: () => void }) {
-  return <main className="auth-page"><section className="auth-card auth-message-card"><Logo /><Building2 size={36} /><h1>Hola, {name}</h1><p>Tu cuenta está autenticada, pero todavía no tiene una organización activa. Un administrador debe completar la invitación o reactivar tu membresía.</p><button className="secondary-button" onClick={logout} type="button"><LogOut size={17} /> Cerrar sesión</button></section></main>;
+  return <main className="auth-page"><section className="auth-card auth-message-card"><ProductBrand variant="auth" /><Building2 size={36} /><h1>Hola, {name}</h1><p>Tu cuenta está autenticada, pero todavía no tiene una organización activa. Un administrador debe completar la invitación o reactivar tu membresía.</p><button className="secondary-button" onClick={logout} type="button"><LogOut size={17} /> Cerrar sesión</button></section></main>;
 }
 
 function AccessScreen({
@@ -149,7 +140,7 @@ function AccessScreen({
     <main className="auth-page">
       <section className="auth-card">
         <div className="auth-form-panel">
-          <Logo />
+          <ProductBrand variant="auth" />
           <div className="auth-copy"><span className="section-kicker">{inviteMode ? 'Invitación de acceso' : 'Acceso profesional'}</span><h1>{inviteMode ? 'Crea tu cuenta de trabajo' : 'Todo el mantenimiento bajo control'}</h1><p>{inviteMode ? 'Esta alta está vinculada a una invitación emitida por un administrador.' : 'Accede con tu cuenta de administrador, coordinador o técnico.'}</p></div>
           <form className="auth-form" onSubmit={submit}>
             <label>Correo electrónico<span className="auth-input"><Mail size={18} /><input autoComplete="email" disabled={hasInvitation} onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></span></label>
@@ -170,7 +161,7 @@ function AccessScreen({
 
 function RecoveryScreen({ busy, error, onSave }: { busy: boolean; error: string; onSave: (password: string) => Promise<void> }) {
   const [password, setPassword] = useState('');
-  return <main className="auth-page"><section className="auth-card auth-message-card"><Logo /><ShieldCheck size={36} /><h1>Define una contraseña nueva</h1><form className="auth-form recovery-form" onSubmit={(event) => { event.preventDefault(); void onSave(password); }}><label>Nueva contraseña<span className="auth-input"><KeyRound size={18} /><input minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></span></label>{error && <p className="auth-feedback error">{error}</p>}<button className="primary-button auth-submit" disabled={busy} type="submit">Guardar contraseña</button></form></section></main>;
+  return <main className="auth-page"><section className="auth-card auth-message-card"><ProductBrand variant="auth" /><ShieldCheck size={36} /><h1>Define una contraseña nueva</h1><form className="auth-form recovery-form" onSubmit={(event) => { event.preventDefault(); void onSave(password); }}><label>Nueva contraseña<span className="auth-input"><KeyRound size={18} /><input minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></span></label>{error && <p className="auth-feedback error">{error}</p>}<button className="primary-button auth-submit" disabled={busy} type="submit">Guardar contraseña</button></form></section></main>;
 }
 
 function AccountDock({

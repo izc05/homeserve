@@ -64,6 +64,49 @@ The selected mockup contains richer installation contact/address data than the c
 
 final result: passed
 
+## HomeServe co-branding — propuesta demostrativa
+
+### Procedencia y tratamiento del activo
+
+- Fuente pública: `https://www.homeserve.es/` y logo horizontal rojo publicado por HomeServe en `/-/media/feature/newcomponents/logo-rojo-horizontal.png?h=58&hash=523C090F343FD77FD6726571AEDF8EC6B9CA19EE&la=es-ES&w=198`.
+- Copia local única: `public/brand/homeserve-logo-red.png`; la aplicación utiliza `BASE_URL + brand/homeserve-logo-red.png` y no depende de `homeserve.es` en tiempo de ejecución.
+- Activo verificado: PNG de 198×58 px, 2.722 bytes, transparencia ARGB y SHA-256 `40E53D83DE09B5C0A5867932AD731216C523EE8B4EE559C95B436B03CF7AEAA1`. No se redibujó, recoloreó, recortó ni deformó.
+- Uso de marca: propuesta demostrativa no oficial. HomeServe conserva la identidad principal; `Desarrollado por IsiVoltPro` queda como autoría secundaria y el distintivo `Demostración` hace explícito el alcance.
+
+### Integración y accesibilidad
+
+- `ProductBrand` centraliza logo, `HomeServe Operaciones`, `Gestión de órdenes de trabajo`, `Demostración`, `Desarrollado por IsiVoltPro` y el fallback accesible. Se reutiliza en acceso, navegación administrativa, cabecera móvil y cabecera técnica.
+- El logo reserva siempre su relación 198:58 mediante atributos `width`/`height`, marcos dimensionados y `object-fit: contain`; `alt="HomeServe"` permanece disponible y el error de carga cambia a un fallback textual con el mismo nombre accesible.
+- Tamaños de presentación verificados: acceso 152×45 px (136×40 px en móvil), navegación 118×35 px, rail premium tablet 62×20 px, cabecera móvil 70×22 px y cabecera técnica 112×40 px sobre soporte blanco.
+- En móvil el nombre completo `HomeServe Operaciones` cabe sin elipsis (`clientWidth = scrollWidth = 132 px`), el menú mide 44×44 px y los controles del acceso tienen una altura mínima de 44 px.
+- El título del documento es `HomeServe Operaciones · Gestión de órdenes de trabajo`. Manifest y metadatos de aplicación usan el mismo nombre.
+- El pie permanece exactamente: `Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro`.
+
+### Responsive y evidencias
+
+- Escritorio 1440×1024: acceso y navegación administrativa sin overflow (`scrollWidth = 1440`); logo horizontal nítido y jerarquía completa.
+- Tablet 1024×768: el acceso conserva las dos columnas; en pantallas premium el rail de 84 px reduce la marca a 62×20 px y oculta solo su copia redundante, sin overflow (`scrollWidth = 1024`).
+- Móvil 390×844: acceso, topbar y cabecera técnica caben sin overflow horizontal (`scrollWidth ≤ clientWidth`); nombre, distintivo y pie siguen visibles.
+- Capturas:
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\homeserve-brand-access-desktop-1440x1024.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\homeserve-brand-access-tablet-1024x768.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\homeserve-brand-access-mobile-390x844.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\homeserve-brand-navigation-desktop-1440x1024.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\homeserve-brand-navigation-tablet-1024x768.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\homeserve-brand-navigation-mobile-390x844.png`
+- Consola: ninguna carga nueva produjo errores. El acceso conserva únicamente los dos avisos preexistentes de futuras opciones de React Router v7; no son una regresión de esta implementación.
+
+### Validación
+
+- `npm run typecheck` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (19 archivos / 104 pruebas)
+- `npm run build` ✅
+- `git diff --check` ✅
+- No se modificaron datos, backend, Supabase, rutas funcionales, systemd ni servicios. El arnés visual local fue temporal y se eliminó antes de esta revisión final.
+
+final result: passed
+
 ## Premium Mis OT — zona técnica
 
 ### Alcance y datos

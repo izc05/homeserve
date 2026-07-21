@@ -21,6 +21,7 @@ import {
 import type { WorkOrderPriority, WorkOrderStatus } from '../types/workOrder';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
 import { humanAuditAction, workOrderAuditDetail, type WorkOrderAuditEvent } from '../api/workOrderAuditRepository';
+import { DemoBrandFooter } from '../../../components/ProductBrand';
 
 export type PremiumWorkOrderDetailProps = {
   order: WorkOrderListItem;
@@ -179,7 +180,7 @@ export default function PremiumWorkOrderDetail({
         {activeTab === 'administration' && <ReadOnlyPanel icon={Settings2} title="Administración"><dl className="premium-fields-grid premium-admin-fields"><Field label="Código" value={order.code} /><Field label="Estado" value={<span className={statusBadgeClass}>{statusIcon(order.status)}{statusLabel}</span>} /><Field label="Prioridad" value={<span className={priorityBadgeClass}><Flag size={14} />{priorityLabel}</span>} /><Field label="Creada" value={displayDate(order.createdAt)} /><Field label="Última actualización" value={displayDate(order.updatedAt)} /><Field label="Responsable de creación" value={<EmptyState>Nombre no disponible en la OT visible.</EmptyState>} empty /></dl></ReadOnlyPanel>}
       </div>
     </div>
-    <footer className="premium-brand-footer">Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro</footer>
+    <DemoBrandFooter className="premium-brand-footer" />
   </article>;
 }
 

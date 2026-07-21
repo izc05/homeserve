@@ -18,6 +18,7 @@ import {
 import { useMemo, useState } from 'react';
 import type { WorkOrderListItem } from '../../work-orders/api/workOrdersRepository';
 import type { WorkOrderPriority, WorkOrderStatus } from '../../work-orders/types/workOrder';
+import ProductBrand, { DemoBrandFooter } from '../../../components/ProductBrand';
 import { groupTechnicianOrders, type TechnicianMobileAction, type TechnicianOrderGroup } from '../technicianMobile';
 
 const groupLabels: Record<TechnicianOrderGroup, string> = {
@@ -106,6 +107,7 @@ export default function TechnicianMobileWorkspace({ orders, viewerId, viewerName
     <header className="technician-premium-header">
       <div className="technician-premium-header-inner">
         <div>
+          <ProductBrand className="technician-premium-product-brand" variant="inverse" />
           <span className="technician-premium-kicker">Zona técnica</span>
           <h1>Mis OT</h1>
           <p>Tu cola operativa, con las órdenes que el servidor ha asignado a esta cuenta.</p>
@@ -150,6 +152,6 @@ export default function TechnicianMobileWorkspace({ orders, viewerId, viewerName
 
       {group !== 'en_curso' && <section className="technician-premium-filtered-list" aria-labelledby="technician-filtered-title"><div className="technician-premium-list-heading"><div><span className="technician-premium-kicker">Vista seleccionada</span><h2 id="technician-filtered-title">{groupLabels[group]}</h2></div><span className="technician-premium-count">{visible.length}</span></div>{visible.length === 0 ? <div className="technician-premium-empty"><Inbox size={22} aria-hidden="true" /><strong>No hay OT en esta vista</strong><p>Los estados y fechas visibles se actualizan desde Supabase.</p></div> : <div className="technician-premium-filtered-cards">{visible.map((order) => <article className="technician-premium-filtered-card" key={order.id}><div className="technician-premium-filtered-card-main"><div className="technician-premium-filtered-card-top"><button className="technician-premium-order-link" onClick={() => open(order.id)} type="button">{order.code}</button><span className={`technician-premium-status status-${order.status.toLowerCase().replaceAll('_', '-')}`}>{statusIcon(order.status)}{statusLabels[order.status]}</span></div><h3>{order.title}</h3><p>{renderOrderMeta(order)}</p></div>{renderAction(order)}</article>)}</div>}</section>}
     </div>
-    <footer className="technician-premium-footer">Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro</footer>
+    <DemoBrandFooter className="technician-premium-footer" />
   </section>;
 }
