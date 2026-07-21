@@ -4,6 +4,10 @@ Este runbook prepara la demostración estática de **HomeServe Operaciones**. No
 autoriza crear el proyecto Supabase, aplicar migraciones, generar usuarios ni
 publicar la web.
 
+La provisión posterior de usuarios y datos ficticios se realiza únicamente con
+el runbook separado [`PROVISION_DEMO.md`](PROVISION_DEMO.md), después de aplicar
+y verificar las migraciones en el proyecto demo correcto.
+
 ## Alcance de la URL
 
 La única ruta garantizada es:
