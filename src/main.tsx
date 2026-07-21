@@ -4,12 +4,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import AuthApp from './AuthApp';
 import './styles/global.css';
+import './styles/product-brand.css';
 import './styles/auth.css';
 import './styles/real-data.css';
 import './styles/work-order-create.css';
 import './styles/ui-polish.css';
 import './styles/real-clean-mode.css';
 import './styles/real-mobile-fixes.css';
+import './styles/clients.css';
+import './styles/technicians.css';
+import './styles/technician-premium.css';
+import './styles/premium-work-order.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

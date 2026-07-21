@@ -76,6 +76,7 @@ export default function AssetsWorkspace({ tenantId, orders, catalog, onOpenOrder
 
   const assets = useMemo(() => buildAssetList(catalog, orders), [catalog, orders]);
   const selected = assets.find((item) => item.asset.id === selectedAssetId) ?? assets[0] ?? null;
+  const selectedLatestOrder = selected?.latestOrder ?? null;
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -136,7 +137,9 @@ export default function AssetsWorkspace({ tenantId, orders, catalog, onOpenOrder
               <span><ClipboardList size={17} /> {selected.relatedOrders.length} OT vinculadas</span>
               <span><Clock3 size={17} /> {selected.openOrders.length} abiertas</span>
               <button className="primary-button" onClick={() => onCreateOrder(makeAssetPreset(selected.asset))} type="button"><Plus size={17} /> Nueva OT del equipo</button>
-              {selected.latestOrder && <button className="secondary-button" onClick={() => onOpenOrder(selected.latestOrder.id)} type="button">Abrir última OT</button>}
+              {selectedLatestOrder ? (
+                <button className="secondary-button" onClick={() => onOpenOrder(selectedLatestOrder.id)} type="button">Abrir última OT</button>
+              ) : <p className="empty-state">Este equipo todavía no tiene OTs registradas.</p>}
             </div>
           ) : <p className="empty-state">Selecciona un equipo para ver acciones.</p>}
         </article>

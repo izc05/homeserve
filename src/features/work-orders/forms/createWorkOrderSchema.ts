@@ -20,6 +20,7 @@ export const createWorkOrderSchema = z
   .object({
     title: z.string().trim().min(3, 'Escribe al menos 3 caracteres').max(180),
     description: z.string().max(8000).optional().default(''),
+    clientId: z.string().uuid('Selecciona un cliente'),
     installationId: z.string().uuid('Selecciona una instalación'),
     locationId: optionalUuid.default(''),
     assetId: optionalUuid.default(''),

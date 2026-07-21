@@ -38,7 +38,7 @@ type WorkOrderStatusRow = {
   estado?: string | null;
 };
 
-const REPORT_ALLOWED_STATUSES = ['FINALIZADA_TECNICO', 'FINALIZADA'] as const;
+const REPORT_ALLOWED_STATUSES = ['FINALIZADA_TECNICO'] as const;
 
 function requireUuid(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);

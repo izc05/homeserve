@@ -3,6 +3,8 @@ import type { WorkOrder } from '../types/workOrder';
 import { mapLegacyWorkOrder, type LegacyWorkOrderRow } from './workOrderMapper';
 
 export type WorkOrderListItem = WorkOrder & {
+  clientId?: string | null;
+  clientName?: string | null;
   siteName: string;
   locationName: string | null;
   assignedToName: string | null;
@@ -17,6 +19,7 @@ const WORK_ORDER_COLUMNS = [
   'id',
   'tenant_id',
   'codigo_ot',
+  'cliente_id',
   'instalacion_id',
   'ubicacion_id',
   'activo_id',
@@ -41,6 +44,7 @@ const WORK_ORDER_COLUMNS = [
 ].join(',');
 
 type NamedRow = { id: string; nombre: string | null };
+type WorkOrderRepositoryRow = LegacyWorkOrderRow & { cliente_id: string | null };
 type AssetRow = {
   id: string;
   nombre: string | null;
@@ -56,7 +60,7 @@ function unique(values: Array<string | null>): string[] {
 
 async function loadNames(
   supabase: SupabaseClient,
-  table: 'instalaciones' | 'ubicaciones' | 'profiles',
+  table: 'clientes' | 'instalaciones' | 'ubicaciones' | 'profiles',
   ids: string[],
 ): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
@@ -110,8 +114,9 @@ export async function listAccessibleWorkOrders(
 
   if (error) throw error;
 
-  const rows = (data ?? []) as unknown as LegacyWorkOrderRow[];
-  const [siteNames, locationNames, technicianNames, assets] = await Promise.all([
+  const rows = (data ?? []) as unknown as WorkOrderRepositoryRow[];
+  const [clientNames, siteNames, locationNames, technicianNames, assets] = await Promise.all([
+    loadNames(supabase, 'clientes', unique(rows.map((row) => row.cliente_id))),
     loadNames(supabase, 'instalaciones', unique(rows.map((row) => row.instalacion_id))),
     loadNames(supabase, 'ubicaciones', unique(rows.map((row) => row.ubicacion_id))),
     loadNames(supabase, 'profiles', unique(rows.map((row) => row.assigned_to))),
@@ -123,6 +128,8 @@ export async function listAccessibleWorkOrders(
 
     return {
       ...mapLegacyWorkOrder(row),
+      clientId: row.cliente_id,
+      clientName: row.cliente_id ? clientNames.get(row.cliente_id) ?? 'Cliente sin nombre' : null,
       siteName: siteNames.get(row.instalacion_id) ?? 'Instalación sin nombre',
       locationName: row.ubicacion_id
         ? locationNames.get(row.ubicacion_id) ?? 'Ubicación sin nombre'

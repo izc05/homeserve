@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import {
   cancelScheduledMaintenance,
@@ -50,7 +51,7 @@ describe('scheduledMaintenanceRepository', () => {
     const query = createQueryMock([scheduledRow()]);
     const supabase = { from: vi.fn(() => query) };
 
-    const result = await listScheduledMaintenances(supabase as any, 'tenant-1');
+    const result = await listScheduledMaintenances(supabase as unknown as SupabaseClient, 'tenant-1');
 
     expect(supabase.from).toHaveBeenCalledWith('mantenimientos_programados');
     expect(query.eq).toHaveBeenCalledWith('tenant_id', 'tenant-1');
@@ -78,7 +79,7 @@ describe('scheduledMaintenanceRepository', () => {
       })),
     };
 
-    const result = await generateDueScheduledMaintenances(supabase as any, {
+    const result = await generateDueScheduledMaintenances(supabase as unknown as SupabaseClient, {
       tenantId: 'tenant-1',
       horizonDays: 45,
     });
@@ -104,7 +105,7 @@ describe('scheduledMaintenanceRepository', () => {
       })),
     };
 
-    await generateDueScheduledMaintenances(supabase as any, { tenantId: 'tenant-1', horizonDays: -7 });
+    await generateDueScheduledMaintenances(supabase as unknown as SupabaseClient, { tenantId: 'tenant-1', horizonDays: -7 });
 
     expect(supabase.rpc).toHaveBeenCalledWith('generate_due_scheduled_maintenances', {
       tenant_uuid: 'tenant-1',
@@ -120,7 +121,7 @@ describe('scheduledMaintenanceRepository', () => {
       })),
     };
 
-    const result = await rescheduleScheduledMaintenance(supabase as any, {
+    const result = await rescheduleScheduledMaintenance(supabase as unknown as SupabaseClient, {
       scheduledMaintenanceId: 'scheduled-1',
       scheduledDate: '2026-08-10',
       dueDate: '2026-08-12',
@@ -144,7 +145,7 @@ describe('scheduledMaintenanceRepository', () => {
       })),
     };
 
-    const result = await cancelScheduledMaintenance(supabase as any, {
+    const result = await cancelScheduledMaintenance(supabase as unknown as SupabaseClient, {
       scheduledMaintenanceId: 'scheduled-1',
       reason: '  Equipo retirado  ',
     });
@@ -164,7 +165,7 @@ describe('scheduledMaintenanceRepository', () => {
       })),
     };
 
-    const result = await skipScheduledMaintenance(supabase as any, {
+    const result = await skipScheduledMaintenance(supabase as unknown as SupabaseClient, {
       scheduledMaintenanceId: 'scheduled-1',
       reason: 'No procede este ciclo',
     });
@@ -184,7 +185,7 @@ describe('scheduledMaintenanceRepository', () => {
       })),
     };
 
-    const result = await generateWorkOrderFromScheduledMaintenance(supabase as any, {
+    const result = await generateWorkOrderFromScheduledMaintenance(supabase as unknown as SupabaseClient, {
       scheduledMaintenanceId: 'scheduled-1',
       technicianId: 'tech-1',
     });

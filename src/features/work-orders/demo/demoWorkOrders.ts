@@ -250,6 +250,11 @@ export const demoWorkOrders: WorkOrderListItem[] = [
     siteName: 'SolarManten FV · Planta Jaén',
     locationName: 'Planta FV completa',
     assignedToName: null,
+    assetName: null,
+    assetType: null,
+    assetReference: null,
+    assetCriticality: null,
+    assetStatus: null,
   },
   {
     id: 'demo-ot-008',
@@ -279,6 +284,11 @@ export const demoWorkOrders: WorkOrderListItem[] = [
     siteName: 'Base de mantenimiento · Almacén',
     locationName: 'Almacén técnico · Repuestos FV',
     assignedToName: null,
+    assetName: null,
+    assetType: null,
+    assetReference: null,
+    assetCriticality: null,
+    assetStatus: null,
   },
 ];
 

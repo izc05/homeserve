@@ -11,22 +11,53 @@ Este proyecto puede probar migraciones, RLS, autenticación y RPC en el PC sin c
 
 El entorno local no consume cuota de Supabase. Sí utiliza memoria, CPU y disco del PC mientras está funcionando.
 
-## Primer arranque en Windows
+## Uso exclusivamente local
+
+El entorno local incluido en el repositorio no necesita estar enlazado a ningún
+proyecto de Supabase Cloud. Para instalar dependencias, arrancar los servicios y
+reconstruir la base local:
 
 Desde PowerShell, dentro del repositorio:
 
 ```powershell
-git checkout feature/create-assign-work-orders
-npm install
-npm run supabase:local
+npm ci
+npm run supabase:start
+npm run supabase:reset
+npm run supabase:lint
+npm run supabase:test
 ```
 
 El primer arranque tarda más porque Docker descarga las imágenes del entorno Supabase.
 
-## Qué hace el comando
+## Enlace remoto explícito
+
+El enlace a Cloud solo es necesario si se autoriza expresamente volver a
+capturar una línea base remota. El script exige indicar el destino y no tiene un
+project ref predeterminado:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-local-supabase.ps1 -ProjectRef YOUR_PROJECT_REF
+```
+
+El script muestra el project ref de destino y exige escribirlo de nuevo antes
+de ejecutar `supabase link`. Si la línea base ya existe y no se solicita
+`-RefreshBaseline`, no enlaza ni descarga el esquema.
+
+Para actualizar deliberadamente la línea base:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-local-supabase.ps1 -ProjectRef YOUR_PROJECT_REF -RefreshBaseline
+```
+
+Antes de cualquier futuro `supabase db push`, se debe comparar el project ref
+mostrado por el CLI con el proyecto esperado en el Dashboard. Si no coincide,
+se cancela la operación. Este procedimiento no autoriza ningún `db push`.
+
+## Qué hace el script de preparación completa
 
 1. Comprueba que Docker está iniciado y que Node es compatible.
-2. Si todavía no existe una línea base local, inicia sesión en Supabase y enlaza el proyecto `ubfbhzovebrmmjpyygnm`.
+2. Si falta la línea base local o se solicita actualizarla, inicia sesión y pide
+   confirmación del `ProjectRef` recibido antes de enlazar.
 3. Ejecuta un `db dump` de **solo el esquema público**, sin descargar datos.
 4. Guarda esa copia como una migración anterior a los cambios nuevos.
 5. Arranca PostgreSQL, Auth, Storage, Studio y el resto de servicios en Docker.
@@ -80,12 +111,6 @@ npm run supabase:lint
 
 # Parar los contenedores conservando la base local
 npm run supabase:stop
-```
-
-Para volver a capturar el esquema público remoto después de un cambio aprobado:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-local-supabase.ps1 -RefreshBaseline
 ```
 
 ## Línea base generada

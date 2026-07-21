@@ -1,0 +1,333 @@
+.technician-premium-page {
+  width: calc(100% + 56px);
+  min-width: 0;
+  margin: -28px -28px -28px;
+  overflow-x: clip;
+  color: var(--navy);
+  background: #f5f7fa;
+}
+
+.technician-premium-header {
+  color: #fff;
+  background: linear-gradient(115deg, #0d1c38 0%, #132a50 72%, #172f57 100%);
+}
+
+.technician-premium-header-inner {
+  width: min(100%, 1580px);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto;
+  padding: 34px 28px 32px;
+}
+
+.technician-premium-kicker {
+  display: block;
+  margin-bottom: 7px;
+  color: #f33d47;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.technician-premium-header h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(34px, 4vw, 52px);
+  letter-spacing: -.045em;
+  line-height: 1;
+}
+
+.technician-premium-header p {
+  max-width: 650px;
+  margin: 9px 0 0;
+  color: #d6deed;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.technician-premium-identity {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 12px;
+  background: rgba(6, 20, 45, .48);
+}
+
+.technician-premium-identity > span:last-child,
+.technician-premium-identity small,
+.technician-premium-identity strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.technician-premium-identity small {
+  color: #b9c5d8;
+  font-size: 12px;
+}
+
+.technician-premium-identity strong {
+  margin-top: 3px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.technician-premium-avatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 50%;
+  color: #132a50;
+  background: #e8edf5;
+}
+
+.technician-premium-content {
+  width: min(100%, 1580px);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 24px 28px 30px;
+}
+
+.technician-premium-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-bottom: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--shadow-small);
+}
+
+.technician-premium-kpi {
+  min-width: 0;
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 19px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: #fff;
+  color: var(--navy);
+  text-align: left;
+  cursor: pointer;
+}
+
+.technician-premium-kpi:last-child { border-right: 0; }
+.technician-premium-kpi:hover,
+.technician-premium-kpi:focus-visible,
+.technician-premium-kpi.is-active { background: #fbfcfe; }
+.technician-premium-kpi:focus-visible { outline: 3px solid rgba(227, 6, 19, .25); outline-offset: -3px; }
+
+.technician-premium-kpi.is-active { box-shadow: inset 0 -3px 0 var(--brand); }
+.technician-premium-kpi-icon { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 50%; color: var(--navy); background: #eef2f7; }
+.technician-premium-kpi strong,
+.technician-premium-kpi small { display: block; }
+.technician-premium-kpi strong { font-size: 24px; line-height: 1; }
+.technician-premium-kpi small { margin-top: 5px; color: #536176; font-size: 12px; font-weight: 750; }
+.technician-premium-kpi-arrow { color: #8a96a8; }
+
+.technician-premium-focus {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 20px 24px;
+  border: 1px solid #f2c8cc;
+  border-top: 3px solid var(--brand);
+  border-radius: 12px;
+  background: linear-gradient(120deg, #fff 0%, #fff8f8 100%);
+  box-shadow: var(--shadow-small);
+}
+
+.technician-premium-focus-icon { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; color: var(--brand); background: #ffecee; }
+.technician-premium-focus-copy { min-width: 0; }
+.technician-premium-focus-copy .technician-premium-kicker { margin-bottom: 5px; }
+.technician-premium-focus-copy h2 { margin: 0; overflow-wrap: anywhere; font-size: 20px; }
+.technician-premium-focus-copy p { margin: 5px 0 0; overflow-wrap: anywhere; color: #536176; font-size: 13px; }
+.technician-premium-focus-action { min-height: 46px; white-space: nowrap; }
+.technician-premium-focus-note { display: inline-flex; align-items: center; gap: 7px; color: #536176; font-size: 12px; font-weight: 750; white-space: nowrap; }
+
+.technician-premium-queue,
+.technician-premium-filters,
+.technician-premium-filtered-list {
+  min-width: 0;
+  margin-bottom: 18px;
+  padding: 21px 23px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--shadow-small);
+}
+
+.technician-premium-section-heading,
+.technician-premium-list-heading {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.technician-premium-section-heading .technician-premium-kicker,
+.technician-premium-list-heading .technician-premium-kicker { margin-bottom: 4px; }
+.technician-premium-section-heading h2,
+.technician-premium-list-heading h2 { margin: 0; font-size: 18px; }
+.technician-premium-section-heading p { margin: 5px 0 0; color: #647188; font-size: 13px; }
+.technician-premium-count { min-width: 30px; height: 30px; display: inline-grid; place-items: center; padding: 0 9px; border-radius: 999px; color: var(--navy); background: #eef2f7; font-size: 12px; font-weight: 900; }
+
+.technician-premium-order-table { min-width: 0; }
+.technician-premium-order-table-head,
+.technician-premium-order-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(190px, 1.5fr) minmax(180px, 1.35fr) minmax(110px, .8fr) minmax(100px, .7fr) minmax(150px, auto);
+  align-items: center;
+  gap: 14px;
+}
+
+.technician-premium-order-table-head {
+  padding: 0 0 9px;
+  color: #738098;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.technician-premium-order-row { padding: 14px 0; border-top: 1px solid #edf0f4; }
+.technician-premium-order-primary,
+.technician-premium-order-installation,
+.technician-premium-order-row-action { min-width: 0; }
+.technician-premium-order-primary { display: grid; gap: 5px; }
+.technician-premium-order-primary strong { overflow-wrap: anywhere; font-size: 14px; }
+.technician-premium-order-link { width: fit-content; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--brand); font-size: 13px; font-weight: 900; text-align: left; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: pointer; }
+.technician-premium-order-link:focus-visible { outline: 3px solid rgba(227, 6, 19, .25); outline-offset: 2px; border-radius: 3px; }
+.technician-premium-order-installation { display: grid; gap: 5px; }
+.technician-order-meta-item { min-width: 0; display: inline-flex; align-items: flex-start; gap: 6px; color: #536176; font-size: 12px; line-height: 1.35; }
+.technician-order-meta-item svg { flex: 0 0 auto; margin-top: 1px; color: #7f8ca0; }
+.technician-order-meta-empty { color: #8793a5; font-style: italic; }
+.technician-premium-status,
+.technician-premium-priority { min-height: 30px; display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 5px 8px; border-radius: 7px; font-size: 12px; font-weight: 850; white-space: nowrap; }
+.technician-premium-status { color: #17643d; background: #e9f8ef; }
+.technician-premium-status.status-asignada,
+.technician-premium-status.status-aceptada { color: #8b5b05; background: #fff3dd; }
+.technician-premium-status.status-bloqueada,
+.technician-premium-status.status-cancelada { color: #a20f19; background: #fff0f1; }
+.technician-premium-priority { color: #8b5b05; background: #fff3dd; }
+.technician-premium-priority.priority-urgente,
+.technician-premium-priority.priority-critica { color: #a20f19; background: #fff0f1; }
+.technician-premium-order-row-action { display: flex; justify-content: flex-end; }
+.technician-order-action { min-height: 44px; padding-inline: 12px; white-space: nowrap; }
+
+.technician-premium-filter-nav { min-width: 0; display: flex; flex-wrap: wrap; gap: 7px; }
+.technician-premium-filter-nav button { min-height: 44px; padding: 0 13px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #536176; font-size: 12px; font-weight: 800; cursor: pointer; }
+.technician-premium-filter-nav button:hover { border-color: #9ba9bc; color: var(--navy); }
+.technician-premium-filter-nav button:focus-visible { outline: 3px solid rgba(227, 6, 19, .25); outline-offset: 2px; }
+.technician-premium-filter-nav button.is-active { border-color: var(--navy); background: var(--navy); color: #fff; }
+.technician-premium-filter-nav b { margin-left: 4px; font-size: 11px; }
+
+.technician-premium-list-heading { align-items: center; margin-bottom: 13px; }
+.technician-premium-filtered-cards { display: grid; gap: 9px; }
+.technician-premium-filtered-card { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid #edf0f4; }
+.technician-premium-filtered-card-main { min-width: 0; }
+.technician-premium-filtered-card-top { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.technician-premium-filtered-card h3 { margin: 5px 0 5px; overflow-wrap: anywhere; font-size: 15px; }
+.technician-premium-filtered-card p { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+
+.technician-premium-empty { min-width: 0; display: grid; justify-items: start; gap: 6px; padding: 20px; border: 1px dashed #d8dee8; border-radius: 10px; color: #7a879a; background: #fbfcfe; }
+.technician-premium-empty strong { color: #34445b; font-size: 14px; }
+.technician-premium-empty p { margin: 0; font-size: 12px; }
+.technician-premium-footer { padding: 16px 28px 22px; border-top: 1px solid var(--line); color: #8793a5; font-size: 12px; text-align: center; }
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .app-shell:has(.technician-premium-page) { grid-template-columns: 84px minmax(0, 1fr); }
+  .app-shell:has(.technician-premium-page) .sidebar { align-items: center; padding-inline: 9px; }
+  .app-shell:has(.technician-premium-page) .sidebar::before { width: 4px; }
+  .app-shell:has(.technician-premium-page) .sidebar-brand-row { justify-content: center; padding-inline: 0; }
+  .app-shell:has(.technician-premium-page) .brand > div,
+  .app-shell:has(.technician-premium-page) .nav-caption,
+  .app-shell:has(.technician-premium-page) .nav-item span,
+  .app-shell:has(.technician-premium-page) .sidebar-footer { display: none; }
+  .app-shell:has(.technician-premium-page) .nav-item { width: 48px; min-height: 48px; justify-content: center; padding: 0; }
+  .app-shell:has(.technician-premium-page) .main-content { padding: 22px; }
+  .technician-premium-page { width: calc(100% + 44px); margin: -22px -22px -22px; }
+  .technician-premium-header-inner { padding-inline: 22px; }
+  .technician-premium-content { padding-inline: 22px; }
+}
+
+@media (max-width: 1120px) {
+  .technician-premium-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .technician-premium-kpi:nth-child(2) { border-right: 0; }
+  .technician-premium-kpi:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+  .technician-premium-order-table-head,
+  .technician-premium-order-row { grid-template-columns: minmax(170px, 1.35fr) minmax(150px, 1.1fr) minmax(105px, .8fr) minmax(90px, .7fr) minmax(140px, auto); gap: 10px; }
+}
+
+@media (max-width: 760px) {
+  .technician-premium-page { width: calc(100% + 26px); margin: -13px -13px -22px; }
+  .technician-premium-header-inner { align-items: flex-start; flex-direction: column; gap: 13px; padding: 19px 13px 18px; }
+  .technician-premium-header h1 { font-size: 32px; }
+  .technician-premium-header p { margin-top: 6px; font-size: 14px; }
+  .technician-premium-identity { width: 100%; }
+  .technician-premium-content { padding: 13px 13px 22px; }
+  .technician-premium-kpis { margin-bottom: 13px; border-radius: 10px; }
+  .technician-premium-kpi { min-height: 75px; gap: 8px; padding: 11px 10px; }
+  .technician-premium-kpi-icon { width: 32px; height: 32px; }
+  .technician-premium-kpi strong { font-size: 21px; }
+  .technician-premium-kpi small { font-size: 12px; }
+  .technician-premium-kpi-arrow { display: none; }
+  .technician-premium-focus { grid-template-columns: auto minmax(0, 1fr); gap: 10px; margin-bottom: 13px; padding: 14px 12px; }
+  .technician-premium-focus-icon { width: 44px; height: 44px; }
+  .technician-premium-focus-copy h2 { font-size: 18px; }
+  .technician-premium-focus-copy p { font-size: 12px; }
+  .technician-premium-focus-action,
+  .technician-premium-focus-note { grid-column: 1 / -1; width: 100%; justify-content: center; }
+  .technician-premium-focus-action { min-height: 44px; }
+  .technician-premium-queue,
+  .technician-premium-filters,
+  .technician-premium-filtered-list { margin-bottom: 13px; padding: 13px 12px; border-radius: 10px; }
+  .technician-premium-section-heading h2,
+  .technician-premium-list-heading h2 { font-size: 17px; }
+  .technician-premium-section-heading p { font-size: 12px; }
+  .technician-premium-order-table-head { display: none; }
+  .technician-premium-order-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 13px 0; }
+  .technician-premium-order-installation,
+  .technician-premium-order-row > [role='cell']:nth-child(3),
+  .technician-premium-order-row > [role='cell']:nth-child(4) { grid-column: 1 / -1; }
+  .technician-premium-order-installation { grid-row: 2; }
+  .technician-premium-order-row > [role='cell']:nth-child(3),
+  .technician-premium-order-row > [role='cell']:nth-child(4) { grid-row: 3; }
+  .technician-premium-order-row-action { grid-column: 2; grid-row: 1; }
+  .technician-premium-order-row-action .technician-order-action { min-height: 44px; padding-inline: 10px; }
+  .technician-premium-filter-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .technician-premium-filter-nav button { width: 100%; }
+  .technician-premium-filtered-card { grid-template-columns: 1fr; align-items: stretch; gap: 10px; }
+  .technician-premium-filtered-card .technician-order-action { width: 100%; }
+  .technician-premium-footer { padding: 13px 12px 22px; font-size: 12px; }
+}
+
+@media (max-width: 430px) {
+  .technician-premium-header-inner { padding-top: 16px; padding-bottom: 15px; }
+  .technician-premium-header h1 { font-size: 29px; }
+  .technician-premium-header p { font-size: 13px; }
+  .technician-premium-kpi { padding-inline: 8px; }
+  .technician-premium-kpi-icon { display: none; }
+  .technician-premium-order-row-action .technician-order-action { font-size: 11px; }
+  .technician-premium-status,
+  .technician-premium-priority { font-size: 12px; }
+}

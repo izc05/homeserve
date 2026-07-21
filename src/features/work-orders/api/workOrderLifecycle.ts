@@ -1,18 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { WorkOrderStatus } from '../types/workOrder';
 
-export type WorkOrderLifecycleStatus =
-  | 'BORRADOR'
-  | 'ASIGNADA'
-  | 'ACEPTADA'
-  | 'EN_CURSO'
-  | 'PAUSADA'
-  | 'PENDIENTE_MATERIAL'
-  | 'PENDIENTE_CLIENTE'
-  | 'BLOQUEADA'
-  | 'FINALIZADA'
-  | 'FINALIZADA_TECNICO'
-  | 'VALIDADA'
-  | 'CANCELADA';
+export type WorkOrderLifecycleStatus = WorkOrderStatus;
 
 export type WorkOrderLifecycleResult = {
   id: string;
@@ -30,7 +19,6 @@ export type WorkOrderVisitResult = {
 
 export type BlockWorkOrderInput = {
   workOrderId: string;
-  status: 'PAUSADA' | 'PENDIENTE_MATERIAL' | 'PENDIENTE_CLIENTE';
   reason: string;
 };
 
@@ -63,7 +51,7 @@ type ChecklistRow = {
 };
 
 const BLOCKABLE_STATUSES = ['EN_CURSO'] as const;
-const RESUMABLE_STATUSES = ['BLOQUEADA', 'PAUSADA', 'PENDIENTE_MATERIAL', 'PENDIENTE_CLIENTE'] as const;
+const RESUMABLE_STATUSES = ['BLOQUEADA'] as const;
 
 function requireUuid(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
@@ -288,7 +276,7 @@ export async function blockWorkOrder(
 
   const { data, error } = await supabase.rpc('block_work_order', {
     work_order_uuid: input.workOrderId,
-    block_status: input.status,
+    block_status: 'BLOQUEADA',
     reason_text: input.reason.trim(),
   });
 

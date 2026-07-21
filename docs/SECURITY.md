@@ -69,11 +69,17 @@ Registrar actor, acción, entidad, fecha y metadatos mínimos. No guardar secret
 Frontend permitido:
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+La clave publicable forma parte del bundle del navegador por diseño. Debe ser
+exclusivamente una clave `sb_publishable_...`; la protección de los datos sigue
+dependiendo de RLS y de los permisos de PostgreSQL. En GitHub Actions se guarda
+como secret para evitar su impresión accidental en los logs.
 
 Nunca en frontend:
 
-- service role;
+- `service_role`;
+- claves `sb_secret_...`;
 - claves privadas;
 - secretos de correo;
 - secretos de firma;

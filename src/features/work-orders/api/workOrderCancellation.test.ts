@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import { cancelWorkOrder, canCancelWorkOrder } from './workOrderCancellation';
 
@@ -5,7 +6,7 @@ describe('workOrderCancellation', () => {
   it('bloquea anulaciones sin motivo suficiente', async () => {
     const supabase = { rpc: vi.fn() };
 
-    await expect(cancelWorkOrder(supabase as any, { workOrderId: 'ot-1', reason: 'no' })).rejects.toThrow(
+    await expect(cancelWorkOrder(supabase as unknown as SupabaseClient, { workOrderId: 'ot-1', reason: 'no' })).rejects.toThrow(
       'motivo de anulación',
     );
     expect(supabase.rpc).not.toHaveBeenCalled();
@@ -24,7 +25,7 @@ describe('workOrderCancellation', () => {
       }),
     };
 
-    const result = await cancelWorkOrder(supabase as any, {
+    const result = await cancelWorkOrder(supabase as unknown as SupabaseClient, {
       workOrderId: 'ot-1',
       reason: '  Duplicada por error  ',
     });
