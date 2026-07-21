@@ -63,3 +63,47 @@ The selected mockup contains richer installation contact/address data than the c
 - Validation: `typecheck`, ESLint, Vitest (17 files / 93 tests), build and `git diff --check` passed. No application errors were emitted in the fresh visual QA pass.
 
 final result: passed
+
+## Premium Mis OT — zona técnica
+
+### Alcance y datos
+
+- Pantalla revisada: `Mis OT` de `TechnicianMobileWorkspace`; la ejecución interior de la OT y la ficha administrativa no se modifican.
+- Orden de foco: se conserva el orden recibido por `listAccessibleWorkOrders` (fecha prevista y creación) y se presenta como `Siguiente actuación · En foco`. No se inventa una prioridad de planificación.
+- Consulta de solo lectura en la ficha administrativa: `OT-2026-00003` (creada 20/07/2026 21:14) y `OT-2026-00002` (creada 20/07/2026 20:14) están ambas en `EN CURSO`, con prioridad `Media`, cliente `Cliente Solar E2E`, instalación `Cubierta E2E`, técnico `Técnico E2E Ficticio` y sin fecha prevista/límite. Por tanto, el conjunto técnico real produce `Pendientes 0 · Hoy 0 · Urgentes 0 · En curso 2`.
+- La discrepancia anterior (una urgente y `OT-2026-00002` con prioridad urgente, además de `Cliente no disponible`) procedía exclusivamente del arnés QA temporal que se usó para la primera captura: incluía una OT de fixture con `priority: 'urgente'` y `clientName: null`. Ese archivo fue eliminado y nunca participa en producción. El repositorio real ya devuelve `clientName` desde `clientes.nombre`; la corrección visible consiste en renderizar ese dato también en las tarjetas/tabla, dejando `Cliente no disponible` solo cuando el valor recibido es nulo.
+- Evidencia visual local de solo lectura tras la corrección, usando los valores reales confirmados en la ficha administrativa:
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\technician-mis-ot-desktop-1440x1024.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\technician-mis-ot-tablet-1024x768.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\technician-mis-ot-mobile-top-390x844.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\technician-mis-ot-mobile-middle-390x844.png`
+  - `C:\Users\ISICIO\Documents\Codex\2026-07-20\files-mentioned-by-the-user-continuaci\outputs\technician-mis-ot-mobile-bottom-390x844.png`
+
+### Comparación final
+
+- Cabecera azul oscuro con `Mis OT`, identidad del técnico únicamente cuando está disponible y pie exacto de IsiVoltPro.
+- KPIs de Pendientes, Hoy, Urgentes y En curso conservan los contadores derivados de `groupTechnicianOrders` sobre el mismo conjunto recibido que alimenta la cola: `0 / 0 / 0 / 2` en las OT E2E actuales; cada tarjeta también actúa como filtro.
+- El orden común en los tres viewports es ahora `KPIs → filtros → Siguiente actuación · En foco → Cola en curso → vista seleccionada`. El filtro seleccionado queda reflejado por `aria-pressed`, el contador y el encabezado de la vista.
+- `Cola en curso` es una tabla compacta en escritorio/tablet y se transforma en tarjetas apiladas en móvil. `Abrir ejecución` sigue llamando al callback `open` existente y no ejecuta aceptación, inicio ni finalización durante QA.
+- La cola se etiqueta explícitamente como `Bloque independiente del filtro`; permanece visible aunque se seleccione otra vista para no confundir el bloque operativo activo con el resultado filtrado.
+- Los seis filtros existentes permanecen como botones nativos de 44px, con `aria-pressed`, foco visible y orden de teclado natural. Se verificaron por interacción táctil y se inspeccionaron sus nombres accesibles.
+- Cliente, ubicación y fecha prevista ausentes se muestran como estados vacíos explícitos; cuando existen, cliente y prioridad se muestran sin sustitución por fallback. No se introducen teléfonos, direcciones, SLA, planificación ni prioridades inventadas.
+- Tablet 1024×768: rail de 84px y contenido legible, sin compresión horizontal.
+- Móvil 390×844: cabecera compacta, KPIs 2×2, cola en tarjetas, filtros 2×3, historial inferior/estado vacío y footer alcanzables sin overflow. `AccountDock` continúa fuera del contenido y en flujo normal según la corrección previa.
+- Escritorio 1440×1024: cabecera, foco, cola y filtros visibles en una composición de tabla compacta; la acción primaria conserva el rojo reservado.
+
+### Validación
+
+- `npm run typecheck` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (101 tests; incluye 8 pruebas de `TechnicianMobileWorkspace`, incluida la regresión de datos reales y contadores)
+- `npm run build` ✅
+- `git diff --check` ✅
+- Consola del pase visual local: sin errores, warnings ni peticiones fallidas.
+- No se ejecutaron acciones mutantes sobre ninguna OT y no se sincronizó el mini PC.
+
+### Resultado
+
+La iteración premium de `Mis OT` queda aprobada para escritorio, tablet y móvil dentro del alcance solicitado. La corrección mantiene intactos permisos, orden del repositorio, rutas, backend y acciones operativas; el siguiente paso de riesgo controlado es repetir el smoke visual con la sesión técnica real tras servir este bundle, sin cambiar el flujo operativo.
+
+final result: passed
