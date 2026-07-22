@@ -1,7 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureWorkOrderDefaultChecklist } from './workOrderEvidenceActions';
 
-export type ChecklistResponseType = 'ok_ko_na' | 'texto' | 'medicion';
+export type ChecklistResponseType =
+  | 'ok_ko_na'
+  | 'texto'
+  | 'medicion'
+  | 'si_no_na'
+  | 'correcto_incorrecto'
+  | 'numero'
+  | 'seleccion';
 
 export type WorkOrderChecklistResponse = {
   id: string;
@@ -16,6 +23,15 @@ export type WorkOrderChecklistResponse = {
   result: string | null;
   responseType: ChecklistResponseType;
   observations: string | null;
+  sectionId: string | null;
+  sectionTitle: string;
+  sectionOrder: number;
+  instructions: string | null;
+  negativeObservationRequired: boolean;
+  critical: boolean;
+  unit: string | null;
+  options: string[];
+  numericValue: number | null;
   completedBy: string | null;
   completedAt: string | null;
 };
@@ -34,6 +50,15 @@ type ChecklistRow = {
   resultado?: string | null;
   tipo_respuesta?: string | null;
   observaciones?: string | null;
+  seccion_id?: string | null;
+  seccion_titulo?: string | null;
+  seccion_orden?: number | null;
+  instrucciones?: string | null;
+  observacion_negativa_obligatoria?: boolean | null;
+  punto_critico?: boolean | null;
+  unidad?: string | null;
+  opciones?: unknown;
+  valor_numero?: number | string | null;
   completed_by?: string | null;
   completed_at?: string | null;
 };
@@ -52,6 +77,15 @@ const CHECKLIST_COLUMNS = [
   'resultado',
   'tipo_respuesta',
   'observaciones',
+  'seccion_id',
+  'seccion_titulo',
+  'seccion_orden',
+  'instrucciones',
+  'observacion_negativa_obligatoria',
+  'punto_critico',
+  'unidad',
+  'opciones',
+  'valor_numero',
   'completed_by',
   'completed_at',
 ].join(',');
@@ -61,7 +95,7 @@ function requireUuid(value: string, message: string) {
 }
 
 function responseType(value: string | null | undefined): ChecklistResponseType {
-  if (value === 'ok_ko_na' || value === 'texto' || value === 'medicion') return value;
+  if (['ok_ko_na', 'texto', 'medicion', 'si_no_na', 'correcto_incorrecto', 'numero', 'seleccion'].includes(String(value))) return value as ChecklistResponseType;
   throw new Error('La respuesta del checklist utiliza un tipo no soportado.');
 }
 
@@ -83,14 +117,25 @@ function mapChecklistRow(row: ChecklistRow): WorkOrderChecklistResponse {
     result: row.resultado?.trim() || null,
     responseType: responseType(row.tipo_respuesta),
     observations: row.observaciones?.trim() || null,
+    sectionId: row.seccion_id ?? null,
+    sectionTitle: row.seccion_titulo?.trim() || 'Checklist de intervención',
+    sectionOrder: Number(row.seccion_orden ?? 0),
+    instructions: row.instrucciones?.trim() || row.descripcion?.trim() || null,
+    negativeObservationRequired: row.observacion_negativa_obligatoria === true,
+    critical: row.punto_critico === true,
+    unit: row.unidad?.trim() || null,
+    options: Array.isArray(row.opciones) ? row.opciones.map(String) : [],
+    numericValue: row.valor_numero == null ? null : Number(row.valor_numero),
     completedBy: row.completed_by ?? null,
     completedAt: row.completed_at ?? null,
   };
 }
 
 export function checklistProgress(rows: WorkOrderChecklistResponse[]) {
+  const completedRows = rows.filter((row) => Boolean(row.result?.trim()));
   return {
-    completed: rows.filter((row) => Boolean(row.result?.trim())).length,
+    completed: completedRows.length,
+    conforming: completedRows.filter((row) => !['ko', 'no', 'incorrecto'].includes(row.result?.toLowerCase() ?? '')).length,
     total: rows.length,
   };
 }
@@ -124,14 +169,16 @@ export async function saveWorkOrderChecklistResponse(
   input: {
     responseId: string;
     result: string | null;
+    numericValue?: number | null;
     observations?: string | null;
   },
 ): Promise<WorkOrderChecklistResponse> {
   requireUuid(input.responseId, 'No se ha indicado el punto de checklist a guardar.');
 
-  const { data, error } = await supabase.rpc('save_work_order_checklist_response', {
+  const { data, error } = await supabase.rpc('save_work_order_checklist_response_v2', {
     checklist_response_uuid: input.responseId,
     result_text: input.result?.trim() || null,
+    numeric_value: input.numericValue ?? null,
     observations_text: input.observations?.trim() || null,
   });
 

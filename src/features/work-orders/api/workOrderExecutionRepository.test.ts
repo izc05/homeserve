@@ -46,8 +46,8 @@ describe('work order execution repository', () => {
     expect(chain.eq).toHaveBeenCalledWith('ot_id', row.ot_id);
     expect(chain.order).toHaveBeenNthCalledWith(1, 'orden', { ascending: true });
     expect(result[0]).toMatchObject({ point: 'Seguridad', responseType: 'ok_ko_na', result: null });
-    expect(checklistProgress(result)).toEqual({ completed: 0, total: 1 });
-    expect(checklistProgress([{ ...result[0], result: 'ok' }])).toEqual({ completed: 1, total: 1 });
+    expect(checklistProgress(result)).toEqual({ completed: 0, conforming: 0, total: 1 });
+    expect(checklistProgress([{ ...result[0], result: 'ok' }])).toEqual({ completed: 1, conforming: 1, total: 1 });
   });
 
   it('guarda solo respuesta y observaciones mediante la RPC segura', async () => {
@@ -58,9 +58,10 @@ describe('work order execution repository', () => {
       observations: ' Correcto ',
     });
 
-    expect(rpc).toHaveBeenCalledWith('save_work_order_checklist_response', {
+    expect(rpc).toHaveBeenCalledWith('save_work_order_checklist_response_v2', {
       checklist_response_uuid: row.id,
       result_text: 'ok',
+      numeric_value: null,
       observations_text: 'Correcto',
     });
     expect(result).toMatchObject({ result: 'ok', observations: 'Correcto' });

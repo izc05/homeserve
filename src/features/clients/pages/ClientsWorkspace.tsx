@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardList,
   Edit3,
+  Eye,
   LoaderCircle,
   Plus,
   Power,
@@ -17,6 +18,7 @@ import { clientsService } from '../api/clientsService';
 import { filterClients, friendlyClientError, hasNoInstallations } from '../api/clientRepository';
 import ClientForm from '../components/ClientForm';
 import InstallationForm from '../components/InstallationForm';
+import InstallationPhotoGallery from '../components/InstallationPhotoGallery';
 import type { ClientFormValues, InstallationFormValues } from '../schemas/clientSchemas';
 import type { ClientInstallation, ClientRecord, EntityStatus } from '../types/client';
 
@@ -77,6 +79,7 @@ export default function ClientsWorkspace({ tenantId, canManage, onCreateWorkOrde
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientEditor, setClientEditor] = useState<ClientEditor>(null);
   const [installationEditor, setInstallationEditor] = useState<InstallationEditor>(null);
+  const [selectedInstallationId, setSelectedInstallationId] = useState<string | null>(null);
 
   const clientsQuery = useQuery({
     queryKey: ['clients', tenantId],
@@ -132,6 +135,9 @@ export default function ClientsWorkspace({ tenantId, canManage, onCreateWorkOrde
   const selectedInstallation = installationEditor && installationEditor !== 'create'
     ? detail?.installations.find((installation) => installation.id === installationEditor) ?? null
     : null;
+  const installationDetail = selectedInstallationId
+    ? detail?.installations.find((installation) => installation.id === selectedInstallationId) ?? null
+    : null;
 
   const saveNewClient = async (values: ClientFormValues) => {
     try { await createClientMutation.mutateAsync(values); } catch (error) { throw new Error(friendlyClientError(error, 'No se pudo crear el cliente.')); }
@@ -168,7 +174,7 @@ export default function ClientsWorkspace({ tenantId, canManage, onCreateWorkOrde
     const clientHasNoInstallations = hasNoInstallations(detail.installations);
     return (
       <section className="clients-workspace">
-        <div className="page-heading client-heading"><button className="text-link" onClick={() => { setSelectedClientId(null); setClientEditor(null); setInstallationEditor(null); }} type="button"><ArrowLeft size={16} /> Clientes</button><span className="section-kicker">Ficha de cliente</span><div className="client-title-row"><div><h1>{detail.client.name}</h1><p>{detail.client.code || 'Sin código'}{detail.client.cifNif ? ` · ${detail.client.cifNif}` : ''}</p></div><span className={statusClass(detail.client.status)}>{statusLabel(detail.client.status)}</span></div></div>
+        <div className="page-heading client-heading"><button className="text-link" onClick={() => { setSelectedClientId(null); setClientEditor(null); setInstallationEditor(null); setSelectedInstallationId(null); }} type="button"><ArrowLeft size={16} /> Clientes</button><span className="section-kicker">Ficha de cliente</span><div className="client-title-row"><div><h1>{detail.client.name}</h1><p>{detail.client.code || 'Sin código'}{detail.client.cifNif ? ` · ${detail.client.cifNif}` : ''}</p></div><span className={statusClass(detail.client.status)}>{statusLabel(detail.client.status)}</span></div></div>
         <div className="client-action-bar">
           <button className="primary-button" disabled={detail.client.status !== 'activo' || clientHasNoInstallations} onClick={() => onCreateWorkOrder(detail.client)} type="button"><ClipboardList size={17} /> Nueva OT</button>
           {canManage && <><button className="secondary-button" onClick={() => setClientEditor(clientEditor === 'edit' ? null : 'edit')} type="button"><Edit3 size={17} /> Editar cliente</button><button className="secondary-button" disabled={updateClientStatusMutation.isPending} onClick={() => toggleClient(detail.client)} type="button"><Power size={17} /> {detail.client.status === 'activo' ? 'Desactivar' : 'Activar'}</button></>}
@@ -182,8 +188,9 @@ export default function ClientsWorkspace({ tenantId, canManage, onCreateWorkOrde
         </div>
 
         <section className="client-section"><div className="section-row"><div><h2>Instalaciones</h2><p>Centros y ubicaciones operativas de {detail.client.name}.</p></div>{canManage && <button className="secondary-button" onClick={() => setInstallationEditor(installationEditor === 'create' ? null : 'create')} type="button"><Plus size={17} /> Nueva instalación</button>}</div>
-          {clientHasNoInstallations ? <section className="panel client-empty-state"><Building2 size={28} /><strong>Este cliente no tiene instalaciones</strong><p>Antes de crear una OT debes registrar al menos una instalación activa.</p>{canManage && <button className="primary-button" onClick={() => setInstallationEditor('create')} type="button"><Plus size={17} /> Crear instalación</button>}</section> : <div className="installation-list">{detail.installations.map((installation) => <article className="installation-row" key={installation.id}><div className="installation-icon"><Building2 size={20} /></div><div><strong>{installation.code ? `${installation.code} · ` : ''}{installation.name}</strong><small>{installation.type || 'Tipo sin definir'}{installation.address ? ` · ${installation.address}` : ''}</small><small>{installation.contactName || 'Sin contacto'}{installation.contactPhone ? ` · ${installation.contactPhone}` : ''}</small></div><span className={statusClass(installation.status)}>{statusLabel(installation.status)}</span>{canManage && <div className="row-actions"><button className="icon-button" aria-label={`Editar ${installation.name}`} onClick={() => setInstallationEditor(installation.id)} type="button"><Edit3 size={16} /></button><button className="icon-button" aria-label={`${installation.status === 'activo' ? 'Desactivar' : 'Activar'} ${installation.name}`} onClick={() => toggleInstallation(installation)} type="button"><Power size={16} /></button></div>}</article>)}</div>}
+          {clientHasNoInstallations ? <section className="panel client-empty-state"><Building2 size={28} /><strong>Este cliente no tiene instalaciones</strong><p>Antes de crear una OT debes registrar al menos una instalación activa.</p>{canManage && <button className="primary-button" onClick={() => setInstallationEditor('create')} type="button"><Plus size={17} /> Crear instalación</button>}</section> : <div className="installation-list">{detail.installations.map((installation) => <article className={`installation-row ${selectedInstallationId === installation.id ? 'is-selected' : ''}`} key={installation.id}><div className="installation-icon"><Building2 size={20} /></div><div><strong>{installation.code ? `${installation.code} · ` : ''}{installation.name}</strong><small>{installation.type || 'Tipo sin definir'}{installation.address ? ` · ${installation.address}` : ''}</small><small>{installation.contactName || 'Sin contacto'}{installation.contactPhone ? ` · ${installation.contactPhone}` : ''}</small></div><span className={statusClass(installation.status)}>{statusLabel(installation.status)}</span><div className="row-actions"><button className="secondary-button installation-open-button" aria-expanded={selectedInstallationId === installation.id} onClick={() => setSelectedInstallationId((current) => current === installation.id ? null : installation.id)} type="button"><Eye size={16} /> {selectedInstallationId === installation.id ? 'Cerrar ficha' : 'Abrir ficha'}</button>{canManage && <><button className="icon-button" aria-label={`Editar ${installation.name}`} onClick={() => setInstallationEditor(installation.id)} type="button"><Edit3 size={16} /></button><button className="icon-button" aria-label={`${installation.status === 'activo' ? 'Desactivar' : 'Activar'} ${installation.name}`} onClick={() => toggleInstallation(installation)} type="button"><Power size={16} /></button></>}</div></article>)}</div>}
           {installationEditor && canManage && <section className="panel client-editor-panel"><div className="panel-heading"><h2>{installationEditor === 'create' ? 'Nueva instalación' : 'Editar instalación'}</h2></div><InstallationForm clientId={detail.client.id} initialValues={selectedInstallation ? toInstallationFormValues(selectedInstallation) : undefined} submitLabel={installationEditor === 'create' ? 'Guardar instalación' : 'Guardar cambios'} onSubmit={saveInstallation} /></section>}
+          {installationDetail && <InstallationPhotoGallery tenantId={tenantId} installationId={installationDetail.id} installationName={installationDetail.name} address={installationDetail.address} contactName={installationDetail.contactName} contactPhone={installationDetail.contactPhone} canManage={canManage} />}
         </section>
 
         <div className="client-detail-grid">

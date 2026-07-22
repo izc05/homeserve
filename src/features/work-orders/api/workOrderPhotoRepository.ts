@@ -21,6 +21,8 @@ export type WorkOrderPhoto = {
   sizeBytes: number;
   createdBy: string;
   createdAt: string;
+  categoryLabel: string | null;
+  comment: string | null;
   signedUrl: string | null;
 };
 
@@ -37,9 +39,11 @@ type PhotoRow = {
   size_bytes?: number | string | null;
   created_by?: string;
   created_at?: string;
+  categoria?: string | null;
+  comentario?: string | null;
 };
 
-const PHOTO_COLUMNS = 'id,tenant_id,ot_id,checklist_respuesta_id,tipo,bucket,path,filename,mime_type,size_bytes,created_by,created_at';
+const PHOTO_COLUMNS = 'id,tenant_id,ot_id,checklist_respuesta_id,tipo,bucket,path,filename,mime_type,size_bytes,created_by,created_at,categoria,comentario';
 const MIME_EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -82,6 +86,8 @@ function mapPhoto(row: PhotoRow, signedUrl: string | null = null): WorkOrderPhot
     sizeBytes: Number(row.size_bytes ?? 0),
     createdBy: String(row.created_by),
     createdAt: String(row.created_at || ''),
+    categoryLabel: row.categoria?.trim() || null,
+    comment: row.comentario?.trim() || null,
     signedUrl,
   };
 }
@@ -141,9 +147,12 @@ export async function uploadWorkOrderPhoto(
     category: WorkOrderPhotoCategory;
     file: File;
     checklistResponseId?: string | null;
+    comment?: string | null;
+    onProgress?: (value: number) => void;
   },
 ): Promise<WorkOrderPhoto> {
   validateWorkOrderPhotoFile(input.file);
+  input.onProgress?.(10);
   const path = createWorkOrderPhotoPath(input.tenantId, input.workOrderId, input.file);
   const storage = supabase.storage.from(WORK_ORDER_PHOTO_BUCKET);
   const { error: uploadError } = await storage.upload(path, input.file, {
@@ -152,8 +161,9 @@ export async function uploadWorkOrderPhoto(
     upsert: false,
   });
   if (uploadError) throw uploadError;
+  input.onProgress?.(70);
 
-  const { data, error } = await supabase.rpc('register_work_order_photo', {
+  const { data, error } = await supabase.rpc('register_work_order_photo_v2', {
     work_order_uuid: input.workOrderId,
     photo_type_text: categoryToStoredType(input.category),
     path_text: path,
@@ -161,12 +171,15 @@ export async function uploadWorkOrderPhoto(
     mime_type_text: input.file.type,
     size_bytes_value: input.file.size,
     checklist_response_uuid: input.checklistResponseId ?? null,
+    category_text: input.checklistResponseId ? 'checklist' : categoryToStoredType(input.category) === 'evidencia' ? 'durante' : categoryToStoredType(input.category),
+    comment_text: input.comment?.trim() || null,
   });
 
   if (error) {
     await storage.remove([path]);
     throw error;
   }
+  input.onProgress?.(100);
   return mapPhoto((data ?? {}) as PhotoRow);
 }
 

@@ -234,8 +234,13 @@
 
 .row-actions {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
+
+.installation-row.is-selected { box-shadow: inset 4px 0 var(--brand); background: #fffafb; }
+.installation-open-button { min-height: 44px; white-space: nowrap; }
 
 .client-order-list > div {
   grid-template-columns: minmax(0, 1fr) auto;
@@ -304,4 +309,7 @@
   .installation-row > .client-status {
     display: none;
   }
+
+  .installation-row .row-actions { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; }
+  .installation-row .installation-open-button { width: 100%; }
 }

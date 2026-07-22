@@ -22,6 +22,7 @@ import {
   MapPin,
   Plus,
   RefreshCw,
+  Settings2,
   ShieldCheck,
   UsersRound,
   Wrench,
@@ -50,11 +51,14 @@ import WorkOrderPhotosPanel from './features/work-orders/components/WorkOrderPho
 import WorkOrderCompletionPanel, { WorkOrderVisitSummaryPanel } from './features/work-orders/components/WorkOrderCompletionPanel';
 import { workOrderDirectionsUrl } from './features/work-orders/domain/workOrderDirections';
 import PremiumDashboard from './features/dashboard/components/PremiumDashboard';
+import ChecklistTemplatesWorkspace from './features/checklists/components/ChecklistTemplatesWorkspace';
+import WorkOrderChecklistPreparationPanel from './features/checklists/components/WorkOrderChecklistPreparationPanel';
+import InstallationPhotoGallery from './features/clients/components/InstallationPhotoGallery';
 import { canAccessTechnicianAdministration, canManageTechnicianInvitations, isTechnicianRole } from './features/technicians/technicianAccess';
 import { friendlyTechnicianError } from './features/technicians/api/technicianRepository';
 import { assignWorkOrder } from './features/work-orders/api/workOrderAssignment';
 
-type View = 'dashboard' | 'orders' | 'planning' | 'detail' | 'create' | 'technician' | 'technicians' | 'clients' | 'assets' | 'reports' | 'audit';
+type View = 'dashboard' | 'orders' | 'planning' | 'detail' | 'create' | 'technician' | 'technicians' | 'clients' | 'assets' | 'reports' | 'audit' | 'configuration';
 type NavItem = { id: View; label: string; icon: LucideIcon };
 type CreatePreset = Partial<CreateWorkOrderFormValues>;
 type LifecycleAction = 'accept' | 'start' | 'pause' | 'material' | 'client' | 'resume';
@@ -87,6 +91,7 @@ const secondaryNavigation: NavItem[] = [
   { id: 'assets', label: 'Equipos FV', icon: Boxes },
   { id: 'reports', label: 'Informes', icon: BarChart3 },
   { id: 'audit', label: 'Auditoría', icon: ShieldCheck },
+  { id: 'configuration', label: 'Configuración', icon: Settings2 },
 ];
 
 const statusLabels: Record<WorkOrderStatus, string> = {
@@ -337,7 +342,8 @@ function Detail({ order, catalog, auditEvents, back, create, canCreate, viewerId
       assignment: canCreate ? <WorkOrderAssignmentPanel order={order} technicians={catalog?.technicians ?? []} busy={busyOrderId === order.id} onAssign={(technicianId, reason) => runAssignment(order, technicianId, reason)} /> : undefined,
       technical: <article className="panel source-panel"><div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Solo técnico asignado</span></div><LifecycleActions order={order} viewerId={viewerId} busy={busyOrderId === order.id} run={runAction} /><NoticeLine notice={notice} orderId={order.id} /></article>,
       evidence: <div className="administrative-evidence-stack"><WorkOrderVisitSummaryPanel workOrderId={order.id} displayDate={displayDate} /><WorkOrderChecklistPanel workOrderId={order.id} canEdit={false} /><WorkOrderPhotosPanel tenantId={order.tenantId} workOrderId={order.id} canEdit={false} /><article className="panel source-panel"><div className="panel-heading"><h2><ListChecks size={21} /> Evidencias y documentación</h2><span className="source-badge">Lectura administrativa</span></div><p className="read-only-note"><LockKeyhole size={16} /> Firma e informe: no disponibles en esta versión.</p></article></div>,
-      review: <article className="panel source-panel"><div className="panel-heading"><h2><ShieldCheck size={21} /> Revisión administrativa</h2><span className="source-badge">Validación</span></div><ReviewActions order={order} canReview={isManagerRole(viewerRole)} busy={busyOrderId === order.id} run={runReview} /></article>,
+      installationGallery: <InstallationPhotoGallery tenantId={order.tenantId} installationId={order.siteId} installationName={order.siteName} address={order.siteAddress} contactName={order.siteContactName} contactPhone={order.siteContactPhone} canManage={isManagerRole(viewerRole)} />,
+      review: <><WorkOrderChecklistPreparationPanel tenantId={order.tenantId} workOrderId={order.id} status={order.status} /><article className="panel source-panel"><div className="panel-heading"><h2><ShieldCheck size={21} /> Revisión administrativa</h2><span className="source-badge">Validación</span></div><ReviewActions order={order} canReview={isManagerRole(viewerRole)} busy={busyOrderId === order.id} run={runReview} /></article></>,
       cancel: <article className="panel source-panel"><div className="panel-heading"><h2><AlertTriangle size={21} /> Zona responsable</h2><span className="source-badge">Anulación segura</span></div><CancelAction order={order} canCancel={isManagerRole(viewerRole) && canCancelWorkOrder(order.status)} busy={busyOrderId === order.id} run={runCancel} /></article>,
     }}
   />;
@@ -355,6 +361,7 @@ function TechnicianDetail({ order, catalog, auditEvents, back, create, canCreate
     <article className="panel source-panel"><div className="panel-heading"><h2><Clock3 size={21} /> Historial de cambios</h2><span className="source-badge">{orderAudit.length}</span></div>{orderAudit.length === 0 ? <p className="empty-state">No hay eventos visibles para esta OT.</p> : <div className="client-order-list">{orderAudit.map((event) => <div key={event.id}><span><strong>{humanAuditAction(event.action)}</strong><small>{workOrderAuditDetail(event)} · {event.actorName ?? 'Sistema'}</small></span><b>{displayDate(event.createdAt)}</b></div>)}</div>}</article>
     <article className="panel source-panel"><div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Solo técnico asignado</span></div><LifecycleActions order={order} viewerId={viewerId} busy={busyOrderId === order.id} run={runAction} /><NoticeLine notice={notice} orderId={order.id} /></article>
     <WorkOrderChecklistPanel workOrderId={order.id} canEdit={order.status === 'EN_CURSO' && isAssignedTechnician(order, viewerId)} />
+    <InstallationPhotoGallery tenantId={order.tenantId} installationId={order.siteId} installationName={order.siteName} address={order.siteAddress} contactName={order.siteContactName} contactPhone={order.siteContactPhone} canManage={false} />
     <WorkOrderPhotosPanel tenantId={order.tenantId} workOrderId={order.id} canEdit={order.status === 'EN_CURSO' && isAssignedTechnician(order, viewerId)} />
     <WorkOrderCompletionPanel order={order} canComplete={order.status === 'EN_CURSO' && isAssignedTechnician(order, viewerId)} />
     <article className="panel source-panel"><div className="panel-heading"><h2><FileCheck2 size={21} /> Firma e informe</h2><span className="source-badge">Versión actual</span></div><p className="read-only-note"><LockKeyhole size={16} /> No disponible en esta versión de la ejecución técnica. No bloquea esta demo cuando la configuración real no lo exige.</p></article>
@@ -537,6 +544,7 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   else if (view === 'planning') content = <Planning orders={orders} open={openDetail} />;
   else if (view === 'technicians') content = canAccessTechnicians ? <TechniciansWorkspace tenantId={tenantId} canManageInvitations={canManageTechnicians} onCreateWorkOrder={(technician) => openCreate({ technicianId: technician.userId, title: `Nueva intervención para ${technician.name}` })} /> : <section className="panel data-state error-state"><LockKeyhole size={28} /><strong>Acceso no disponible</strong><p>Tu rol no tiene acceso a la administración técnica.</p></section>;
   else if (view === 'technician') content = <TechnicianMobileWorkspace orders={orders} viewerId={viewerId} viewerName={viewerName} open={openDetail} busyOrderId={busyOrderId} notice={notice?.orderId ? { kind: notice.kind, text: notice.text } : null} runAction={(action, order) => runLifecycleAction(action, order)} />;
+  else if (view === 'configuration') content = canManage ? <ChecklistTemplatesWorkspace tenantId={tenantId} canManage={canManage} /> : <section className="panel data-state error-state"><LockKeyhole size={28} /><strong>Configuración no disponible</strong><p>Solo un responsable puede administrar plantillas.</p></section>;
   else if (['assets', 'reports', 'audit'].includes(view)) content = <ModulePage view={view} orders={orders} catalog={catalogQuery.data} auditEvents={auditQuery.data ?? []} auditLoading={auditQuery.isLoading} auditError={auditQuery.error instanceof Error ? auditQuery.error.message : null} openDetail={openDetail} create={openCreate} canCreate={canManage} />;
   else content = <PremiumDashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
 
