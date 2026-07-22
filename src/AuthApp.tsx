@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { deferAuthIdentityRefresh } from './authIdentityScheduler';
 import {
   AlertTriangle,
   Building2,
@@ -351,7 +352,9 @@ export default function AuthApp() {
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
-      if (nextSession) void refreshIdentity(nextSession).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'No se pudo cargar el perfil.'));
+      if (nextSession) deferAuthIdentityRefresh(() => {
+        void refreshIdentity(nextSession).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'No se pudo cargar el perfil.'));
+      });
       else { setIdentity(null); setActiveTenantId(''); }
     });
     return () => listener.subscription.unsubscribe();

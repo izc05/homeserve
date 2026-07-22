@@ -30,6 +30,7 @@ values
   ('public.create_tenant_invitation(uuid,text,text,boolean,text)', true),
   ('public.create_work_order_from_scheduled_maintenance(uuid,uuid)', true),
   ('public.create_work_order(uuid,uuid,text,text,text,text,uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,integer,text,text,text,jsonb)', true),
+  ('public.delete_work_order_photo_metadata(uuid)', true),
   ('public.enforce_work_order_management_transition()', false),
   ('public.ensure_scheduled_maintenance_management_permission(uuid)', false),
   ('public.ensure_work_order_default_checklist(uuid)', true),
@@ -49,10 +50,12 @@ values
   ('public.normalize_scheduled_maintenance_ot_type(text)', false),
   ('public.normalize_scheduled_maintenance_priority(text)', false),
   ('public.register_work_order_report(uuid,text)', true),
+  ('public.register_work_order_photo(uuid,text,text,text,text,bigint,uuid)', true),
   ('public.require_work_order_actor(uuid,boolean)', false),
   ('public.reschedule_scheduled_maintenance(uuid,date,date,text)', true),
   ('public.resume_work_order(uuid)', true),
   ('public.review_work_order(uuid,text,text)', true),
+  ('public.save_work_order_checklist_response(uuid,text,text)', true),
   ('public.scheduled_maintenance_status_for_date(date,integer)', false),
   ('public.set_updated_at()', false),
   ('public.skip_scheduled_maintenance(uuid,text)', true),
@@ -61,8 +64,8 @@ values
 
 select is(
   (select count(*)::integer from acl_expected),
-  44,
-  '1. la matriz ACL enumera las 44 funciones públicas de aplicación'
+  47,
+  '1. la matriz ACL enumera las 47 funciones públicas de aplicación'
 );
 
 select is(

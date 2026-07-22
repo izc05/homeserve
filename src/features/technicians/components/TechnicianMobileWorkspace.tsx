@@ -20,6 +20,7 @@ import type { WorkOrderListItem } from '../../work-orders/api/workOrdersReposito
 import type { WorkOrderPriority, WorkOrderStatus } from '../../work-orders/types/workOrder';
 import ProductBrand, { DemoBrandFooter } from '../../../components/ProductBrand';
 import { groupTechnicianOrders, type TechnicianMobileAction, type TechnicianOrderGroup } from '../technicianMobile';
+import { workOrderDirectionsUrl } from '../../work-orders/domain/workOrderDirections';
 
 const groupLabels: Record<TechnicianOrderGroup, string> = {
   pendientes: 'Pendientes',
@@ -98,7 +99,8 @@ export default function TechnicianMobileWorkspace({ orders, viewerId, viewerName
 
   const renderOrderMeta = (order: WorkOrderListItem) => <>
     <span className="technician-order-meta-item"><MapPin size={14} aria-hidden="true" />{order.siteName || 'Instalación sin nombre'}{order.locationName ? ` · ${order.locationName}` : ''}</span>
-    {!order.locationName && <span className="technician-order-meta-item technician-order-meta-empty"><MapPin size={14} aria-hidden="true" />Ubicación no disponible</span>}
+    {order.siteAddress ? <span className="technician-order-meta-item"><MapPin size={14} aria-hidden="true" />{order.siteAddress}</span> : !order.locationName && <span className="technician-order-meta-item technician-order-meta-empty"><MapPin size={14} aria-hidden="true" />Ubicación pendiente</span>}
+    {workOrderDirectionsUrl({ address: order.siteAddress }) && <a className="technician-directions-link" href={workOrderDirectionsUrl({ address: order.siteAddress })!} rel="noopener noreferrer" target="_blank"><MapPin size={14} aria-hidden="true" /> Cómo llegar</a>}
     {order.clientName ? <span className="technician-order-meta-item"><UserRound size={14} aria-hidden="true" />{order.clientName}</span> : <span className="technician-order-meta-item technician-order-meta-empty"><UserRound size={14} aria-hidden="true" />Cliente no disponible</span>}
     <span className="technician-order-meta-item"><CalendarClock size={14} aria-hidden="true" />{dateLabel(order.plannedAt)}</span>
   </>;

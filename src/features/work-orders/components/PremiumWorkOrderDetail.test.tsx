@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PremiumWorkOrderDetail from './PremiumWorkOrderDetail';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
@@ -70,9 +71,9 @@ const auditEvents: WorkOrderAuditEvent[] = [
   },
 ];
 
-function renderDetail() {
+function renderDetail(overrides: Partial<WorkOrderListItem> = {}, operationalPanels?: { evidence?: ReactNode; review?: ReactNode }) {
   return render(<PremiumWorkOrderDetail
-    order={order}
+    order={{ ...order, ...overrides }}
     auditEvents={auditEvents}
     back={vi.fn()}
     onNewRelated={vi.fn()}
@@ -82,6 +83,7 @@ function renderDetail() {
     displayDate={(value) => value ? '20/07/2026 21:23' : 'Sin planificar'}
     statusClass={(status) => `status-${status.toLowerCase()}`}
     priorityClass={() => 'priority-media'}
+    operationalPanels={operationalPanels}
   />);
 }
 
@@ -134,5 +136,31 @@ describe('ficha administrativa premium de OT', () => {
     expect(screen.getByText('Contacto no disponible en los datos visibles')).toBeTruthy();
     expect(screen.queryByText(/600/)).toBeNull();
     expect(screen.queryByText(/@/)).toBeNull();
+  });
+
+  it('muestra la dirección real y un enlace externo seguro en Instalación', () => {
+    renderDetail({ siteAddress: 'Calle Demostración 1, 28000 Madrid' });
+    fireEvent.click(screen.getByRole('tab', { name: /Instalación/ }));
+
+    expect(screen.getByText('Calle Demostración 1, 28000 Madrid')).toBeTruthy();
+    const directions = screen.getByRole('link', { name: /Abrir indicaciones/ });
+    expect(directions.getAttribute('href')).toContain('google.com/maps/dir/');
+    expect(directions.getAttribute('target')).toBe('_blank');
+    expect(directions.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  it('sitúa las evidencias reales y la revisión en sus pestañas correspondientes', () => {
+    renderDetail({}, {
+      evidence: <section aria-label="Evidencias reales">Resumen técnico, checklist y fotografías privadas</section>,
+      review: <form aria-label="Revisión administrativa"><textarea aria-label="Nota de revisión" /></form>,
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: /Evidencias/ }));
+    expect(screen.getByLabelText('Evidencias reales')).toBeTruthy();
+    expect(screen.queryByLabelText('Revisión administrativa')).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Administración/ }));
+    expect(screen.getByLabelText('Revisión administrativa')).toBeTruthy();
+    expect(screen.queryByLabelText('Evidencias reales')).toBeNull();
   });
 });

@@ -15,6 +15,7 @@ import './styles/clients.css';
 import './styles/technicians.css';
 import './styles/technician-premium.css';
 import './styles/premium-work-order.css';
+import './styles/work-order-execution.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

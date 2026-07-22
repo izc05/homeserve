@@ -93,6 +93,8 @@
 .premium-technician strong, .premium-technician small { display: block; }
 .premium-technician small { margin-top: 4px; color: var(--muted); font-size: 12px; font-weight: 500; }
 .premium-avatar { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 34px; border-radius: 50%; color: #3f5067; background: #e9edf3; font-size: 11px; font-weight: 900; }
+.premium-directions-link { min-height: 44px; width: fit-content; display: inline-flex; align-items: center; gap: 7px; color: var(--brand); font-size: 14px; font-weight: 850; text-decoration: underline; text-underline-offset: 3px; }
+.premium-directions-link:focus-visible { outline: 3px solid rgba(227, 6, 19, .24); outline-offset: 2px; border-radius: 4px; }
 
 .premium-timeline { min-width: 0; display: grid; gap: 17px; }
 .premium-timeline-item { position: relative; min-width: 0; display: grid; grid-template-columns: 31px minmax(0, 1fr); gap: 11px; align-items: start; }

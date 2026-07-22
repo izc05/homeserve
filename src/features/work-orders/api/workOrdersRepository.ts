@@ -6,6 +6,10 @@ export type WorkOrderListItem = WorkOrder & {
   clientId?: string | null;
   clientName?: string | null;
   siteName: string;
+  siteAddress?: string | null;
+  siteContactName?: string | null;
+  siteContactPhone?: string | null;
+  siteContactEmail?: string | null;
   locationName: string | null;
   assignedToName: string | null;
   assetName: string | null;
@@ -44,6 +48,12 @@ const WORK_ORDER_COLUMNS = [
 ].join(',');
 
 type NamedRow = { id: string; nombre: string | null };
+type InstallationRow = NamedRow & {
+  direccion: string | null;
+  contacto_nombre: string | null;
+  contacto_telefono: string | null;
+  contacto_email: string | null;
+};
 type WorkOrderRepositoryRow = LegacyWorkOrderRow & { cliente_id: string | null };
 type AssetRow = {
   id: string;
@@ -60,7 +70,7 @@ function unique(values: Array<string | null>): string[] {
 
 async function loadNames(
   supabase: SupabaseClient,
-  table: 'clientes' | 'instalaciones' | 'ubicaciones' | 'profiles',
+  table: 'clientes' | 'ubicaciones' | 'profiles',
   ids: string[],
 ): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
@@ -73,6 +83,23 @@ async function loadNames(
       String(row.id),
       String(row.nombre || 'Sin nombre'),
     ]),
+  );
+}
+
+async function loadInstallations(
+  supabase: SupabaseClient,
+  ids: string[],
+): Promise<Map<string, InstallationRow>> {
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from('instalaciones')
+    .select('id,nombre,direccion,contacto_nombre,contacto_telefono,contacto_email')
+    .in('id', ids);
+  if (error) throw error;
+
+  return new Map(
+    ((data ?? []) as unknown as InstallationRow[]).map((row) => [String(row.id), row]),
   );
 }
 
@@ -115,9 +142,9 @@ export async function listAccessibleWorkOrders(
   if (error) throw error;
 
   const rows = (data ?? []) as unknown as WorkOrderRepositoryRow[];
-  const [clientNames, siteNames, locationNames, technicianNames, assets] = await Promise.all([
+  const [clientNames, installations, locationNames, technicianNames, assets] = await Promise.all([
     loadNames(supabase, 'clientes', unique(rows.map((row) => row.cliente_id))),
-    loadNames(supabase, 'instalaciones', unique(rows.map((row) => row.instalacion_id))),
+    loadInstallations(supabase, unique(rows.map((row) => row.instalacion_id))),
     loadNames(supabase, 'ubicaciones', unique(rows.map((row) => row.ubicacion_id))),
     loadNames(supabase, 'profiles', unique(rows.map((row) => row.assigned_to))),
     loadAssets(supabase, unique(rows.map((row) => row.activo_id))),
@@ -125,12 +152,17 @@ export async function listAccessibleWorkOrders(
 
   return rows.map((row) => {
     const asset = row.activo_id ? assets.get(row.activo_id) ?? null : null;
+    const installation = installations.get(row.instalacion_id) ?? null;
 
     return {
       ...mapLegacyWorkOrder(row),
       clientId: row.cliente_id,
       clientName: row.cliente_id ? clientNames.get(row.cliente_id) ?? 'Cliente sin nombre' : null,
-      siteName: siteNames.get(row.instalacion_id) ?? 'Instalación sin nombre',
+      siteName: installation?.nombre?.trim() || 'Instalación sin nombre',
+      siteAddress: installation?.direccion?.trim() || null,
+      siteContactName: installation?.contacto_nombre?.trim() || null,
+      siteContactPhone: installation?.contacto_telefono?.trim() || null,
+      siteContactEmail: installation?.contacto_email?.trim() || null,
       locationName: row.ubicacion_id
         ? locationNames.get(row.ubicacion_id) ?? 'Ubicación sin nombre'
         : null,

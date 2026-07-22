@@ -132,7 +132,7 @@ describe('TechnicianMobileWorkspace premium', () => {
     renderWorkspace([order({ clientName: null, locationName: null })]);
 
     expect(screen.getAllByText('Cliente no disponible').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Ubicación no disponible').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Ubicación pendiente').length).toBeGreaterThan(0);
     expect(screen.getByText('Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro')).toBeTruthy();
   });
 

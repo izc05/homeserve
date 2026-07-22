@@ -221,6 +221,8 @@
 .technician-order-meta-item { min-width: 0; display: inline-flex; align-items: flex-start; gap: 6px; color: #536176; font-size: 12px; line-height: 1.35; }
 .technician-order-meta-item svg { flex: 0 0 auto; margin-top: 1px; color: #7f8ca0; }
 .technician-order-meta-empty { color: #8793a5; font-style: italic; }
+.technician-directions-link { min-height: 44px; width: fit-content; display: inline-flex; align-items: center; gap: 6px; color: var(--brand); font-size: 12px; font-weight: 850; text-decoration: underline; text-underline-offset: 3px; }
+.technician-directions-link:focus-visible { outline: 3px solid rgba(227, 6, 19, .24); outline-offset: 2px; border-radius: 4px; }
 .technician-premium-status,
 .technician-premium-priority { min-height: 30px; display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 5px 8px; border-radius: 7px; font-size: 12px; font-weight: 850; white-space: nowrap; }
 .technician-premium-status { color: #17643d; background: #e9f8ef; }
@@ -279,6 +281,7 @@
 }
 
 @media (max-width: 760px) {
+  .technician-premium-order-link { min-height: 44px; display: inline-flex; align-items: center; }
   .technician-premium-page { width: calc(100% + 26px); margin: -13px -13px -22px; }
   .technician-premium-header-inner { align-items: flex-start; flex-direction: column; gap: 13px; padding: 19px 13px 18px; }
   .technician-premium-header h1 { font-size: 32px; }

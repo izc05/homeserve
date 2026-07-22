@@ -102,11 +102,16 @@ export function humanAuditAction(action: string): string {
     block_work_order: 'OT bloqueada / pendiente',
     resume_work_order: 'OT reanudada',
     review_work_order: 'Revisión administrativa',
+    validate_work_order: 'OT validada por administración',
+    request_work_order_correction: 'Corrección solicitada',
+    request_work_order_corrections: 'Corrección solicitada',
     annul_work_order: 'OT anulada',
     soft_delete_work_order: 'OT anulada',
     create_work_order: 'OT creada',
     update_work_order: 'OT actualizada',
     ensure_work_order_default_checklist: 'Checklist preparado',
+    save_work_order_checklist_response: 'Checklist actualizado',
+    add_ot_fotos: 'Fotografía añadida',
     register_work_order_report: 'Informe registrado',
   };
 
@@ -124,6 +129,7 @@ export function workOrderAuditDetail(event: WorkOrderAuditEvent): string {
     meta.reason ? String(meta.reason) : null,
     meta.filename ? String(meta.filename) : null,
     meta.created_items ? `${String(meta.created_items)} puntos creados` : null,
+    meta.plantilla_item_id ? `Punto: ${String(meta.plantilla_item_id)}` : null,
     meta.decision ? String(meta.decision) : null,
   ].filter(Boolean);
 
