@@ -6,6 +6,8 @@ import {
   Camera,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   LoaderCircle,
   RotateCcw,
@@ -19,6 +21,7 @@ import {
   saveWorkOrderChecklistResponse,
   type WorkOrderChecklistResponse,
 } from '../api/workOrderExecutionRepository';
+import ChecklistPointPhotos from './ChecklistPointPhotos';
 
 type SaveState = 'pending' | 'saving' | 'saved' | 'error';
 type Draft = { result: string; observations: string };
@@ -58,6 +61,7 @@ export default function WorkOrderChecklistPanel({
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [states, setStates] = useState<Record<string, SaveState>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const query = useQuery({
     queryKey,
@@ -79,6 +83,7 @@ export default function WorkOrderChecklistPanel({
     mutationFn: ({ row, draft }: { row: WorkOrderChecklistResponse; draft: Draft }) => saveWorkOrderChecklistResponse(supabase, {
       responseId: row.id,
       result: draft.result,
+      numericValue: row.responseType === 'numero' && draft.result.trim() ? Number(draft.result) : null,
       observations: draft.observations,
     }),
     onMutate: ({ row }) => {
@@ -96,8 +101,18 @@ export default function WorkOrderChecklistPanel({
     },
   });
 
-  const rows = query.data ?? [];
+  const rows = useMemo(() => query.data ?? [], [query.data]);
   const progress = checklistProgress(rows);
+  const sections = useMemo(() => {
+    const grouped = new Map<string, { id: string; title: string; order: number; rows: WorkOrderChecklistResponse[] }>();
+    rows.forEach((row) => {
+      const id = row.sectionId || `legacy-${row.sectionTitle}`;
+      const section = grouped.get(id) ?? { id, title: row.sectionTitle, order: row.sectionOrder, rows: [] };
+      section.rows.push(row);
+      grouped.set(id, section);
+    });
+    return [...grouped.values()].sort((a, b) => a.order - b.order);
+  }, [rows]);
 
   const updateDraft = (id: string, next: Partial<Draft>) => {
     setDrafts((current) => ({
@@ -115,7 +130,7 @@ export default function WorkOrderChecklistPanel({
         <div><h2 id={`checklist-title-${workOrderId}`}>{heading}</h2><p>Respuestas reales guardadas en la orden de trabajo.</p></div>
       </div>
       <div className="checklist-progress-copy" aria-label={`${progress.completed} de ${progress.total} puntos completados`}>
-        <strong>{progress.completed} / {progress.total}</strong><span>completados</span>
+        <strong>{progress.completed} / {progress.total}</strong><span>completados · {progress.conforming} conformes</span>
       </div>
     </div>
 
@@ -136,16 +151,29 @@ export default function WorkOrderChecklistPanel({
       {prepareMutation.error && <p className="execution-inline-error" role="alert">{errorMessage(prepareMutation.error, 'No se pudo preparar el checklist.')}</p>}
     </div>}
 
-    {rows.length > 0 && <div className="checklist-items">
-      {rows.map((row) => {
+    {rows.length > 0 && <div className="checklist-sections">
+      {sections.map((section) => {
+        const collapsed = collapsedSections[section.id] === true;
+        const sectionCompleted = section.rows.filter((row) => Boolean(row.result)).length;
+        return <section className="checklist-section" key={section.id}>
+          <button aria-expanded={!collapsed} className="checklist-section-toggle" onClick={() => setCollapsedSections((current) => ({ ...current, [section.id]: !collapsed }))} type="button"><span><strong>{section.title}</strong><small>{sectionCompleted} / {section.rows.length} completados</small></span>{collapsed ? <ChevronDown size={19} /> : <ChevronUp size={19} />}</button>
+          {!collapsed && <div className="checklist-items">{section.rows.map((row) => {
         const draft = drafts[row.id] ?? initialDraft(row);
         const state = states[row.id] ?? 'pending';
         const busy = saveMutation.isPending;
         const label = stateLabel(state, Boolean(row.result));
-        return <article className="checklist-item" key={row.id}>
+        const negative = ['ko', 'no', 'incorrecto'].includes(draft.result.toLowerCase());
+        const choices = row.responseType === 'ok_ko_na'
+          ? [['ok', 'OK'], ['ko', 'KO'], ['na', 'No aplica']] as const
+          : row.responseType === 'si_no_na'
+            ? [['si', 'Sí'], ['no', 'No'], ['na', 'No aplica']] as const
+            : row.responseType === 'correcto_incorrecto'
+              ? [['correcto', 'Correcto'], ['incorrecto', 'Incorrecto']] as const
+              : null;
+        return <article className={`checklist-item ${negative ? 'is-negative' : ''}`} key={row.id}>
           <div className="checklist-item-heading">
             <span className="checklist-item-order">{row.order}</span>
-            <div><h3>{row.point}</h3>{row.description && <p>{row.description}</p>}</div>
+            <div><h3>{row.point}</h3>{row.instructions && <p>{row.instructions}</p>}</div>
             <span className={`checklist-save-state is-${state}`} aria-live="polite">
               {state === 'saving' ? <LoaderCircle className="spin" size={14} /> : state === 'error' ? <AlertTriangle size={14} /> : label === 'Guardado' ? <CheckCircle2 size={14} /> : null}
               {label}
@@ -155,27 +183,30 @@ export default function WorkOrderChecklistPanel({
           <div className="checklist-item-flags">
             <span>{row.required ? 'Obligatorio' : 'Opcional'}</span>
             {row.requiresPhoto && <span><Camera size={14} aria-hidden="true" /> Requiere fotografía</span>}
+            {row.negativeObservationRequired && <span><AlertTriangle size={14} aria-hidden="true" /> Observación ante negativo</span>}
+            {row.critical && <span><AlertTriangle size={14} aria-hidden="true" /> Punto crítico</span>}
           </div>
 
-          {row.responseType === 'ok_ko_na' ? <fieldset className="checklist-choice-group" disabled={!canEdit || busy}>
+          {choices ? <fieldset className="checklist-choice-group" disabled={!canEdit || busy}>
             <legend>Resultado</legend>
-            {([['ok', 'OK'], ['ko', 'KO'], ['na', 'No aplica']] as const).map(([value, labelText]) => <button className={draft.result === value ? 'is-selected' : ''} aria-pressed={draft.result === value} key={value} onClick={() => updateDraft(row.id, { result: value })} type="button">{labelText}</button>)}
-          </fieldset> : <label className="execution-field">
-            <span>{row.responseType === 'medicion' ? 'Medición o valor' : 'Respuesta'}</span>
-            <textarea disabled={!canEdit || busy} onChange={(event) => updateDraft(row.id, { result: event.target.value })} rows={2} value={draft.result} />
-          </label>}
+            {choices.map((choice) => { const [value, labelText] = choice; return <button className={draft.result === value ? 'is-selected' : ''} aria-pressed={draft.result === value} key={value} onClick={() => updateDraft(row.id, { result: value })} type="button">{labelText}</button>; })}
+          </fieldset> : row.responseType === 'seleccion' ? <label className="execution-field"><span>Selecciona una respuesta</span><select disabled={!canEdit || busy} onChange={(event) => updateDraft(row.id, { result: event.target.value })} value={draft.result}><option value="">Pendiente</option>{row.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label> : row.responseType === 'numero' ? <label className="execution-field"><span>Medición {row.unit ? `(${row.unit})` : ''}</span><input disabled={!canEdit || busy} inputMode="decimal" onChange={(event) => updateDraft(row.id, { result: event.target.value })} step="any" type="number" value={draft.result} /></label> : <label className="execution-field"><span>{row.responseType === 'medicion' ? 'Medición o valor' : 'Respuesta'}</span><textarea disabled={!canEdit || busy} onChange={(event) => updateDraft(row.id, { result: event.target.value })} rows={2} value={draft.result} /></label>}
 
           <label className="execution-field">
-            <span>Observaciones <small>(opcional)</small></span>
+            <span>Observaciones <small>{negative && row.negativeObservationRequired ? '(obligatorias)' : '(opcional)'}</small></span>
             <textarea disabled={!canEdit || busy} onChange={(event) => updateDraft(row.id, { observations: event.target.value })} rows={2} value={draft.observations} />
           </label>
 
+          <ChecklistPointPhotos tenantId={row.tenantId} workOrderId={row.workOrderId} responseId={row.id} required={row.requiresPhoto} canEdit={canEdit} client={client} />
+
           {canEdit && <div className="checklist-item-actions">
             <button className="secondary-button" disabled={busy || (!draft.result && !draft.observations)} onClick={() => updateDraft(row.id, { result: '', observations: '' })} type="button"><RotateCcw size={16} /> Dejar pendiente</button>
-            <button className="primary-button" disabled={busy} onClick={() => saveMutation.mutate({ row, draft })} type="button">{state === 'saving' ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Guardar punto</button>
+            <button className="primary-button" disabled={busy || (negative && row.negativeObservationRequired && !draft.observations.trim())} onClick={() => saveMutation.mutate({ row, draft })} type="button">{state === 'saving' ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} Guardar punto</button>
           </div>}
           {errors[row.id] && <p className="execution-inline-error" role="alert">{errors[row.id]}</p>}
         </article>;
+      })}</div>}
+        </section>;
       })}
     </div>}
 

@@ -1,0 +1,71 @@
+.installation-gallery { min-width: 0; display: grid; gap: 14px; margin-top: 16px; padding: 20px; border: 1px solid #dfe5ed; border-radius: 13px; background: #fff; box-shadow: var(--shadow-small); }
+.installation-gallery-header { min-width: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.installation-gallery-header h2 { margin: 4px 0; overflow-wrap: anywhere; color: var(--navy); font-size: 20px; }
+.installation-gallery-header p { margin: 0; color: #647188; font-size: 13px; }
+.installation-context-strip { min-width: 0; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; background: #f2f5f9; }
+.installation-context-strip > span { min-width: 0; display: flex; align-items: center; gap: 7px; color: #40516a; font-size: 14px; }
+.installation-context-strip strong { min-width: 0; overflow-wrap: anywhere; }
+.installation-context-strip small { display: block; color: #647188; font-size: 12px; }
+.installation-context-strip .secondary-button { min-height: 44px; }
+.installation-gallery-empty { display: grid; justify-items: center; gap: 8px; padding: 34px 16px; border: 1px dashed #cfd7e2; border-radius: 11px; color: #647188; text-align: center; background: #fafbfd; }
+.installation-gallery-empty strong { color: var(--navy); font-size: 15px; }
+.installation-gallery-empty p { margin: 0; font-size: 13px; }
+.installation-primary-photo { min-width: 0; display: grid; grid-template-columns: minmax(260px, 1.2fr) minmax(220px, .8fr); overflow: hidden; border-radius: 12px; background: #071a38; color: #fff; }
+.installation-primary-photo > img, .installation-primary-photo > span { width: 100%; height: 310px; object-fit: cover; }
+.installation-primary-photo > span { display: grid; place-items: center; color: #bac7d9; background: #18314f; }
+.installation-primary-photo > div { min-width: 0; display: grid; align-content: center; gap: 9px; padding: 24px; }
+.installation-primary-photo > div > span { display: inline-flex; align-items: center; gap: 6px; color: #ffbdc1; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.installation-primary-photo strong { overflow-wrap: anywhere; font-size: 20px; }
+.installation-primary-photo p { margin: 0; color: #cbd5e4; font-size: 13px; line-height: 1.5; }
+.installation-photo-grid { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.installation-photo-grid article { min-width: 0; overflow: hidden; border: 1px solid #dfe5ed; border-radius: 10px; background: #fff; }
+.installation-photo-grid article.is-main { border-color: #e30613; box-shadow: 0 0 0 2px rgba(227, 6, 19, .09); }
+.installation-photo-grid article > div:first-child { aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden; color: #68768b; background: #edf1f6; font-size: 12px; }
+.installation-photo-grid img { width: 100%; height: 100%; object-fit: cover; }
+.installation-photo-grid article > p { min-width: 0; display: grid; gap: 5px; margin: 0; padding: 11px 12px; }
+.installation-photo-grid article > p > span { color: var(--brand); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.installation-photo-grid article > p strong { overflow-wrap: anywhere; font-size: 14px; }
+.installation-photo-grid article > p small { color: #647188; font-size: 12px; }
+.installation-photo-grid article > footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; padding: 0 12px 12px; }
+.installation-photo-grid article > footer button { min-height: 44px; }
+.installation-photo-uploader { min-width: 0; padding: 14px; border: 1px solid #e0e6ee; border-radius: 10px; background: #fafbfd; }
+.installation-photo-uploader > label { min-height: 44px; cursor: pointer; }
+.installation-photo-draft { min-width: 0; display: grid; grid-template-columns: 130px minmax(0, 1fr) 44px auto; align-items: end; gap: 12px; margin-top: 13px; padding-top: 13px; border-top: 1px solid #e1e6ed; }
+.installation-photo-draft > img { width: 130px; height: 110px; object-fit: cover; border-radius: 9px; }
+.installation-photo-draft > div { min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.installation-photo-draft label { min-width: 0; display: grid; gap: 5px; color: #40516a; font-size: 12px; font-weight: 800; }
+.installation-photo-draft label:nth-child(2) { grid-column: 1 / -1; }
+.installation-photo-draft :is(input, textarea, select) { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #cbd4df; border-radius: 8px; font: inherit; font-size: 14px; }
+.installation-photo-draft .installation-main-check { min-height: 44px; display: flex; flex-direction: row; align-items: center; gap: 7px; }
+.installation-main-check input { width: 19px; height: 19px; accent-color: var(--brand); }
+.installation-photo-draft > button { min-height: 44px; }
+.installation-photo-progress { grid-column: 2 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 9px; color: #526077; font-size: 12px; }
+.installation-photo-progress progress { width: 100%; accent-color: var(--brand); }
+.installation-gallery :is(a, button, input, textarea, select):focus-visible { outline: 3px solid rgba(227, 6, 19, .25); outline-offset: 2px; }
+
+@media (max-width: 1040px) {
+  .installation-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .installation-photo-draft { grid-template-columns: 110px minmax(0, 1fr) 44px; }
+  .installation-photo-draft > img { width: 110px; }
+  .installation-photo-draft > .primary-button { grid-column: 2 / -1; width: 100%; }
+}
+@media (max-width: 760px) {
+  .installation-gallery { padding: 14px 11px; }
+  .installation-gallery-header { flex-direction: column; }
+  .installation-context-strip { grid-template-columns: 1fr; }
+  .installation-context-strip .secondary-button { width: 100%; }
+  .installation-primary-photo { grid-template-columns: 1fr; }
+  .installation-primary-photo > img, .installation-primary-photo > span { height: 210px; }
+  .installation-primary-photo > div { padding: 17px 14px; }
+  .installation-photo-grid { grid-template-columns: 1fr; }
+  .installation-photo-grid article { display: grid; grid-template-columns: 112px minmax(0, 1fr); }
+  .installation-photo-grid article > div:first-child { height: 100%; min-height: 145px; aspect-ratio: auto; }
+  .installation-photo-grid article > footer { grid-column: 1 / -1; }
+  .installation-photo-draft { grid-template-columns: 86px minmax(0, 1fr); align-items: start; }
+  .installation-photo-draft > img { width: 86px; height: 86px; }
+  .installation-photo-draft > div { grid-template-columns: 1fr; }
+  .installation-photo-draft label:nth-child(2) { grid-column: auto; }
+  .installation-photo-draft > .icon-button { grid-column: 1; }
+  .installation-photo-draft > .primary-button { grid-column: 2; }
+  .installation-photo-progress { grid-column: 1 / -1; }
+}

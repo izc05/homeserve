@@ -46,7 +46,7 @@ describe('work order photo repository', () => {
     const file = new File(['photo'], 'Inicial real.jpg', { type: 'image/jpeg' });
     await uploadWorkOrderPhoto(client, { tenantId: 'tenant-id', workOrderId: 'order-id', category: 'initial', file });
     expect(upload).toHaveBeenCalledWith(expect.stringContaining('tenant-id/order-id/foto/'), file, expect.objectContaining({ upsert: false }));
-    expect(rpc).toHaveBeenCalledWith('register_work_order_photo', expect.objectContaining({ photo_type_text: 'inicial', filename_text: 'Inicial real.jpg' }));
+    expect(rpc).toHaveBeenCalledWith('register_work_order_photo_v2', expect.objectContaining({ photo_type_text: 'inicial', filename_text: 'Inicial real.jpg', category_text: 'inicial' }));
   });
 
   it('elimina el objeto subido si falla el registro de metadatos', async () => {

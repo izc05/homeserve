@@ -187,3 +187,36 @@ final result: passed
 La iteración premium de `Mis OT` queda aprobada para escritorio, tablet y móvil dentro del alcance solicitado. La corrección mantiene intactos permisos, orden del repositorio, rutas, backend y acciones operativas; el siguiente paso de riesgo controlado es repetir el smoke visual con la sesión técnica real tras servir este bundle, sin cambiar el flujo operativo.
 
 final result: passed
+
+## Plantillas de checklist, ejecución avanzada y galería de instalación
+
+### Alcance visual y funcional
+
+- La administración incorpora un espacio premium de plantillas dentro de Configuración: listado, creación/edición, duplicado, activación, secciones y puntos ordenables y previsualización técnica.
+- La preparación de una OT muestra la plantilla y versión seleccionadas antes de generar la instantánea histórica.
+- El checklist técnico conserva el flujo operativo existente y añade secciones plegables, progreso `completados / total`, progreso conforme, tipos de respuesta reales, guardado individual, observaciones obligatorias ante resultado negativo y fotografía vinculada al punto exacto.
+- La galería privada de instalación queda separada de las evidencias de OT, con estado vacío profesional, fotografía principal, carga, marcado como principal y eliminación confirmada para administradores. El técnico recibe acceso de solo lectura cuando la instalación está relacionada con una OT visible.
+- No se añadieron fotografías ficticias ni se ejecutaron acciones mutantes sobre `OT-2026-00001`, `OT-2026-00002` o `OT-2026-00003`.
+
+### Responsive, accesibilidad y evidencias
+
+- Escritorio 1440×1024: `clientWidth = scrollWidth = 1425`, sin overflow horizontal, objetivos interactivos de al menos 44 px y texto auxiliar mínimo de 12 px.
+- Tablet 1024×768: `clientWidth = scrollWidth = 1009`, navegación compacta y paneles de plantilla, checklist y galería legibles sin compresión horizontal.
+- Móvil 390×844: `clientWidth = scrollWidth = 375`, controles apilados, secciones y galerías alcanzables, sin superposición ni objetivos táctiles inferiores a 44 px.
+- Botones nativos, orden de tabulación natural y foco visible. Los estados negativos usan icono/texto además del color; los estados vacío, guardando, guardado y error tienen copia explícita.
+- Consola del pase visual: sin errores. El arnés QA fue temporal y se eliminó antes de la validación final.
+- Las capturas de QA se conservaron fuera del repositorio; no forman parte del cambio publicado.
+
+### Validación
+
+- `npm ci` ✅
+- `npm run typecheck` ✅
+- `npm run lint` ✅
+- `npm test -- --run` ✅ (34 archivos / 157 pruebas)
+- `npm run build` ✅
+- `git diff --check` ✅
+- Parseo estático PostgreSQL: ✅ (26 migraciones y la nueva prueba pgTAP)
+- Cadena fresca, SQL lint y pgTAP: validados en un proyecto QA aislado (26 migraciones, 284/284 aserciones), y las tres migraciones aditivas aplicadas posteriormente a Cloud operativo sin modificar datos demo.
+
+frontend final result: passed
+database runtime result: passed (QA aislado y smoke Cloud de solo lectura)

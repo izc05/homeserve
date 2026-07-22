@@ -16,17 +16,24 @@ vi.mock('../api/workOrderExecutionRepository', async () => {
   const actual = await vi.importActual<typeof import('../api/workOrderExecutionRepository')>('../api/workOrderExecutionRepository');
   return { ...actual, ...mocks };
 });
+vi.mock('./ChecklistPointPhotos', () => ({
+  default: ({ responseId, required }: { responseId: string; required: boolean }) => <div data-required={required} data-testid={`photos-${responseId}`}>Fotografías vinculadas</div>,
+}));
 
 const rows: WorkOrderChecklistResponse[] = [
   {
     id: 'one', tenantId: 'tenant', workOrderId: 'order', templateItemId: 'identificacion', order: 10,
     point: 'Identificación', description: 'Confirmar alcance.', required: true, requiresPhoto: false,
     result: 'ok', responseType: 'ok_ko_na', observations: null, completedBy: 'tech', completedAt: '2026-07-22T08:00:00Z',
+    sectionId: null, sectionTitle: 'Checklist de intervención', sectionOrder: 0, instructions: 'Confirmar alcance.',
+    negativeObservationRequired: false, critical: false, unit: null, options: [], numericValue: null,
   },
   {
     id: 'two', tenantId: 'tenant', workOrderId: 'order', templateItemId: 'ejecucion', order: 40,
     point: 'Ejecución técnica', description: 'Registrar trabajo.', required: true, requiresPhoto: false,
     result: null, responseType: 'texto', observations: null, completedBy: null, completedAt: null,
+    sectionId: null, sectionTitle: 'Checklist de intervención', sectionOrder: 0, instructions: 'Registrar trabajo.',
+    negativeObservationRequired: false, critical: false, unit: null, options: [], numericValue: null,
   },
 ];
 
@@ -48,6 +55,23 @@ describe('WorkOrderChecklistPanel', () => {
     expect(await screen.findByText('1 / 2')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'OK' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByLabelText('Respuesta')).toBeTruthy();
+  });
+
+  it('muestra secciones, medición, selección y avisos críticos desde los datos recibidos', async () => {
+    mocks.listWorkOrderChecklist.mockResolvedValueOnce([
+      { ...rows[0], id: 'number', point: 'Tensión', responseType: 'numero', result: '230.5', numericValue: 230.5, unit: 'V', sectionId: 'electrical', sectionTitle: 'Eléctrica', sectionOrder: 20 },
+      { ...rows[1], id: 'selection', point: 'Método', responseType: 'seleccion', options: ['Visual', 'Medición'], result: 'Visual', sectionId: 'electrical', sectionTitle: 'Eléctrica', sectionOrder: 20 },
+      { ...rows[1], id: 'critical', point: 'Protecciones', responseType: 'correcto_incorrecto', result: 'incorrecto', observations: 'Pendiente', critical: true, requiresPhoto: true, sectionId: 'safety', sectionTitle: 'Seguridad', sectionOrder: 10 },
+    ]);
+    renderPanel();
+    expect(await screen.findByRole('button', { name: /Seguridad/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Eléctrica/ })).toBeTruthy();
+    expect(screen.getByLabelText('Medición (V)')).toBeTruthy();
+    expect(screen.getByLabelText('Selecciona una respuesta')).toBeTruthy();
+    expect(screen.getByText('Punto crítico')).toBeTruthy();
+    expect(screen.getByTestId('photos-critical').getAttribute('data-required')).toBe('true');
+    expect(screen.getByText('3 / 3')).toBeTruthy();
+    expect(screen.getByText(/2 conformes/)).toBeTruthy();
   });
 
   it('guarda texto y observaciones una sola vez mientras hay una petición activa', async () => {
