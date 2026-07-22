@@ -41,13 +41,6 @@ export type FinalizeActiveWorkOrderVisitInput = Omit<FinalizeWorkOrderVisitInput
 
 type WorkOrderStatusRow = {
   estado?: string | null;
-  configuracion?: unknown;
-};
-
-type ChecklistRow = {
-  plantilla_item_id?: string | null;
-  resultado?: string | null;
-  obligatorio?: boolean | null;
 };
 
 const BLOCKABLE_STATUSES = ['EN_CURSO'] as const;
@@ -59,19 +52,6 @@ function requireUuid(value: string, message: string) {
 
 function requireText(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
-}
-
-function flag(configuration: Record<string, unknown>, key: string): boolean {
-  return configuration[key] === true;
-}
-
-function hasText(value: string | null | undefined): boolean {
-  return Boolean(value?.trim());
 }
 
 function mapWorkOrderResult(data: unknown): WorkOrderLifecycleResult {
@@ -120,7 +100,7 @@ async function readWorkOrder(
 ): Promise<WorkOrderStatusRow> {
   const { data, error } = await supabase
     .from('ordenes_trabajo')
-    .select('estado,configuracion')
+    .select('estado')
     .eq('id', workOrderId)
     .maybeSingle();
 
@@ -137,42 +117,6 @@ async function readWorkOrderStatus(
 ): Promise<string> {
   const row = await readWorkOrder(supabase, workOrderId);
   return String(row.estado).trim();
-}
-
-async function readChecklistRows(
-  supabase: SupabaseClient,
-  workOrderId: string,
-): Promise<ChecklistRow[]> {
-  const { data, error } = await supabase
-    .from('ot_checklist_respuestas')
-    .select('plantilla_item_id,resultado,obligatorio')
-    .eq('ot_id', workOrderId);
-
-  if (error) throw error;
-  return (data ?? []) as unknown as ChecklistRow[];
-}
-
-function closureRequirementFailures(configuration: Record<string, unknown>, checklistRows: ChecklistRow[]): string[] {
-  const failures: string[] = [];
-  const requiresChecklist = flag(configuration, 'requiere_checklist');
-  const requiresTechnicianSignature = flag(configuration, 'requiere_firma_tecnico');
-
-  if (requiresChecklist) {
-    if (checklistRows.length === 0) {
-      failures.push('preparar el checklist');
-    } else if (checklistRows.some((row) => row.obligatorio !== false && !hasText(row.resultado))) {
-      failures.push('completar todos los puntos obligatorios del checklist');
-    }
-  }
-
-  if (requiresTechnicianSignature) {
-    const signatureDone = checklistRows.some(
-      (row) => row.plantilla_item_id === 'firma_tecnico' && hasText(row.resultado),
-    );
-    if (!signatureDone) failures.push('registrar la firma del técnico');
-  }
-
-  return failures;
 }
 
 async function assertCanAcceptWorkOrder(
@@ -226,13 +170,6 @@ async function assertCanFinishActiveVisit(
   const status = String(row.estado).trim();
   if (status !== 'EN_CURSO') {
     throw new Error('Solo se puede finalizar una OT que esté en curso.');
-  }
-
-  const configuration = asRecord(row.configuracion);
-  const checklistRows = await readChecklistRows(supabase, workOrderId);
-  const failures = closureRequirementFailures(configuration, checklistRows);
-  if (failures.length > 0) {
-    throw new Error(`Antes de cerrar la OT debes ${failures.join(' y ')}.`);
   }
 }
 
