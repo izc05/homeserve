@@ -64,6 +64,43 @@ The selected mockup contains richer installation contact/address data than the c
 
 final result: passed
 
+## Premium dashboard administrativo
+
+### Referencia y alcance
+
+- Referencia visual interna: `PremiumWorkOrderDetail`, la pantalla premium `Mis OT`, los tokens globales y la identidad `HomeServe Operaciones` ya publicados.
+- Pantalla sustituida: únicamente el dashboard administrativo de `src/App.tsx`; navegación, rutas, callbacks, consultas y flujo operativo permanecen intactos.
+- Datos: el componente recibe exclusivamente `WorkOrderListItem[]`, `viewerName`, `openOrders` y `openDetail`. No consulta otra fuente, no fabrica SLA ni modifica órdenes.
+- Foco determinista: estado `BLOQUEADA → FINALIZADA_TECNICO → EN_CURSO → ACEPTADA → ASIGNADA → BORRADOR`; en empate, prioridad `critica → urgente → alta → normal → baja`, conservando el orden recibido para empates completos.
+
+### Comparación visual
+
+- La cabecera marino recupera la jerarquía de la ficha premium con kicker rojo `Panel central`, saludo completo, descriptor y badges `Datos reales` / `OT visibles`.
+- Los KPI usan el mismo lenguaje de tarjeta blanca, icono semántico y acento de color: abiertas, en curso, pendientes de validación y bloqueadas.
+- `Siguiente actuación · En foco` conserva el protagonismo rojo de la siguiente acción de la ficha premium y abre la OT mediante el callback existente.
+- El cuerpo se organiza en órdenes recientes, estados clave, carga por técnico y próximas OT planificadas. Cliente, instalación, técnico o planificación ausentes se muestran como estados vacíos explícitos.
+- El pie permanece exactamente `Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro`.
+
+### Responsive y accesibilidad
+
+- 1440×1024: `scrollWidth 1425 ≤ 1440`; cabecera, cuatro KPI, foco y primer nivel de tarjetas conservan una composición de escritorio equilibrada.
+- 1024×768: `scrollWidth 1009 ≤ 1024`; el shell usa rail real de 84 px (`grid-template-columns: 84px 924.8px`), libera ancho y mantiene legibles los KPI y el foco.
+- 390×844: `scrollWidth 375 ≤ 390`; cabecera compacta, KPI 2×2, foco apilado, tarjetas recientes, estados, carga, planificación y footer quedan accesibles sin overflow horizontal.
+- Todos los botones propios del dashboard miden al menos 44 px en los tres viewports. Son controles nativos, conservan orden de teclado y muestran outline visible (`solid`, 2.4 px en el pase de teclado).
+- Consola visual: sin errores; únicamente mensajes normales de Vite/React durante el arnés local temporal.
+
+### Evidencias
+
+- `C:\Users\ISICIO\.codex\visualizations\2026\07\22\premium-admin-dashboard\premium-dashboard-desktop-1440x1024.png`
+- `C:\Users\ISICIO\.codex\visualizations\2026\07\22\premium-admin-dashboard\premium-dashboard-tablet-1024x768.png`
+- `C:\Users\ISICIO\.codex\visualizations\2026\07\22\premium-admin-dashboard\premium-dashboard-mobile-top-390x844.png`
+- `C:\Users\ISICIO\.codex\visualizations\2026\07\22\premium-admin-dashboard\premium-dashboard-mobile-middle-390x844.png`
+- `C:\Users\ISICIO\.codex\visualizations\2026\07\22\premium-admin-dashboard\premium-dashboard-mobile-bottom-390x844.png`
+
+El arnés visual fue temporal y se eliminó antes de la validación final. No se ejecutó ninguna acción mutante ni se tocó Supabase.
+
+final result: passed
+
 ## HomeServe co-branding — propuesta demostrativa
 
 ### Procedencia y tratamiento del activo

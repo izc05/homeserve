@@ -49,6 +49,7 @@ import WorkOrderChecklistPanel from './features/work-orders/components/WorkOrder
 import WorkOrderPhotosPanel from './features/work-orders/components/WorkOrderPhotosPanel';
 import WorkOrderCompletionPanel, { WorkOrderVisitSummaryPanel } from './features/work-orders/components/WorkOrderCompletionPanel';
 import { workOrderDirectionsUrl } from './features/work-orders/domain/workOrderDirections';
+import PremiumDashboard from './features/dashboard/components/PremiumDashboard';
 import { canAccessTechnicianAdministration, canManageTechnicianInvitations, isTechnicianRole } from './features/technicians/technicianAccess';
 import { friendlyTechnicianError } from './features/technicians/api/technicianRepository';
 import { assignWorkOrder } from './features/work-orders/api/workOrderAssignment';
@@ -309,26 +310,6 @@ function CancelAction({ order, canCancel, busy, run }: { order: WorkOrderListIte
   return <div className="operational-inline-form"><label htmlFor={`cancel-reason-${order.id}`}><span>Motivo de anulación</span><textarea id={`cancel-reason-${order.id}`} maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder="Mínimo 5 caracteres." rows={3} value={reason} /></label><button className="secondary-button" disabled={busy || !canCancelWorkOrder(order.status) || reason.trim().length < 5} onClick={() => run(order, reason)} type="button"><X size={17} /> Anular OT</button></div>;
 }
 
-function Dashboard({ orders, viewerName, openOrders, openDetail }: { orders: WorkOrderListItem[]; viewerName: string; openOrders: () => void; openDetail: (id: string) => void }) {
-  const counts = useMemo(() => {
-    const result = new Map<WorkOrderStatus, number>();
-    for (const order of orders) result.set(order.status, (result.get(order.status) ?? 0) + 1);
-    return result;
-  }, [orders]);
-  const technicians = useMemo(() => groupBy(orders, (order) => order.assignedToName ?? 'Sin asignar').sort((a, b) => b.rows.length - a.rows.length).slice(0, 4), [orders]);
-  const planned = orders.filter((order) => order.plannedAt).slice(0, 4);
-  return <>
-    <div className="page-heading"><span className="section-kicker">Panel central</span><h1>Hola, {viewerName.split(' ')[0]} 👋</h1><p>Resumen limpio de las órdenes reales visibles.</p></div>
-    <Metrics orders={orders} />
-    <section className="dashboard-grid dashboard-grid-top">
-      <article className="panel orders-status-panel"><div className="panel-heading"><h2>Estados clave</h2><span className="source-badge">Real</span></div><ul className="legend-list">{(['ASIGNADA', 'EN_CURSO', 'FINALIZADA_TECNICO', 'BLOQUEADA', 'VALIDADA'] as const).map((status) => <li key={status}><i className="legend-red" /><span>{statusLabels[status]}</span><strong>{counts.get(status) ?? 0}</strong></li>)}</ul><button className="text-link panel-link" onClick={openOrders} type="button">Ver OT <ChevronRight size={15} /></button></article>
-      <article className="panel recent-orders-panel"><div className="panel-heading"><h2>OT recientes</h2><span className="source-badge">Datos reales</span></div><OrderList orders={orders} open={openDetail} empty="No hay órdenes visibles." limit={5} /></article>
-      <article className="panel workload-panel"><div className="panel-heading"><h2>Carga por técnico</h2></div><div className="workload-list">{technicians.map(({ name, rows }) => <div className="workload-row" key={name}><span className="avatar avatar-mini">{initials(name)}</span><strong>{name}</strong><b>{rows.length} OT</b><small>{rows.filter((order) => order.status === 'EN_CURSO').length} en curso · {rows.filter((order) => order.status === 'BLOQUEADA').length} bloqueadas</small></div>)}</div></article>
-    </section>
-    <section className="panel calendar-panel"><div className="panel-heading"><h2>Próximas OT</h2></div><OrderList orders={planned} open={openDetail} empty="No hay fechas previstas." /></section>
-  </>;
-}
-
 function OrdersPage({ orders, open, create, canCreate, viewerRole }: { orders: WorkOrderListItem[]; open: (id: string) => void; create: () => void; canCreate: boolean; viewerRole: string }) {
   const [search, setSearch] = useState('');
   const filtered = useMemo(() => {
@@ -557,7 +538,7 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   else if (view === 'technicians') content = canAccessTechnicians ? <TechniciansWorkspace tenantId={tenantId} canManageInvitations={canManageTechnicians} onCreateWorkOrder={(technician) => openCreate({ technicianId: technician.userId, title: `Nueva intervención para ${technician.name}` })} /> : <section className="panel data-state error-state"><LockKeyhole size={28} /><strong>Acceso no disponible</strong><p>Tu rol no tiene acceso a la administración técnica.</p></section>;
   else if (view === 'technician') content = <TechnicianMobileWorkspace orders={orders} viewerId={viewerId} viewerName={viewerName} open={openDetail} busyOrderId={busyOrderId} notice={notice?.orderId ? { kind: notice.kind, text: notice.text } : null} runAction={(action, order) => runLifecycleAction(action, order)} />;
   else if (['assets', 'reports', 'audit'].includes(view)) content = <ModulePage view={view} orders={orders} catalog={catalogQuery.data} auditEvents={auditQuery.data ?? []} auditLoading={auditQuery.isLoading} auditError={auditQuery.error instanceof Error ? auditQuery.error.message : null} openDetail={openDetail} create={openCreate} canCreate={canManage} />;
-  else content = <Dashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
+  else content = <PremiumDashboard orders={orders} viewerName={viewerName} openOrders={() => setView('orders')} openDetail={openDetail} />;
 
   return <div className="app-shell">
     <Sidebar active={view} open={menuOpen} tenantName={tenantName} viewerRole={viewerRole} canAccessClients={canAccessClients} navigate={(next) => { if (isTechnicianRole(viewerRole) && next !== 'technician') return; if (next === 'clients' && !canAccessClients) return; if (next === 'technicians' && !canAccessTechnicians) return; setCreatePreset(undefined); setView(next); }} close={() => setMenuOpen(false)} logout={onLogout} />
