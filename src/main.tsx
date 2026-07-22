@@ -19,6 +19,7 @@ import './styles/premium-dashboard.css';
 import './styles/work-order-execution.css';
 import './styles/checklist-templates.css';
 import './styles/installation-gallery.css';
+import './styles/location-map.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
