@@ -53,6 +53,7 @@ values
   ('public.reschedule_scheduled_maintenance(uuid,date,date,text)', true),
   ('public.resume_work_order(uuid)', true),
   ('public.review_work_order(uuid,text,text)', true),
+  ('public.save_work_order_checklist_response(uuid,text,text)', true),
   ('public.scheduled_maintenance_status_for_date(date,integer)', false),
   ('public.set_updated_at()', false),
   ('public.skip_scheduled_maintenance(uuid,text)', true),
@@ -61,8 +62,8 @@ values
 
 select is(
   (select count(*)::integer from acl_expected),
-  44,
-  '1. la matriz ACL enumera las 44 funciones públicas de aplicación'
+  45,
+  '1. la matriz ACL enumera las 45 funciones públicas de aplicación'
 );
 
 select is(

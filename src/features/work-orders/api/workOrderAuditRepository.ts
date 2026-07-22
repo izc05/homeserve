@@ -107,6 +107,7 @@ export function humanAuditAction(action: string): string {
     create_work_order: 'OT creada',
     update_work_order: 'OT actualizada',
     ensure_work_order_default_checklist: 'Checklist preparado',
+    save_work_order_checklist_response: 'Checklist actualizado',
     register_work_order_report: 'Informe registrado',
   };
 
@@ -124,6 +125,7 @@ export function workOrderAuditDetail(event: WorkOrderAuditEvent): string {
     meta.reason ? String(meta.reason) : null,
     meta.filename ? String(meta.filename) : null,
     meta.created_items ? `${String(meta.created_items)} puntos creados` : null,
+    meta.plantilla_item_id ? `Punto: ${String(meta.plantilla_item_id)}` : null,
     meta.decision ? String(meta.decision) : null,
   ].filter(Boolean);
 
