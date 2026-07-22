@@ -108,6 +108,7 @@ export function humanAuditAction(action: string): string {
     update_work_order: 'OT actualizada',
     ensure_work_order_default_checklist: 'Checklist preparado',
     save_work_order_checklist_response: 'Checklist actualizado',
+    add_ot_fotos: 'Fotografía añadida',
     register_work_order_report: 'Informe registrado',
   };
 

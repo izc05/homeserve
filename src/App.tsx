@@ -46,6 +46,7 @@ import { createTechnicianActionGuard } from './features/technicians/technicianMo
 import WorkOrderAssignmentPanel from './features/technicians/components/WorkOrderAssignmentPanel';
 import PremiumWorkOrderDetail from './features/work-orders/components/PremiumWorkOrderDetail';
 import WorkOrderChecklistPanel from './features/work-orders/components/WorkOrderChecklistPanel';
+import WorkOrderPhotosPanel from './features/work-orders/components/WorkOrderPhotosPanel';
 import { canAccessTechnicianAdministration, canManageTechnicianInvitations, isTechnicianRole } from './features/technicians/technicianAccess';
 import { friendlyTechnicianError } from './features/technicians/api/technicianRepository';
 import { assignWorkOrder } from './features/work-orders/api/workOrderAssignment';
@@ -380,6 +381,7 @@ function TechnicianDetail({ order, catalog, auditEvents, back, create, canCreate
     <article className="panel source-panel"><div className="panel-heading"><h2><Clock3 size={21} /> Historial de cambios</h2><span className="source-badge">{orderAudit.length}</span></div>{orderAudit.length === 0 ? <p className="empty-state">No hay eventos visibles para esta OT.</p> : <div className="client-order-list">{orderAudit.map((event) => <div key={event.id}><span><strong>{humanAuditAction(event.action)}</strong><small>{workOrderAuditDetail(event)} · {event.actorName ?? 'Sistema'}</small></span><b>{displayDate(event.createdAt)}</b></div>)}</div>}</article>
     <article className="panel source-panel"><div className="panel-heading"><h2><Wrench size={21} /> Acciones técnicas</h2><span className="source-badge">Solo técnico asignado</span></div><LifecycleActions order={order} viewerId={viewerId} busy={busyOrderId === order.id} run={runAction} /><NoticeLine notice={notice} orderId={order.id} /></article>
     <WorkOrderChecklistPanel workOrderId={order.id} canEdit={order.status === 'EN_CURSO' && isAssignedTechnician(order, viewerId)} />
+    <WorkOrderPhotosPanel tenantId={order.tenantId} workOrderId={order.id} canEdit={order.status === 'EN_CURSO' && isAssignedTechnician(order, viewerId)} />
     <article className="panel source-panel"><div className="panel-heading"><h2><FileCheck2 size={21} /> Firma e informe</h2><span className="source-badge">Versión actual</span></div><p className="read-only-note"><LockKeyhole size={16} /> No disponible en esta versión de la ejecución técnica. No bloquea esta demo cuando la configuración real no lo exige.</p></article>
     <article className="panel source-panel"><div className="panel-heading"><h2><ShieldCheck size={21} /> Revisión administrativa</h2><span className="source-badge">Validación</span></div><ReviewActions order={order} canReview={isManagerRole(viewerRole)} busy={busyOrderId === order.id} run={runReview} /></article>
     <article className="panel source-panel"><div className="panel-heading"><h2><AlertTriangle size={21} /> Zona responsable</h2><span className="source-badge">Anulación segura</span></div><CancelAction order={order} canCancel={isManagerRole(viewerRole) && canCancelWorkOrder(order.status)} busy={busyOrderId === order.id} run={runCancel} /></article>
