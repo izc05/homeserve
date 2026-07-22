@@ -13,3 +13,9 @@ export function workOrderDirectionsUrl(input: WorkOrderDirectionsInput): string 
   if (!destination) return null;
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 }
+
+export function workOrderEmbedMapUrl(input: WorkOrderDirectionsInput): string | null {
+  const address = input.address?.trim();
+  if (!address) return null;
+  return `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
+}

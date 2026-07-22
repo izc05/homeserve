@@ -142,11 +142,12 @@ describe('ficha administrativa premium de OT', () => {
     renderDetail({ siteAddress: 'Calle Demostración 1, 28000 Madrid' });
     fireEvent.click(screen.getByRole('tab', { name: /Instalación/ }));
 
-    expect(screen.getByText('Calle Demostración 1, 28000 Madrid')).toBeTruthy();
+    expect(screen.getAllByText('Calle Demostración 1, 28000 Madrid').length).toBeGreaterThan(1);
     const directions = screen.getByRole('link', { name: /Abrir indicaciones/ });
     expect(directions.getAttribute('href')).toContain('google.com/maps/dir/');
     expect(directions.getAttribute('target')).toBe('_blank');
     expect(directions.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(screen.getByTitle('Mapa de Cubierta E2E')).toBeTruthy();
   });
 
   it('sitúa las evidencias reales y la revisión en sus pestañas correspondientes', () => {
