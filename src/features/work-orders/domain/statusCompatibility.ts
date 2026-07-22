@@ -50,6 +50,21 @@ function isCanonicalWorkOrderStatus(value: string): value is WorkOrderStatus {
   return (WORK_ORDER_STATUSES as readonly string[]).includes(value);
 }
 
+export const WORK_ORDER_STATUS_LABELS: Record<WorkOrderStatus, string> = {
+  BORRADOR: 'Borrador',
+  ASIGNADA: 'Asignada',
+  ACEPTADA: 'Aceptada',
+  EN_CURSO: 'En curso',
+  BLOQUEADA: 'Bloqueada',
+  FINALIZADA_TECNICO: 'Pendiente validación',
+  VALIDADA: 'Validada',
+  CANCELADA: 'Cancelada',
+};
+
+export function workOrderStatusLabel(status: WorkOrderStatus): string {
+  return WORK_ORDER_STATUS_LABELS[status];
+}
+
 export function normalizeWorkOrderStatus(value: string): WorkOrderStatus {
   if (isCanonicalWorkOrderStatus(value)) return value;
 

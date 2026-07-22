@@ -11,6 +11,7 @@ import {
   filterClients,
   filterInstallationsByClient,
   hasNoInstallations,
+  mapWorkOrderRow,
   mapClientRow,
   setClientStatus,
   toClientPayload,
@@ -73,6 +74,19 @@ describe('gestión de clientes e instalaciones', () => {
     };
 
     expect(mapClientRow(row)).toMatchObject({ cifNif: 'B12345678', contactName: 'Marina López', status: 'activo' });
+  });
+
+  it('normaliza los estados de OT de la ficha de cliente sin exponer el valor interno', () => {
+    const row: Parameters<typeof mapWorkOrderRow>[0] = {
+      id: '77777777-7777-4777-8777-777777777777',
+      cliente_id: clientId,
+      codigo_ot: 'OT-2026-00003',
+      titulo: 'Revisión demo',
+      estado: 'FINALIZADA_TECNICO',
+      updated_at: '2026-07-22T08:00:00.000Z',
+    };
+
+    expect(mapWorkOrderRow(row).status).toBe('FINALIZADA_TECNICO');
   });
 
   it('crea un payload con textos normalizados', () => {

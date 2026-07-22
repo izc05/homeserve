@@ -1,3 +1,5 @@
+import type { WorkOrderStatus } from '../../work-orders/types/workOrder';
+
 export type EntityStatus = 'activo' | 'inactivo';
 
 export type ClientRecord = {
@@ -42,7 +44,7 @@ export type ClientWorkOrderSummary = {
   id: string;
   code: string;
   title: string;
-  status: string;
+  status: WorkOrderStatus;
   updatedAt: string;
 };
 

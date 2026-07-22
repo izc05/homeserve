@@ -105,7 +105,7 @@ export default function WorkOrderPhotosPanel({ tenantId, workOrderId, canEdit, c
     }
   };
 
-  const photos = query.data ?? [];
+  const photos = (query.data ?? []).filter((photo) => !photo.checklistResponseId);
 
   return <section className="execution-card photo-panel" aria-labelledby={`photo-title-${workOrderId}`}>
     <div className="execution-card-heading">

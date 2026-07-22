@@ -71,7 +71,7 @@ const auditEvents: WorkOrderAuditEvent[] = [
   },
 ];
 
-function renderDetail(overrides: Partial<WorkOrderListItem> = {}, operationalPanels?: { evidence?: ReactNode; review?: ReactNode }) {
+function renderDetail(overrides: Partial<WorkOrderListItem> = {}, operationalPanels?: { evidence?: ReactNode; checklistEvidence?: ReactNode; installationGallery?: ReactNode; review?: ReactNode }) {
   return render(<PremiumWorkOrderDetail
     order={{ ...order, ...overrides }}
     auditEvents={auditEvents}
@@ -152,12 +152,21 @@ describe('ficha administrativa premium de OT', () => {
   it('sitúa las evidencias reales y la revisión en sus pestañas correspondientes', () => {
     renderDetail({}, {
       evidence: <section aria-label="Evidencias reales">Resumen técnico, checklist y fotografías privadas</section>,
+      checklistEvidence: <section aria-label="Fotografías del checklist reales">Puntos del checklist</section>,
+      installationGallery: <section aria-label="Galería de instalación real">Fotos de instalación</section>,
       review: <form aria-label="Revisión administrativa"><textarea aria-label="Nota de revisión" /></form>,
     });
 
     fireEvent.click(screen.getByRole('tab', { name: /Evidencias/ }));
+    expect(screen.getByRole('heading', { name: 'Evidencias de la OT' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Fotografías del checklist' })).toBeTruthy();
     expect(screen.getByLabelText('Evidencias reales')).toBeTruthy();
+    expect(screen.getByLabelText('Fotografías del checklist reales')).toBeTruthy();
     expect(screen.queryByLabelText('Revisión administrativa')).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Instalación/ }));
+    expect(screen.getByRole('heading', { name: 'Galería de la instalación' })).toBeTruthy();
+    expect(screen.getByLabelText('Galería de instalación real')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('tab', { name: /Administración/ }));
     expect(screen.getByLabelText('Revisión administrativa')).toBeTruthy();

@@ -11,6 +11,7 @@ import type {
   UpdateClientInput,
   UpdateInstallationInput,
 } from '../types/client';
+import { normalizeWorkOrderStatus } from '../../work-orders/domain/statusCompatibility';
 
 type ClientRow = {
   id: string;
@@ -106,12 +107,12 @@ export function mapInstallationRow(row: InstallationRow): ClientInstallation {
   };
 }
 
-function mapWorkOrderRow(row: WorkOrderRow): ClientWorkOrderSummary {
+export function mapWorkOrderRow(row: WorkOrderRow): ClientWorkOrderSummary {
   return {
     id: String(row.id),
     code: String(row.codigo_ot),
     title: String(row.titulo),
-    status: String(row.estado),
+    status: normalizeWorkOrderStatus(String(row.estado)),
     updatedAt: String(row.updated_at),
   };
 }

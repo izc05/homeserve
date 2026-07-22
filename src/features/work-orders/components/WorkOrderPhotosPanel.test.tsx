@@ -70,6 +70,14 @@ describe('WorkOrderPhotosPanel', () => {
     await waitFor(() => expect(mocks.deleteWorkOrderPhoto).toHaveBeenCalledWith(expect.anything(), photo));
   });
 
+  it('separa las fotografías vinculadas al checklist del bloque de evidencias OT', async () => {
+    mocks.listWorkOrderPhotos.mockResolvedValue([{ ...photo, checklistResponseId: 'response-a', categoryLabel: 'checklist' }]);
+    renderPanel(false);
+
+    expect(await screen.findByText('Sin fotografías')).toBeTruthy();
+    expect(screen.queryByAltText('Checklist · photo.jpg')).toBeNull();
+  });
+
   it('oculta subida y eliminación en modo consulta', async () => {
     mocks.listWorkOrderPhotos.mockResolvedValue([photo]);
     renderPanel(false);

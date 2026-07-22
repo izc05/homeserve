@@ -21,6 +21,7 @@ import InstallationForm from '../components/InstallationForm';
 import InstallationPhotoGallery from '../components/InstallationPhotoGallery';
 import type { ClientFormValues, InstallationFormValues } from '../schemas/clientSchemas';
 import type { ClientInstallation, ClientRecord, EntityStatus } from '../types/client';
+import { workOrderStatusLabel } from '../../work-orders/domain/statusCompatibility';
 
 type ClientEditor = 'create' | 'edit' | null;
 type InstallationEditor = 'create' | string | null;
@@ -194,8 +195,8 @@ export default function ClientsWorkspace({ tenantId, canManage, onCreateWorkOrde
         </section>
 
         <div className="client-detail-grid">
-          <section className="panel"><div className="panel-heading"><h2>OT abiertas</h2><span className="source-badge">{detail.openWorkOrders.length}</span></div>{detail.openWorkOrders.length === 0 ? <p className="empty-state">No hay OT abiertas para este cliente.</p> : <div className="client-order-list">{detail.openWorkOrders.map((order) => <div key={order.id}><span><strong>{order.code}</strong><small>{order.title}</small></span><b>{order.status}</b></div>)}</div>}</section>
-          <section className="panel"><div className="panel-heading"><h2>Últimas OT</h2></div>{detail.recentWorkOrders.length === 0 ? <p className="empty-state">Sin OT registradas todavía.</p> : <div className="client-order-list">{detail.recentWorkOrders.slice(0, 5).map((order) => <div key={order.id}><span><strong>{order.code}</strong><small>{order.title}</small></span><b>{order.status}</b></div>)}</div>}</section>
+          <section className="panel"><div className="panel-heading"><h2>OT abiertas</h2><span className="source-badge">{detail.openWorkOrders.length}</span></div>{detail.openWorkOrders.length === 0 ? <p className="empty-state">No hay OT abiertas para este cliente.</p> : <div className="client-order-list">{detail.openWorkOrders.map((order) => <div key={order.id}><span><strong>{order.code}</strong><small>{order.title}</small></span><b>{workOrderStatusLabel(order.status)}</b></div>)}</div>}</section>
+          <section className="panel"><div className="panel-heading"><h2>Últimas OT</h2></div>{detail.recentWorkOrders.length === 0 ? <p className="empty-state">Sin OT registradas todavía.</p> : <div className="client-order-list">{detail.recentWorkOrders.slice(0, 5).map((order) => <div key={order.id}><span><strong>{order.code}</strong><small>{order.title}</small></span><b>{workOrderStatusLabel(order.status)}</b></div>)}</div>}</section>
         </div>
       </section>
     );
