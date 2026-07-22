@@ -114,7 +114,12 @@ export async function uploadInstallationPhoto(supabase: SupabaseClient, input: {
   input.onProgress?.(10);
   const path = createInstallationPhotoPath(input.tenantId, input.installationId, input.file);
   const storage = supabase.storage.from(INSTALLATION_PHOTO_BUCKET);
-  const { error: uploadError } = await storage.upload(path, input.file, { contentType: input.file.type, cacheControl: '3600', upsert: false });
+  const { error: uploadError } = await storage.upload(path, input.file, {
+    contentType: input.file.type,
+    cacheControl: '3600',
+    upsert: false,
+    metadata: { size: input.file.size },
+  });
   if (uploadError) throw uploadError;
   input.onProgress?.(70);
   const { data, error } = await supabase.rpc('register_installation_photo', {
