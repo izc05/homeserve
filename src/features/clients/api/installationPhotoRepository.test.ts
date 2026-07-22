@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { INSTALLATION_PHOTO_MAX_BYTES, listInstallationPhotos, validateInstallationPhotoFile } from './installationPhotoRepository';
+import { INSTALLATION_PHOTO_MAX_BYTES, listInstallationPhotos, uploadInstallationPhoto, validateInstallationPhotoFile } from './installationPhotoRepository';
 
 function queryClient(rows: unknown[]) {
   const orderSecond = vi.fn().mockResolvedValue({ data: rows, error: null });
@@ -36,5 +36,38 @@ describe('installationPhotoRepository', () => {
     const { client, createSignedUrls } = queryClient([]);
     await expect(listInstallationPhotos(client, 'install-a')).resolves.toEqual([]);
     expect(createSignedUrls).not.toHaveBeenCalled();
+  });
+
+  it('incluye el tamaño en metadata para satisfacer la política RLS de Storage', async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const rpc = vi.fn().mockResolvedValue({
+      data: {
+        id: 'photo-a', tenant_id: 'tenant-a', instalacion_id: 'install-a', bucket: 'installation-photos',
+        path: 'tenant-a/install-a/foto/photo.png', filename: 'photo.png', mime_type: 'image/png', size_bytes: 2048,
+        titulo: 'Fachada', descripcion: null, categoria: 'acceso', es_principal: true, estado: 'activo',
+        created_by: 'admin-a', created_at: '2026-07-22T08:00:00Z',
+      },
+      error: null,
+    });
+    const client = {
+      storage: { from: vi.fn().mockReturnValue({ upload }) },
+      rpc,
+    } as unknown as SupabaseClient;
+    const file = new File([new Uint8Array(2048)], 'photo.png', { type: 'image/png' });
+
+    await uploadInstallationPhoto(client, {
+      tenantId: 'tenant-a',
+      installationId: 'install-a',
+      file,
+      category: 'acceso',
+      main: true,
+    });
+
+    expect(upload).toHaveBeenCalledWith(expect.any(String), file, expect.objectContaining({
+      contentType: 'image/png',
+      upsert: false,
+      metadata: { size: 2048 },
+    }));
+    expect(rpc).toHaveBeenCalledWith('register_installation_photo', expect.objectContaining({ size_bytes_value: 2048 }));
   });
 });
