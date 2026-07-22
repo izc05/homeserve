@@ -70,9 +70,9 @@ const auditEvents: WorkOrderAuditEvent[] = [
   },
 ];
 
-function renderDetail() {
+function renderDetail(overrides: Partial<WorkOrderListItem> = {}) {
   return render(<PremiumWorkOrderDetail
-    order={order}
+    order={{ ...order, ...overrides }}
     auditEvents={auditEvents}
     back={vi.fn()}
     onNewRelated={vi.fn()}
@@ -134,5 +134,16 @@ describe('ficha administrativa premium de OT', () => {
     expect(screen.getByText('Contacto no disponible en los datos visibles')).toBeTruthy();
     expect(screen.queryByText(/600/)).toBeNull();
     expect(screen.queryByText(/@/)).toBeNull();
+  });
+
+  it('muestra la dirección real y un enlace externo seguro en Instalación', () => {
+    renderDetail({ siteAddress: 'Calle Demostración 1, 28000 Madrid' });
+    fireEvent.click(screen.getByRole('tab', { name: /Instalación/ }));
+
+    expect(screen.getByText('Calle Demostración 1, 28000 Madrid')).toBeTruthy();
+    const directions = screen.getByRole('link', { name: /Abrir indicaciones/ });
+    expect(directions.getAttribute('href')).toContain('google.com/maps/dir/');
+    expect(directions.getAttribute('target')).toBe('_blank');
+    expect(directions.getAttribute('rel')).toBe('noopener noreferrer');
   });
 });

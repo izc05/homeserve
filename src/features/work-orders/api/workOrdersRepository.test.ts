@@ -44,9 +44,9 @@ function createFakeClient() {
   orderChain.is.mockReturnValue(orderChain);
   orderChain.order.mockReturnValue(orderChain);
 
-  const namedRows: Record<string, Array<{ id: string; nombre: string }>> = {
+  const namedRows: Record<string, Array<Record<string, string | null>>> = {
     clientes: [{ id: orderRow.cliente_id, nombre: 'Servicio Andaluz de Salud' }],
-    instalaciones: [{ id: orderRow.instalacion_id, nombre: 'Hospital Universitario' }],
+    instalaciones: [{ id: orderRow.instalacion_id, nombre: 'Hospital Universitario', direccion: 'Avenida de la Salud 10, Madrid', contacto_nombre: 'Responsable de guardia', contacto_telefono: null, contacto_email: null }],
     ubicaciones: [{ id: orderRow.ubicacion_id, nombre: 'Sala técnica' }],
     profiles: [{ id: orderRow.assigned_to, nombre: 'María López' }],
   };
@@ -84,6 +84,8 @@ describe('work-orders repository', () => {
       code: 'OT-2026-00001',
       clientName: 'Servicio Andaluz de Salud',
       siteName: 'Hospital Universitario',
+      siteAddress: 'Avenida de la Salud 10, Madrid',
+      siteContactName: 'Responsable de guardia',
       locationName: 'Sala técnica',
       assignedToName: 'María López',
       status: 'ASIGNADA',

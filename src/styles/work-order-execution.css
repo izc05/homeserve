@@ -109,6 +109,8 @@
 .danger-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; border: 1px solid #b51a25; border-radius: 8px; background: #b51a25; color: #fff; font: inherit; font-size: 13px; font-weight: 850; cursor: pointer; }
 .danger-button:focus-visible { outline: 3px solid rgba(181, 26, 37, .3); outline-offset: 2px; }
 .danger-button:disabled { cursor: not-allowed; opacity: .65; }
+.technician-detail-directions { min-height: 44px; width: fit-content; display: flex; align-items: center; gap: 6px; margin-top: 5px; color: var(--brand); font-size: 13px; font-weight: 850; text-decoration: underline; text-underline-offset: 3px; }
+.technician-detail-directions:focus-visible { outline: 3px solid rgba(227, 6, 19, .24); outline-offset: 2px; border-radius: 4px; }
 
 @media (max-width: 760px) {
   .execution-card { padding: 13px 12px; border-radius: 10px; }
