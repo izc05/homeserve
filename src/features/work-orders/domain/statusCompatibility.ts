@@ -1,4 +1,4 @@
-import type { WorkOrderBlockReason, WorkOrderStatus } from '../types/workOrder';
+import { WORK_ORDER_STATUSES, type WorkOrderBlockReason, type WorkOrderStatus } from '../types/workOrder';
 
 export const LEGACY_WORK_ORDER_STATUSES = [
   'BORRADOR',
@@ -46,7 +46,13 @@ export function isLegacyWorkOrderStatus(value: string): value is LegacyWorkOrder
   return (LEGACY_WORK_ORDER_STATUSES as readonly string[]).includes(value);
 }
 
+function isCanonicalWorkOrderStatus(value: string): value is WorkOrderStatus {
+  return (WORK_ORDER_STATUSES as readonly string[]).includes(value);
+}
+
 export function normalizeWorkOrderStatus(value: string): WorkOrderStatus {
+  if (isCanonicalWorkOrderStatus(value)) return value;
+
   if (!isLegacyWorkOrderStatus(value)) {
     throw new Error(`Estado de OT heredado no reconocido: ${value}`);
   }
@@ -55,6 +61,8 @@ export function normalizeWorkOrderStatus(value: string): WorkOrderStatus {
 }
 
 export function inferBlockReasonFromLegacyStatus(value: string): WorkOrderBlockReason | null {
+  if (isCanonicalWorkOrderStatus(value)) return null;
+
   if (!isLegacyWorkOrderStatus(value)) {
     throw new Error(`Estado de OT heredado no reconocido: ${value}`);
   }
