@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  base: '/homeserve/',
+  base: '/isivoltpro-ot/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -15,6 +15,7 @@ export default defineConfig({
       input: {
         app: fileURLToPath(new URL('./index.html', import.meta.url)),
         demo: fileURLToPath(new URL('./demo.html', import.meta.url)),
+        ecosystem: fileURLToPath(new URL('./ecosystem.html', import.meta.url)),
       },
     },
   },
