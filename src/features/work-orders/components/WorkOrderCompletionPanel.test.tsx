@@ -38,6 +38,10 @@ vi.mock('./TechnicianSignaturePanel', () => ({
   default: () => <div data-testid="technician-signature-panel" />,
 }));
 
+vi.mock('./WorkOrderReportsPanel', () => ({
+  default: () => <div data-testid="work-order-reports-panel" />,
+}));
+
 const order: WorkOrderListItem = {
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   tenantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -163,6 +167,7 @@ describe('finalización guiada de OT', () => {
     });
     const first = render(<WorkOrderVisitSummaryPanel workOrderId={order.id} displayDate={(value) => value || 'Sin fecha'} client={{} as never} />, { wrapper: wrapper() });
     expect(await screen.findByText('Ajuste y prueba realizados')).toBeTruthy();
+    expect(screen.getByTestId('work-order-reports-panel')).toBeTruthy();
     first.unmount();
 
     mocks.loadSupport.mockResolvedValueOnce({ technicianSignatures: 0, responsibleSignatures: 0, reports: 0, latestVisit: null });
@@ -170,13 +175,14 @@ describe('finalización guiada de OT', () => {
     expect(await screen.findByText('Sin resumen técnico')).toBeTruthy();
   });
 
-  it('presenta la firma disponible y el informe pendiente de implementación', async () => {
+  it('presenta firma e informe como funciones disponibles', async () => {
     render(<WorkOrderCompletionPanel order={{ ...order, requirements: { ...order.requirements, technicianSignature: true, report: true } }} canComplete client={{} as never} />, { wrapper: wrapper() });
     await screen.findByText('1 de 1 puntos completados');
 
     expect(screen.getByTestId('technician-signature-panel')).toBeTruthy();
-    expect(await screen.findAllByText('No se puede registrar desde esta versión.')).toHaveLength(1);
+    expect(screen.getByTestId('work-order-reports-panel')).toBeTruthy();
+    expect(screen.queryByText('No se puede registrar desde esta versión.')).toBeNull();
     expect(screen.getByText('Firma del técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente de firma');
-    expect(screen.getByText('Informe técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente');
+    expect(screen.getByText('Informe técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente de generación');
   });
 });
