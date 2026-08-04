@@ -198,8 +198,8 @@ export function evaluateCompletionRequirements(
       label: 'Firma del técnico',
       required: requirements.technicianSignature,
       complete: support.technicianSignatures > 0,
-      available: support.technicianSignatures > 0,
-      detail: support.technicianSignatures > 0 ? 'Registrada' : 'No disponible en esta versión',
+      available: true,
+      detail: support.technicianSignatures > 0 ? 'Registrada' : 'Pendiente de firma',
     },
     {
       id: 'responsible-signature',
