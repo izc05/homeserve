@@ -97,6 +97,8 @@ describe('repositorio de informes PDF', () => {
       rpc: vi.fn().mockResolvedValue({
         data: {
           work_order_status: 'FINALIZADA_TECNICO',
+          report_required: true,
+          provisional_report_exists: false,
           can_generate_provisional: true,
           can_generate_final: false,
           final_report_exists: false,
@@ -107,6 +109,8 @@ describe('repositorio de informes PDF', () => {
 
     await expect(loadWorkOrderReportCapabilities(client, 'order-1')).resolves.toEqual({
       workOrderStatus: 'FINALIZADA_TECNICO',
+      reportRequired: true,
+      provisionalReportExists: false,
       canGenerateProvisional: true,
       canGenerateFinal: false,
       finalReportExists: false,
