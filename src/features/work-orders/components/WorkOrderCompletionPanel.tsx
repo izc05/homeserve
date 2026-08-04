@@ -21,6 +21,7 @@ import {
   safeCompletionError,
   type WorkOrderCompletionSupport,
 } from '../api/workOrderCompletionRepository';
+import TechnicianSignaturePanel from './TechnicianSignaturePanel';
 
 export type WorkOrderCompletionPanelProps = {
   order: WorkOrderListItem;
@@ -103,6 +104,14 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
     </div>
 
     {!isActive && <p className="read-only-note"><LockKeyhole size={16} /> La finalización solo está disponible para el técnico asignado mientras la OT está en curso.</p>}
+
+    <TechnicianSignaturePanel
+      tenantId={order.tenantId}
+      workOrderId={order.id}
+      signerName={order.assignedToName ?? 'Técnico asignado'}
+      canEdit={isActive}
+      client={supabase}
+    />
 
     <div className="completion-requirements" aria-label="Requisitos de finalización">
       {requirementItems.map((item) => {
