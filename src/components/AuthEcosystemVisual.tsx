@@ -8,8 +8,8 @@ import {
   Snowflake,
   type LucideProps,
 } from 'lucide-react';
+import { ROTATION_INTERVAL_MS } from './authEcosystemConfig';
 
-const ROTATION_INTERVAL_MS = 7_000;
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 const sceneBackgrounds = [
@@ -177,5 +177,3 @@ export default function AuthEcosystemVisual() {
     </section>
   );
 }
-
-export { ROTATION_INTERVAL_MS, scenes };
