@@ -44,6 +44,16 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Validate mini PC deployment
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+        run: |
+          bash -n scripts/mini-pc.sh
+          docker compose config --quiet
+          grep -q '127.0.0.1:8088:80' docker-compose.yml
+          grep -q 'demo-homeserve.isivoltpro.es' deploy/cloudflared-config.yml.example
+
       - name: Build production container
         run: |
           docker build \
