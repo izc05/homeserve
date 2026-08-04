@@ -109,7 +109,7 @@ describe('evaluación de requisitos de finalización', () => {
     expect(result.find((item) => item.id === 'report')?.detail).toBe('No disponible en esta versión');
   });
 
-  it('marca como pendientes las funciones P2 configuradas que no tienen soporte registrado', () => {
+  it('distingue la firma disponible de los requisitos todavía no implementados', () => {
     const p2Requirements = {
       ...requirements,
       checklist: false,
@@ -131,6 +131,8 @@ describe('evaluación de requisitos de finalización', () => {
       'responsible-signature',
       'report',
     ]);
-    expect(pending.every((item) => !item.available)).toBe(true);
+    expect(pending.find((item) => item.id === 'technician-signature')?.available).toBe(true);
+    expect(pending.find((item) => item.id === 'technician-signature')?.detail).toBe('Pendiente de firma');
+    expect(pending.filter((item) => item.id !== 'technician-signature').every((item) => !item.available)).toBe(true);
   });
 });
