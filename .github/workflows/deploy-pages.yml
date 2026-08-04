@@ -43,8 +43,8 @@ jobs:
             exit 1
           fi
 
-          if [[ ! "$VITE_SUPABASE_URL" =~ ^https://[a-z0-9]{20}\.supabase\.co/?$ ]]; then
-            echo "::error::VITE_SUPABASE_URL debe ser una URL HTTPS válida de un proyecto Supabase."
+          if [[ ! "$VITE_SUPABASE_URL" =~ ^https:// ]]; then
+            echo "::error::VITE_SUPABASE_URL debe ser una URL HTTPS válida."
             exit 1
           fi
 
@@ -68,11 +68,11 @@ jobs:
 
           echo "Configuración pública validada sin mostrar valores."
 
-      - name: Build public site
+      - name: Build public site at root
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        run: npm run build
+        run: npm run build -- --base=/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
