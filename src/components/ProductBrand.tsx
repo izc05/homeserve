@@ -1,44 +1,28 @@
-import { useState } from 'react';
-
-export const DEMO_FOOTER_TEXT = 'Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro';
+export const DEMO_FOOTER_TEXT = 'IsiVoltPro OT · Parte del ecosistema IsiVoltPro';
 
 type ProductBrandProps = {
   className?: string;
   variant?: 'auth' | 'navigation' | 'compact' | 'inverse';
 };
 
-const logoSource = `${import.meta.env.BASE_URL}brand/homeserve-logo-red.png`;
-
 export default function ProductBrand({ className = '', variant = 'navigation' }: ProductBrandProps) {
-  const [logoFailed, setLogoFailed] = useState(false);
-
   return (
     <div
-      aria-label="HomeServe Operaciones · Gestión de órdenes de trabajo · Demostración"
+      aria-label="IsiVoltPro OT · Gestión profesional de órdenes de trabajo"
       className={`product-brand product-brand--${variant} ${className}`.trim()}
       role="group"
     >
-      <span className="product-brand-logo-frame">
-        {logoFailed ? (
-          <span aria-label="HomeServe" className="product-brand-logo-fallback" role="img">HomeServe</span>
-        ) : (
-          <img
-            alt="HomeServe"
-            decoding="async"
-            height="58"
-            onError={() => setLogoFailed(true)}
-            src={logoSource}
-            width="198"
-          />
-        )}
+      <span className="product-brand-logo-frame" aria-hidden="true">
+        <span className="product-brand-symbol"><span>⚡</span></span>
+        <span className="product-brand-wordmark">ISI<span>VOLT</span>PRO</span>
       </span>
       <span className="product-brand-copy">
         <span className="product-brand-title-row">
-          <strong>HomeServe Operaciones</strong>
-          <span className="product-brand-demo">Demostración</span>
+          <strong>IsiVoltPro OT</strong>
+          <span className="product-brand-demo">Operaciones</span>
         </span>
         <span className="product-brand-descriptor">Gestión de órdenes de trabajo</span>
-        <small>Desarrollado por IsiVoltPro</small>
+        <small>Una aplicación del ecosistema IsiVoltPro</small>
       </span>
     </div>
   );
