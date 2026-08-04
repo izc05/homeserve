@@ -1,0 +1,119 @@
+name: Apply tenant branding patch
+
+on:
+  push:
+    branches: [feat/isivoltpro-ot-ecosystem]
+    paths: [.github/workflows/apply-branding-patch.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/isivoltpro-ot-ecosystem
+          fetch-depth: 0
+
+      - name: Apply branding changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          auth_path = Path('src/AuthApp.tsx')
+          auth = auth_path.read_text()
+          auth = auth.replace(
+              "import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';",
+              "import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';\nimport { resetProductBrandFromRuntime, setActiveProductBrand, useProductBrand, type ProductBrandKey } from './config/productBrand';",
+          )
+          auth = auth.replace(
+              "  status: string;\n};\n\ntype Identity",
+              "  status: string;\n  brandKey: ProductBrandKey;\n};\n\ntype Identity",
+              1,
+          )
+          auth = auth.replace(
+              "  const tenantNames = new Map<string, string>();",
+              "  const tenantData = new Map<string, { name: string; brandKey: ProductBrandKey }>();",
+          )
+          auth = auth.replace(
+              ".from('tenants').select('id,nombre').in('id', tenantIds);",
+              ".from('tenants').select('id,nombre,branding_key').in('id', tenantIds);",
+          )
+          auth = auth.replace(
+              "for (const tenant of tenants ?? []) tenantNames.set(String(tenant.id), String(tenant.nombre));",
+              "for (const tenant of tenants ?? []) tenantData.set(String(tenant.id), {\n      name: String(tenant.nombre),\n      brandKey: tenant.branding_key === 'homeserve-demo' ? 'homeserve-demo' : 'isivoltpro',\n    });",
+          )
+          auth = auth.replace(
+              "tenantName: tenantNames.get(String(row.tenant_id)) ?? 'Organización',\n      role:",
+              "tenantName: tenantData.get(String(row.tenant_id))?.name ?? 'Organización',\n      brandKey: tenantData.get(String(row.tenant_id))?.brandKey ?? 'isivoltpro',\n      role:",
+          )
+          auth = auth.replace(
+              "function LoadingScreen() {\n  return <main className=\"auth-loading\"><ProductBrand variant=\"auth\" /><span className=\"auth-loading-status\"><LoaderCircle className=\"spin\" size={34} /><strong>Cargando HomeServe Operaciones</strong></span></main>;\n}",
+              "function LoadingScreen() {\n  const brand = useProductBrand();\n  return <main className=\"auth-loading\"><ProductBrand variant=\"auth\" /><span className=\"auth-loading-status\"><LoaderCircle className=\"spin\" size={34} /><strong>Cargando {brand.productName}</strong></span></main>;\n}",
+          )
+          marker = "  useEffect(() => {\n    if (!session || !invitation.token || invitationHandled) return;"
+          brand_effect = "  useEffect(() => {\n    const membership = identity?.memberships.find((item) => item.tenantId === activeTenantId) ?? identity?.memberships[0];\n    if (membership) setActiveProductBrand(membership.brandKey);\n  }, [activeTenantId, identity]);\n\n"
+          auth = auth.replace(marker, brand_effect + marker)
+          auth = auth.replace(
+              "  const logout = async () => {\n    setUsersOpen(false);\n    await getSupabaseClient().auth.signOut();\n  };",
+              "  const logout = async () => {\n    setUsersOpen(false);\n    await getSupabaseClient().auth.signOut();\n    resetProductBrandFromRuntime();\n  };",
+          )
+          required_auth = [
+              "Cargando {brand.productName}",
+              "branding_key",
+              "setActiveProductBrand(membership.brandKey)",
+              "brandKey: ProductBrandKey",
+          ]
+          assert all(item in auth for item in required_auth), 'AuthApp patch incomplete'
+          auth_path.write_text(auth)
+
+          edge_path = Path('supabase/functions/generate-work-order-report/index.ts')
+          edge = edge_path.read_text()
+          edge = edge.replace(
+              'type ReportType = "provisional" | "final";',
+              '''type ReportType = "provisional" | "final";\ntype ReportBrandKey = "isivoltpro" | "homeserve-demo";\ntype PdfColor = [number, number, number];\ntype ReportBrand = {\n  productName: string;\n  wordmark: Array<{ text: string; accent?: boolean }>;\n  footer: string;\n  primary: PdfColor;\n  accent: PdfColor;\n  pale: PdfColor;\n};\n\nconst REPORT_BRANDS: Record<ReportBrandKey, ReportBrand> = {\n  isivoltpro: {\n    productName: "IsiVoltPro OT",\n    wordmark: [{ text: "ISI" }, { text: "VOLT", accent: true }, { text: "PRO" }, { text: " OT", accent: true }],\n    footer: "IsiVoltPro OT - Documento privado y versionado",\n    primary: [0.05, 0.15, 0.24],\n    accent: [0.08, 0.48, 0.68],\n    pale: [0.94, 0.97, 0.98],\n  },\n  "homeserve-demo": {\n    productName: "HomeServe OT Demo",\n    wordmark: [{ text: "HOME" }, { text: "SERVE", accent: true }, { text: " OT DEMO" }],\n    footer: "HomeServe OT Demo - Documento demostrativo y versionado",\n    primary: [0.25, 0.05, 0.07],\n    accent: [0.89, 0.02, 0.07],\n    pale: [1.0, 0.94, 0.95],\n  },\n};''',
+          )
+          edge = edge.replace(
+              "  order: JsonRecord;\n  client:",
+              "  order: JsonRecord;\n  tenant: JsonRecord;\n  client:",
+          )
+          edge = edge.replace(
+              "  const [clientRow, site, location, asset, technician, visitResult, checklistResult, photosResult, signaturesResult, reviewResult] = await Promise.all([\n    maybeOne(client, \"clientes\", workOrder.cliente_id),",
+              "  const [tenant, clientRow, site, location, asset, technician, visitResult, checklistResult, photosResult, signaturesResult, reviewResult] = await Promise.all([\n    maybeOne(client, \"tenants\", report.tenant_id),\n    maybeOne(client, \"clientes\", workOrder.cliente_id),",
+          )
+          edge = edge.replace(
+              "  const firstError = [visitResult.error, checklistResult.error, photosResult.error, signaturesResult.error, reviewResult.error].find(Boolean);\n  if (firstError) throw firstError;\n\n  return {\n    report,\n    order: workOrder,",
+              "  const firstError = [visitResult.error, checklistResult.error, photosResult.error, signaturesResult.error, reviewResult.error].find(Boolean);\n  if (firstError) throw firstError;\n  if (!tenant) throw new Error(\"La organización de la OT no existe\");\n\n  return {\n    report,\n    order: workOrder,\n    tenant,",
+          )
+          old_meta = '''  const document = await PDFDocument.create();\n  document.setTitle(`${pdfText(data.order.codigo_ot)} - Informe ${data.report.tipo}`);\n  document.setAuthor("IsiVoltPro OT");\n  document.setCreator("IsiVoltPro OT");\n  document.setProducer("IsiVoltPro OT - Supabase Edge Functions");\n\n  const regular = await document.embedFont(StandardFonts.Helvetica);\n  const bold = await document.embedFont(StandardFonts.HelveticaBold);\n  const navy = rgb(0.05, 0.15, 0.24);\n  const blue = rgb(0.08, 0.48, 0.68);\n  const pale = rgb(0.94, 0.97, 0.98);'''
+          new_meta = '''  const document = await PDFDocument.create();\n  const brandKey: ReportBrandKey = data.tenant.branding_key === "homeserve-demo" ? "homeserve-demo" : "isivoltpro";\n  const brand = REPORT_BRANDS[brandKey];\n  document.setTitle(`${pdfText(data.order.codigo_ot)} - Informe ${data.report.tipo}`);\n  document.setAuthor(brand.productName);\n  document.setCreator(brand.productName);\n  document.setProducer(`${brand.productName} - Supabase Edge Functions`);\n\n  const regular = await document.embedFont(StandardFonts.Helvetica);\n  const bold = await document.embedFont(StandardFonts.HelveticaBold);\n  const navy = rgb(...brand.primary);\n  const blue = rgb(...brand.accent);\n  const pale = rgb(...brand.pale);'''
+          edge = edge.replace(old_meta, new_meta)
+          edge = edge.replace(
+              '    page.drawText("ISIVOLTPRO", { x: MARGIN, y: PAGE_HEIGHT - 44, size: 15, font: bold, color: navy });\n    page.drawText("OT", { x: MARGIN + 88, y: PAGE_HEIGHT - 44, size: 15, font: bold, color: blue });',
+              '''    let brandX = MARGIN;\n    for (const segment of brand.wordmark) {\n      const segmentColor = segment.accent ? blue : navy;\n      page.drawText(segment.text, { x: brandX, y: PAGE_HEIGHT - 44, size: 15, font: bold, color: segmentColor });\n      brandX += bold.widthOfTextAtSize(segment.text, 15);\n    }''',
+          )
+          edge = edge.replace(
+              '    currentPage.drawText("IsiVoltPro OT - Documento privado y versionado", { x: MARGIN, y: 27, size: 7.1, font: regular, color: grey });',
+              '    currentPage.drawText(brand.footer, { x: MARGIN, y: 27, size: 7.1, font: regular, color: grey });',
+          )
+          required_edge = [
+              'data.tenant.branding_key',
+              'HomeServe OT Demo',
+              'brand.footer',
+              'maybeOne(client, "tenants", report.tenant_id)',
+              'document.setAuthor(brand.productName)',
+          ]
+          assert all(item in edge for item in required_edge), 'Edge Function patch incomplete'
+          edge_path.write_text(edge)
+
+          Path('.github/workflows/apply-branding-patch.yml').unlink()
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/AuthApp.tsx supabase/functions/generate-work-order-report/index.ts .github/workflows/apply-branding-patch.yml
+          git commit -m "feat: apply tenant branding to app and PDF"
+          git push origin HEAD:feat/isivoltpro-ot-ecosystem
