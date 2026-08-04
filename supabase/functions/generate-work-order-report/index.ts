@@ -25,6 +25,35 @@ const MAX_REPORT_PHOTOS = 8;
 
 type JsonRecord = Record<string, unknown>;
 type ReportType = "provisional" | "final";
+type ReportBrandKey = "isivoltpro" | "homeserve-demo";
+type PdfColor = [number, number, number];
+type ReportBrand = {
+  productName: string;
+  wordmark: Array<{ text: string; accent?: boolean }>;
+  footer: string;
+  primary: PdfColor;
+  accent: PdfColor;
+  pale: PdfColor;
+};
+
+const REPORT_BRANDS: Record<ReportBrandKey, ReportBrand> = {
+  isivoltpro: {
+    productName: "IsiVoltPro OT",
+    wordmark: [{ text: "ISI" }, { text: "VOLT", accent: true }, { text: "PRO" }, { text: " OT", accent: true }],
+    footer: "IsiVoltPro OT - Documento privado y versionado",
+    primary: [0.05, 0.15, 0.24],
+    accent: [0.08, 0.48, 0.68],
+    pale: [0.94, 0.97, 0.98],
+  },
+  "homeserve-demo": {
+    productName: "HomeServe OT Demo",
+    wordmark: [{ text: "HOME" }, { text: "SERVE", accent: true }, { text: " OT DEMO" }],
+    footer: "HomeServe OT Demo - Documento demostrativo y versionado",
+    primary: [0.25, 0.05, 0.07],
+    accent: [0.89, 0.02, 0.07],
+    pale: [1.0, 0.94, 0.95],
+  },
+};
 
 type ReservedReport = {
   id: string;
@@ -41,6 +70,7 @@ type ReservedReport = {
 type ReportData = {
   report: ReservedReport;
   order: JsonRecord;
+  tenant: JsonRecord;
   client: JsonRecord | null;
   site: JsonRecord | null;
   location: JsonRecord | null;
@@ -143,7 +173,8 @@ async function loadReportData(client: SupabaseClient, report: ReservedReport): P
   if (orderError || !order) throw orderError ?? new Error("La OT no existe");
   const workOrder = order as JsonRecord;
 
-  const [clientRow, site, location, asset, technician, visitResult, checklistResult, photosResult, signaturesResult, reviewResult] = await Promise.all([
+  const [tenant, clientRow, site, location, asset, technician, visitResult, checklistResult, photosResult, signaturesResult, reviewResult] = await Promise.all([
+    maybeOne(client, "tenants", report.tenant_id),
     maybeOne(client, "clientes", workOrder.cliente_id),
     maybeOne(client, "instalaciones", workOrder.instalacion_id),
     maybeOne(client, "ubicaciones", workOrder.ubicacion_id),
@@ -158,10 +189,12 @@ async function loadReportData(client: SupabaseClient, report: ReservedReport): P
 
   const firstError = [visitResult.error, checklistResult.error, photosResult.error, signaturesResult.error, reviewResult.error].find(Boolean);
   if (firstError) throw firstError;
+  if (!tenant) throw new Error("La organización de la OT no existe");
 
   return {
     report,
     order: workOrder,
+    tenant,
     client: clientRow,
     site,
     location,
@@ -195,16 +228,18 @@ async function embedStoredImage(document: PDFDocument, client: SupabaseClient, b
 
 async function buildPdf(data: ReportData, client: SupabaseClient) {
   const document = await PDFDocument.create();
+  const brandKey: ReportBrandKey = data.tenant.branding_key === "homeserve-demo" ? "homeserve-demo" : "isivoltpro";
+  const brand = REPORT_BRANDS[brandKey];
   document.setTitle(`${pdfText(data.order.codigo_ot)} - Informe ${data.report.tipo}`);
-  document.setAuthor("IsiVoltPro OT");
-  document.setCreator("IsiVoltPro OT");
-  document.setProducer("IsiVoltPro OT - Supabase Edge Functions");
+  document.setAuthor(brand.productName);
+  document.setCreator(brand.productName);
+  document.setProducer(`${brand.productName} - Supabase Edge Functions`);
 
   const regular = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
-  const navy = rgb(0.05, 0.15, 0.24);
-  const blue = rgb(0.08, 0.48, 0.68);
-  const pale = rgb(0.94, 0.97, 0.98);
+  const navy = rgb(...brand.primary);
+  const blue = rgb(...brand.accent);
+  const pale = rgb(...brand.pale);
   const grey = rgb(0.40, 0.46, 0.50);
   const red = rgb(0.68, 0.15, 0.12);
 
@@ -214,8 +249,12 @@ async function buildPdf(data: ReportData, client: SupabaseClient) {
   const newPage = () => {
     page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 12, width: PAGE_WIDTH, height: 12, color: blue });
-    page.drawText("ISIVOLTPRO", { x: MARGIN, y: PAGE_HEIGHT - 44, size: 15, font: bold, color: navy });
-    page.drawText("OT", { x: MARGIN + 88, y: PAGE_HEIGHT - 44, size: 15, font: bold, color: blue });
+    let brandX = MARGIN;
+    for (const segment of brand.wordmark) {
+      const segmentColor = segment.accent ? blue : navy;
+      page.drawText(segment.text, { x: brandX, y: PAGE_HEIGHT - 44, size: 15, font: bold, color: segmentColor });
+      brandX += bold.widthOfTextAtSize(segment.text, 15);
+    }
     const kind = data.report.tipo === "final" ? "INFORME FINAL" : "INFORME PROVISIONAL";
     page.drawText(kind, { x: PAGE_WIDTH - MARGIN - 132, y: PAGE_HEIGHT - 43, size: 9.5, font: bold, color: data.report.tipo === "final" ? navy : red });
     y = PAGE_HEIGHT - 74;
@@ -376,7 +415,7 @@ async function buildPdf(data: ReportData, client: SupabaseClient) {
   const pages = document.getPages();
   pages.forEach((currentPage, index) => {
     currentPage.drawLine({ start: { x: MARGIN, y: 42 }, end: { x: PAGE_WIDTH - MARGIN, y: 42 }, thickness: 0.6, color: rgb(0.82, 0.86, 0.88) });
-    currentPage.drawText("IsiVoltPro OT - Documento privado y versionado", { x: MARGIN, y: 27, size: 7.1, font: regular, color: grey });
+    currentPage.drawText(brand.footer, { x: MARGIN, y: 27, size: 7.1, font: regular, color: grey });
     const label = `Pagina ${index + 1} de ${pages.length}`;
     currentPage.drawText(label, { x: PAGE_WIDTH - MARGIN - regular.widthOfTextAtSize(label, 7.1), y: 27, size: 7.1, font: regular, color: grey });
   });
