@@ -1,6 +1,5 @@
-import { Zap } from 'lucide-react';
-
-export const DEMO_FOOTER_TEXT = 'IsiVoltPro OT · Parte del ecosistema IsiVoltPro';
+import { House, Zap } from 'lucide-react';
+import { useProductBrand } from '../config/productBrand';
 
 type ProductBrandProps = {
   className?: string;
@@ -8,28 +7,37 @@ type ProductBrandProps = {
 };
 
 export default function ProductBrand({ className = '', variant = 'navigation' }: ProductBrandProps) {
+  const brand = useProductBrand();
+  const Symbol = brand.icon === 'home' ? House : Zap;
+
   return (
     <div
-      aria-label="IsiVoltPro OT · Gestión profesional de órdenes de trabajo"
+      aria-label={brand.ariaLabel}
       className={`product-brand product-brand--${variant} ${className}`.trim()}
+      data-brand={brand.key}
       role="group"
     >
       <span className="product-brand-logo-frame" aria-hidden="true">
-        <span className="product-brand-symbol"><Zap color="#facc15" fill="currentColor" size={22} /></span>
-        <span className="product-brand-wordmark">ISI<span>VOLT</span>PRO</span>
+        <span className="product-brand-symbol"><Symbol fill={brand.icon === 'zap' ? 'currentColor' : 'none'} size={22} /></span>
+        <span className="product-brand-wordmark">
+          {brand.wordmarkStart}<span>{brand.wordmarkAccent}</span>{brand.wordmarkEnd}
+        </span>
       </span>
       <span className="product-brand-copy">
         <span className="product-brand-title-row">
-          <strong>IsiVoltPro OT</strong>
-          <span className="product-brand-demo">Operaciones</span>
+          <strong>{brand.productName}</strong>
+          <span className="product-brand-demo">{brand.badge}</span>
         </span>
-        <span className="product-brand-descriptor">Gestión de órdenes de trabajo</span>
-        <small>Una aplicación del ecosistema IsiVoltPro</small>
+        <span className="product-brand-descriptor">{brand.descriptor}</span>
+        <small>{brand.supportingText}</small>
       </span>
     </div>
   );
 }
 
-export function DemoBrandFooter({ className = '' }: { className?: string }) {
-  return <footer className={className}>{DEMO_FOOTER_TEXT}</footer>;
+export function ProductBrandFooter({ className = '' }: { className?: string }) {
+  const brand = useProductBrand();
+  return <footer className={className}>{brand.footerText}</footer>;
 }
+
+export const DemoBrandFooter = ProductBrandFooter;
