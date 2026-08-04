@@ -1,0 +1,121 @@
+name: Apply multisector work order form
+
+on:
+  push:
+    branches: [feat/isivoltpro-ot-ecosystem]
+    paths:
+      - .github/workflows/apply-multisector-form.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/isivoltpro-ot-ecosystem
+          fetch-depth: 0
+
+      - name: Patch form
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/work-orders/components/CreateWorkOrderForm.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one occurrence, found {count}: {old[:120]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "import { getSupabaseClient } from '../../../lib/supabase';\n",
+              "import { getSupabaseClient } from '../../../lib/supabase';\nimport {\n  INSTALLATION_SECTORS,\n  TECHNICAL_SPECIALTIES,\n  technicalSpecialtyLabel,\n} from '../../../config/technicalCatalog';\n",
+          )
+
+          replace_once(
+              "  installationId: '',\n  locationId: '',",
+              "  installationId: '',\n  specialtyKey: 'general',\n  systemId: '',\n  locationId: '',",
+          )
+
+          replace_once(
+              "  type: 'general',\n  address: '',",
+              "  type: 'general',\n  sector: 'general',\n  address: '',",
+          )
+
+          replace_once(
+              "  const installationId = form.watch('installationId');\n  const locationId = form.watch('locationId');",
+              "  const installationId = form.watch('installationId');\n  const specialtyKey = form.watch('specialtyKey');\n  const systemId = form.watch('systemId');\n  const locationId = form.watch('locationId');\n  const assetId = form.watch('assetId');",
+          )
+
+          replace_once(
+              "  const locations = useMemo(\n    () => catalog?.locations.filter((location) => location.installationId === installationId) ?? [],\n    [catalog, installationId],\n  );",
+              "  const systems = useMemo(\n    () => catalog?.systems.filter((system) => system.installationId === installationId) ?? [],\n    [catalog, installationId],\n  );\n\n  const locations = useMemo(\n    () => catalog?.locations.filter((location) => location.installationId === installationId) ?? [],\n    [catalog, installationId],\n  );",
+          )
+
+          replace_once(
+              "      form.setValue('installationId', '', { shouldDirty: true, shouldValidate: true });\n      form.setValue('locationId', '', { shouldDirty: true });\n      form.setValue('assetId', '', { shouldDirty: true });",
+              "      form.setValue('installationId', '', { shouldDirty: true, shouldValidate: true });\n      form.setValue('specialtyKey', 'general', { shouldDirty: true });\n      form.setValue('systemId', '', { shouldDirty: true });\n      form.setValue('locationId', '', { shouldDirty: true });\n      form.setValue('assetId', '', { shouldDirty: true });",
+          )
+
+          replace_once(
+              "      asset.installationId === installationId\n      && (!locationId || !asset.locationId || asset.locationId === locationId)",
+              "      asset.installationId === installationId\n      && (!systemId || !asset.systemId || asset.systemId === systemId)\n      && (!locationId || !asset.locationId || asset.locationId === locationId)",
+          )
+
+          replace_once(
+              "    [catalog, installationId, locationId],\n  );\n\n  const quickInstallationMutation",
+              "    [catalog, installationId, locationId, systemId],\n  );\n\n  useEffect(() => {\n    const selectedSystem = catalog?.systems.find((system) => system.id === systemId);\n    if (selectedSystem) {\n      form.setValue('specialtyKey', selectedSystem.specialtyKey, { shouldDirty: true, shouldValidate: true });\n    }\n  }, [catalog, form, systemId]);\n\n  useEffect(() => {\n    const selectedAsset = catalog?.assets.find((asset) => asset.id === assetId);\n    if (selectedAsset?.systemId && selectedAsset.systemId !== systemId) {\n      form.setValue('systemId', selectedAsset.systemId, { shouldDirty: true, shouldValidate: true });\n    }\n  }, [assetId, catalog, form, systemId]);\n\n  const quickInstallationMutation",
+          )
+
+          replace_once(
+              "      type: installationDraft.type,\n      address:",
+              "      type: installationDraft.type,\n      sector: installationDraft.sector,\n      address:",
+          )
+
+          replace_once(
+              "      installationId,\n      locationId: locationId || null,\n      name: assetDraft.name,",
+              "      installationId,\n      systemId: systemId || null,\n      locationId: locationId || null,\n      name: assetDraft.name,",
+          )
+
+          replace_once(
+              "        installationId: values.installationId,\n        locationId: values.locationId || null,",
+              "        installationId: values.installationId,\n        systemId: values.systemId || null,\n        specialtyKey: values.specialtyKey,\n        locationId: values.locationId || null,",
+          )
+
+          replace_once(
+              "          <label>Tipo\n            <input\n              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, type: event.target.value }))}\n              placeholder=\"hospitalaria, industrial, residencial...\"\n              value={installationDraft.type}\n            />\n          </label>",
+              "          <label>Sector\n            <select\n              onChange={(event) => setInstallationDraft((draft) => ({\n                ...draft,\n                sector: event.target.value,\n                type: event.target.value,\n              }))}\n              value={installationDraft.sector}\n            >\n              {INSTALLATION_SECTORS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}\n            </select>\n          </label>",
+          )
+
+          replace_once('placeholder="Ej. Inversor FV 50 kW"', 'placeholder="Ej. Cuadro general, bomba o climatizador"')
+          replace_once('placeholder="inversor_fotovoltaico"', 'placeholder="cuadro_electrico, bomba, climatizador..."')
+          replace_once('placeholder="INV-FV-001"', 'placeholder="EQ-001"')
+          replace_once('placeholder="Ej. Revisar inversor FV de cubierta"', 'placeholder="Ej. Revisar cuadro, climatizador o bomba principal"')
+
+          replace_once(
+              "          {clientId && installations.length === 0 && <p className=\"read-only-note full-field\"><MapPin size={16} /> Este cliente no tiene instalaciones activas. Crea una instalación desde la alta rápida antes de continuar.</p>}\n\n          <label>Ubicación",
+              "          {clientId && installations.length === 0 && <p className=\"read-only-note full-field\"><MapPin size={16} /> Este cliente no tiene instalaciones activas. Crea una instalación desde la alta rápida antes de continuar.</p>}\n\n          <label>Especialidad técnica\n            <select {...form.register('specialtyKey')} disabled={Boolean(systemId)}>\n              {(catalog.specialties.length > 0 ? catalog.specialties : TECHNICAL_SPECIALTIES.map((item) => ({ key: item.key, name: item.label, group: item.group }))).map((specialty) => (\n                <option key={specialty.key} value={specialty.key}>{specialty.name}</option>\n              ))}\n            </select>\n            <small>{systemId ? `Definida por el sistema: ${technicalSpecialtyLabel(specialtyKey)}` : 'Clasifica la OT para filtros, técnicos y checklist.'}</small>\n          </label>\n\n          <label>Sistema técnico\n            <select {...form.register('systemId')} disabled={!installationId}>\n              <option value=\"\">Sin sistema concreto</option>\n              {systems.map((system) => <option key={system.id} value={system.id}>{system.code ? `${system.code} · ` : ''}{system.name} · {technicalSpecialtyLabel(system.specialtyKey)}</option>)}\n            </select>\n          </label>\n\n          {installationId && systems.length === 0 && <p className=\"read-only-note full-field\"><Boxes size={16} /> Esta instalación todavía no tiene sistemas técnicos activos. La OT puede guardarse como General.</p>}\n\n          <label>Ubicación",
+          )
+
+          replace_once(
+              "              {catalog.technicians.map((technician) => <option key={technician.id} value={technician.id}>{technician.name}{technician.role === 'tecnico_externo' ? ' · Externo' : ''}</option>)}",
+              "              {catalog.technicians.map((technician) => <option key={technician.id} value={technician.id}>{technician.name}{technician.role === 'tecnico_externo' ? ' · Externo' : ''}{technician.specialtyKeys.includes(specialtyKey) ? ' · Especialidad compatible' : ''}</option>)}",
+          )
+
+          path.write_text(text, encoding='utf-8')
+          Path('.github/workflows/apply-multisector-form.yml').unlink()
+          PY
+
+      - name: Commit form
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: añadir especialidad y sistema al formulario de OT"
+          git push origin HEAD:feat/isivoltpro-ot-ecosystem
