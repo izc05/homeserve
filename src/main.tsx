@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import AuthApp from './AuthApp';
 import './styles/global.css';
+import './styles/isivolt-brand-tokens.css';
 import './styles/product-brand.css';
 import './styles/auth.css';
 import './styles/auth-ecosystem.css';
