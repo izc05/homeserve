@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -63,6 +64,7 @@ function ReportStatusIcon({ report }: { report: WorkOrderReport }) {
 export default function WorkOrderReportsPanel({ workOrderId, client }: WorkOrderReportsPanelProps) {
   const supabase = client ?? getSupabaseClient();
   const queryClient = useQueryClient();
+  const automaticAttemptRef = useRef<string | null>(null);
   const reportsQuery = useQuery({
     queryKey: ['work-order-reports', workOrderId],
     queryFn: () => listWorkOrderReports(supabase, workOrderId),
@@ -91,6 +93,22 @@ export default function WorkOrderReportsPanel({ workOrderId, client }: WorkOrder
   const isLoading = reportsQuery.isLoading || capabilitiesQuery.isLoading;
   const hasError = reportsQuery.error || capabilitiesQuery.error;
   const canGenerate = Boolean(capabilities?.canGenerateProvisional || capabilities?.canGenerateFinal);
+  const automaticReportType: WorkOrderReportType | null = capabilities?.reportRequired
+    ? capabilities.canGenerateFinal && !capabilities.finalReportExists
+      ? 'final'
+      : capabilities.canGenerateProvisional && !capabilities.provisionalReportExists
+        ? 'provisional'
+        : null
+    : null;
+  const mutateReport = mutation.mutate;
+
+  useEffect(() => {
+    if (!automaticReportType || isLoading || hasError || mutation.isPending) return;
+    const attemptKey = `${workOrderId}:${automaticReportType}`;
+    if (automaticAttemptRef.current === attemptKey) return;
+    automaticAttemptRef.current = attemptKey;
+    mutateReport(automaticReportType);
+  }, [automaticReportType, hasError, isLoading, mutateReport, mutation.isPending, workOrderId]);
 
   const refresh = async () => {
     await Promise.all([reportsQuery.refetch(), capabilitiesQuery.refetch()]);
@@ -145,6 +163,7 @@ export default function WorkOrderReportsPanel({ workOrderId, client }: WorkOrder
       <button className="secondary-button" disabled={reportsQuery.isFetching || capabilitiesQuery.isFetching || mutation.isPending} onClick={() => void refresh()} type="button"><RefreshCw className={reportsQuery.isFetching ? 'spin' : ''} size={16} /> Actualizar</button>
     </div>}
 
+    {capabilities?.reportRequired && automaticReportType && <p className="report-guidance"><FileClock size={16} /> El informe obligatorio se está preparando automáticamente. Si falla, podrás reintentarlo desde este panel.</p>}
     {capabilities?.workOrderStatus === 'FINALIZADA_TECNICO' && <p className="report-guidance"><FileClock size={16} /> El provisional refleja la intervención antes de la validación administrativa.</p>}
     {capabilities?.workOrderStatus === 'VALIDADA' && !capabilities.finalReportExists && <p className="report-guidance"><ShieldCheck size={16} /> El responsable puede crear una única versión final e inmutable.</p>}
   </section>;
