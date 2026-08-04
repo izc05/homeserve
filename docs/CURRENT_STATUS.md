@@ -43,6 +43,9 @@ IsiVoltPro OT es un MVP avanzado con el ciclo documental principal ya implementa
 
 - Informe PDF provisional después del cierre técnico.
 - Informe PDF final después de la validación administrativa.
+- Generación automática del primer provisional y del final cuando la OT exige informe.
+- Los informes opcionales continúan disponibles mediante generación manual.
+- Protección contra dobles generaciones automáticas al volver a abrir una OT.
 - Histórico de versiones sin sobrescritura.
 - Un único informe final listo e inmutable por OT.
 - Datos de cliente, instalación, activo, intervención y técnico.
@@ -67,6 +70,7 @@ IsiVoltPro OT es un MVP avanzado con el ciclo documental principal ya implementa
 - CI con Node 22.
 - Instalación reproducible mediante `npm ci`.
 - Typecheck, ESLint, Vitest y build en cada pull request.
+- Último control: 38 archivos de prueba y 187 pruebas correctas.
 - Migraciones de firma e informes aplicadas en `isivoltpro-demo-madrid`.
 - El navegador no puede escribir directamente en `ot_informes` ni `ot_firmas`.
 - El navegador tampoco puede subir, modificar o borrar objetos de `ot-reports`.
@@ -84,13 +88,15 @@ IsiVoltPro OT es un MVP avanzado con el ciclo documental principal ya implementa
 
 ## Validaciones realizadas
 
-- TypeScript, lint, pruebas unitarias y build de producción correctos en GitHub Actions.
+- TypeScript, lint, 38 archivos de prueba, 187 pruebas y build de producción correctos en GitHub Actions.
 - Migración de firma segura aplicada.
 - Migración de informes versionados aplicada.
 - Migración de endurecimiento de Storage aplicada.
+- Migración de capacidades para generación automática aplicada.
 - Edge Function activa y compilada por Supabase.
 - Permisos comprobados: `authenticated` reserva; `service_role` completa o falla; `anon` no ejecuta.
-- La OT demo `OT-2026-00003`, en `FINALIZADA_TECNICO`, permite provisional al técnico asignado y rechaza el final.
+- La OT demo `OT-2026-00003`, en `FINALIZADA_TECNICO`, no exige informe y no dispara automatismos.
+- La OT demo `OT-2026-00004` exige informe y queda preparada para validar el automatismo al completar su ejecución.
 
 ## Bloqueos para una versión piloto
 
@@ -111,7 +117,7 @@ Demostrar que una OT real de prueba recorre todo el flujo sin intervención manu
 - Guion E2E de coordinador y técnico.
 - OT de prueba controlada con checklist, fotos y firma.
 - Informe provisional revisado visualmente.
-- Validación administrativa y generación final.
+- Validación administrativa y generación final automática.
 - Prueba de descarga temporal y caducidad del enlace.
 - Prueba móvil Android.
 - Registro de incidencias y correcciones del piloto.
