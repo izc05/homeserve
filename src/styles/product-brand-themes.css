@@ -1,0 +1,59 @@
+:root,
+html[data-product-brand='isivoltpro'] {
+  --brand: #0284c7;
+  --brand-dark: #0369a1;
+  --brand-soft: #eef8ff;
+}
+
+html[data-product-brand='homeserve-demo'] {
+  --brand: #e30613;
+  --brand-dark: #b9000b;
+  --brand-soft: #fff0f1;
+}
+
+html[data-product-brand='isivoltpro'] .sidebar::before {
+  background: linear-gradient(180deg, #38bdf8 0%, var(--brand) 48%, #172033 100%);
+}
+
+html[data-product-brand='homeserve-demo'] .sidebar::before {
+  background: linear-gradient(180deg, #ff313c 0%, var(--brand) 48%, #b4000a 100%);
+}
+
+html[data-product-brand='isivoltpro'] button:focus-visible,
+html[data-product-brand='isivoltpro'] a:focus-visible,
+html[data-product-brand='isivoltpro'] input:focus-visible,
+html[data-product-brand='isivoltpro'] select:focus-visible,
+html[data-product-brand='isivoltpro'] textarea:focus-visible {
+  outline-color: rgba(2, 132, 199, .25);
+}
+
+html[data-product-brand='homeserve-demo'] button:focus-visible,
+html[data-product-brand='homeserve-demo'] a:focus-visible,
+html[data-product-brand='homeserve-demo'] input:focus-visible,
+html[data-product-brand='homeserve-demo'] select:focus-visible,
+html[data-product-brand='homeserve-demo'] textarea:focus-visible {
+  outline-color: rgba(227, 6, 19, .22);
+}
+
+html[data-product-brand='homeserve-demo'] .product-brand-symbol {
+  background: linear-gradient(145deg, #b9000b, #e30613);
+}
+
+html[data-product-brand='homeserve-demo'] .product-brand-symbol svg {
+  color: #fff;
+}
+
+html[data-product-brand='homeserve-demo'] .product-brand-wordmark span,
+html[data-product-brand='homeserve-demo'] .product-brand-demo {
+  color: #e30613;
+}
+
+html[data-product-brand='homeserve-demo'] .product-brand-demo {
+  border-color: rgba(227, 6, 19, .24);
+  background: rgba(227, 6, 19, .08);
+}
+
+html[data-product-brand='homeserve-demo'] .product-brand--inverse .product-brand-wordmark span,
+html[data-product-brand='homeserve-demo'] .product-brand--inverse .product-brand-demo {
+  color: #fff;
+}
