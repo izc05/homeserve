@@ -47,12 +47,19 @@ ensure_clean_tree() {
   fi
 }
 
+validate_env_file() {
+  local env_file="$1"
+  grep -qE '^VITE_SUPABASE_URL=https://[A-Za-z0-9.-]+\.supabase\.co/?$' "$env_file" || return 1
+  grep -qE '^VITE_SUPABASE_PUBLISHABLE_KEY=.{20,}$' "$env_file" || return 1
+  ! grep -qE 'YOUR_PROJECT_REF|YOUR_PUBLISHABLE_KEY|TU_PROYECTO|TU_CLAVE' "$env_file"
+}
+
 write_env() {
   local env_file="$INSTALL_DIR/.env"
   local url="${VITE_SUPABASE_URL:-}"
   local key="${VITE_SUPABASE_PUBLISHABLE_KEY:-}"
 
-  if [[ -f "$env_file" ]] && ! grep -qE 'YOUR_PROJECT_REF|YOUR_PUBLISHABLE_KEY|TU_PROYECTO|TU_CLAVE' "$env_file"; then
+  if [[ -f "$env_file" ]] && validate_env_file "$env_file"; then
     chmod 600 "$env_file"
     return
   fi
@@ -75,6 +82,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=$key
 VITE_BASE_PATH=/
 EOF
   chmod 600 "$env_file"
+  validate_env_file "$env_file" || die "No se pudo crear una configuración válida."
   log "Configuración local guardada con permisos 600."
 }
 
@@ -93,9 +101,9 @@ wait_for_health() {
 
 build_and_start() {
   log "Construyendo y arrancando el contenedor"
-  compose build --pull
-  compose up -d --remove-orphans
-  wait_for_health
+  compose build --pull || return 1
+  compose up -d --remove-orphans || return 1
+  wait_for_health || return 1
 }
 
 record_success() {
@@ -107,8 +115,8 @@ restore_commit() {
   local target="$1"
   warn "Restaurando automáticamente el commit ${target:0:12}"
   git checkout --detach "$target"
-  compose build
-  compose up -d --remove-orphans
+  compose build || die "No se pudo reconstruir el commit de rollback."
+  compose up -d --remove-orphans || die "No se pudo iniciar el contenedor de rollback."
   wait_for_health || die "El rollback tampoco ha recuperado el servicio. Revisa: docker compose logs --tail=200"
   git rev-parse HEAD > "$LAST_GOOD_FILE"
 }
@@ -170,6 +178,7 @@ rollback_app() {
 status_app() {
   ensure_docker
   ensure_repository
+  require_command curl
   printf '\n'
   compose ps
   printf '\nCommit: %s\n' "$(git rev-parse --short HEAD)"
