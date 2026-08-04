@@ -81,7 +81,7 @@ const DEFAULT_VALUES: CreateWorkOrderFormValues = {
 const EMPTY_INSTALLATION_DRAFT = {
   name: '',
   code: '',
-  type: 'fotovoltaica',
+  type: 'general',
   address: '',
   gps: '',
   mapUrl: '',
@@ -91,7 +91,7 @@ const EMPTY_INSTALLATION_DRAFT = {
 
 const EMPTY_ASSET_DRAFT = {
   name: '',
-  type: 'inversor_fotovoltaico',
+  type: 'equipo_general',
   reference: '',
   criticality: 'media',
 };
@@ -346,7 +346,7 @@ export default function CreateWorkOrderForm({
         )}
 
         <div className="creation-section-heading">
-          <div><span>+</span><strong>Alta rápida de instalación FV</strong></div>
+          <div><span>+</span><strong>Alta rápida de instalación</strong></div>
           <small>Incluye mapa, localización, foto general y detalles de acceso.</small>
         </div>
 
@@ -361,21 +361,21 @@ export default function CreateWorkOrderForm({
           <label>Nombre instalación
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, name: event.target.value }))}
-              placeholder="Ej. Cubierta FV edificio A"
+              placeholder="Ej. Hospital, nave industrial o edificio A"
               value={installationDraft.name}
             />
           </label>
           <label>Código
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, code: event.target.value }))}
-              placeholder="FV-CUB-001"
+              placeholder="INST-001"
               value={installationDraft.code}
             />
           </label>
           <label>Tipo
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, type: event.target.value }))}
-              placeholder="fotovoltaica"
+              placeholder="hospitalaria, industrial, residencial..."
               value={installationDraft.type}
             />
           </label>
@@ -400,7 +400,7 @@ export default function CreateWorkOrderForm({
               value={installationDraft.mapUrl}
             />
           </label>
-          <label>Foto instalación completa
+          <label>Foto general de la instalación
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, photoUrl: event.target.value }))}
               placeholder="URL de foto general de la planta"

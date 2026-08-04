@@ -89,7 +89,7 @@ const mainNavigation: NavItem[] = [
 const secondaryNavigation: NavItem[] = [
   { id: 'technicians', label: 'Técnicos', icon: UsersRound },
   { id: 'clients', label: 'Clientes / instalaciones', icon: Building2 },
-  { id: 'assets', label: 'Equipos FV', icon: Boxes },
+  { id: 'assets', label: 'Activos y equipos', icon: Boxes },
   { id: 'reports', label: 'Informes', icon: BarChart3 },
   { id: 'audit', label: 'Auditoría', icon: ShieldCheck },
   { id: 'configuration', label: 'Configuración', icon: Settings2 },
@@ -236,7 +236,7 @@ function Sidebar({ active, open, tenantName, viewerRole, canAccessClients, navig
         {visibleSecondaryNavigation.map((item) => renderItem(item, true))}
       </nav>
       <div className="sidebar-footer">
-        <div className="organisation-card"><span className="avatar avatar-small">FV</span><span><strong>{tenantName}</strong><small>{roleLabel(viewerRole)}</small></span></div>
+        <div className="organisation-card"><span className="avatar avatar-small">OT</span><span><strong>{tenantName}</strong><small>{roleLabel(viewerRole)}</small></span></div>
         <button className="logout-button" onClick={logout} type="button"><LogOut size={18} /> Cerrar sesión</button>
       </div>
     </aside>
