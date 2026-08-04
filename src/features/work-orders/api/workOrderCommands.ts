@@ -1,14 +1,35 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  isTechnicalSpecialtyKey,
+  type TechnicalSpecialtyKey,
+} from '../../../config/technicalCatalog';
 import type {
   WorkOrderPriority,
   WorkOrderType,
 } from '../types/workOrder';
+
+export type TechnicalSpecialtyOption = {
+  key: TechnicalSpecialtyKey;
+  name: string;
+  group: string;
+};
+
+export type InstallationSystemOption = {
+  id: string;
+  installationId: string;
+  specialtyKey: TechnicalSpecialtyKey;
+  name: string;
+  code: string | null;
+  criticality: string;
+  status: string;
+};
 
 export type InstallationOption = {
   id: string;
   clientId: string;
   name: string;
   code: string | null;
+  sector: string;
 };
 
 export type ClientOption = {
@@ -27,6 +48,7 @@ export type AssetOption = {
   id: string;
   installationId: string;
   locationId: string | null;
+  systemId: string | null;
   name: string;
 };
 
@@ -34,11 +56,14 @@ export type TechnicianOption = {
   id: string;
   name: string;
   role: 'tecnico' | 'tecnico_externo';
+  specialtyKeys: TechnicalSpecialtyKey[];
 };
 
 export type WorkOrderCreationCatalog = {
   clients: ClientOption[];
   installations: InstallationOption[];
+  systems: InstallationSystemOption[];
+  specialties: TechnicalSpecialtyOption[];
   locations: LocationOption[];
   assets: AssetOption[];
   technicians: TechnicianOption[];
@@ -60,6 +85,8 @@ export type CreateWorkOrderRequirements = {
 export type CreateWorkOrderInput = {
   tenantId: string;
   installationId: string;
+  systemId: string | null;
+  specialtyKey: TechnicalSpecialtyKey;
   locationId: string | null;
   assetId: string | null;
   technicianId: string | null;
@@ -88,6 +115,7 @@ export type CreateInstallationInput = {
   name: string;
   code?: string | null;
   type?: string | null;
+  sector?: string | null;
   address?: string | null;
   contactName?: string | null;
   contactPhone?: string | null;
@@ -98,6 +126,7 @@ export type CreateInstallationInput = {
 export type CreateAssetInput = {
   tenantId: string;
   installationId: string;
+  systemId?: string | null;
   locationId?: string | null;
   name: string;
   type?: string | null;
@@ -111,25 +140,57 @@ export type CreateAssetInput = {
 };
 
 type ClientRow = { id: string; nombre: string; codigo: string | null };
-type InstallationRow = { id: string; cliente_id: string; nombre: string; codigo: string | null };
+type InstallationRow = {
+  id: string;
+  cliente_id: string;
+  nombre: string;
+  codigo: string | null;
+  sector: string | null;
+};
 type LocationRow = { id: string; instalacion_id: string; nombre: string };
 type AssetRow = {
   id: string;
   instalacion_id: string;
   ubicacion_id: string | null;
+  sistema_id: string | null;
   nombre: string;
+};
+type SystemRow = {
+  id: string;
+  instalacion_id: string;
+  especialidad_clave: string;
+  nombre: string;
+  codigo: string | null;
+  criticidad: string;
+  estado: string;
+};
+type SpecialtyRow = {
+  clave: string;
+  nombre: string;
+  grupo: string;
 };
 type MemberRow = {
   user_id: string;
   role: 'tecnico' | 'tecnico_externo';
 };
+type MemberSpecialtyRow = {
+  user_id: string;
+  especialidad_clave: string;
+};
 type ProfileRow = { id: string; nombre: string | null };
 type CreatedWorkOrderRow = { id: string; codigo_ot: string; estado: string };
-type CreatedInstallationRow = { id: string; cliente_id: string; nombre: string; codigo: string | null };
+type CreatedInstallationRow = {
+  id: string;
+  cliente_id: string;
+  nombre: string;
+  codigo: string | null;
+  sector: string | null;
+};
 type CreatedAssetRow = {
   id: string;
   instalacion_id: string;
   ubicacion_id: string | null;
+  sistema_id: string | null;
   nombre: string;
 };
 
@@ -164,6 +225,8 @@ export function toCreateWorkOrderRpcArgs(input: CreateWorkOrderInput): Record<st
   return {
     tenant_uuid: input.tenantId,
     installation_uuid: input.installationId,
+    system_uuid: input.systemId,
+    specialty_key_text: input.specialtyKey,
     title_text: input.title.trim(),
     description_text: nullableText(input.description),
     work_order_type_text: input.type,
@@ -198,7 +261,16 @@ export async function loadWorkOrderCreationCatalog(
 ): Promise<WorkOrderCreationCatalog> {
   if (!tenantId.trim()) throw new Error('Selecciona una organización antes de crear una OT.');
 
-  const [clientResult, installationResult, locationResult, assetResult, memberResult] = await Promise.all([
+  const [
+    clientResult,
+    installationResult,
+    locationResult,
+    assetResult,
+    memberResult,
+    specialtyResult,
+    systemResult,
+    memberSpecialtyResult,
+  ] = await Promise.all([
     supabase
       .from('clientes')
       .select('id,nombre,codigo')
@@ -208,7 +280,7 @@ export async function loadWorkOrderCreationCatalog(
       .order('nombre'),
     supabase
       .from('instalaciones')
-      .select('id,cliente_id,nombre,codigo')
+      .select('id,cliente_id,nombre,codigo,sector')
       .eq('tenant_id', tenantId)
       .eq('estado', 'activo')
       .is('deleted_at', null)
@@ -221,7 +293,7 @@ export async function loadWorkOrderCreationCatalog(
       .order('nombre'),
     supabase
       .from('activos')
-      .select('id,instalacion_id,ubicacion_id,nombre')
+      .select('id,instalacion_id,ubicacion_id,sistema_id,nombre')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
       .order('nombre'),
@@ -232,9 +304,34 @@ export async function loadWorkOrderCreationCatalog(
       .eq('estado', 'activo')
       .in('role', ['tecnico', 'tecnico_externo'])
       .order('created_at'),
+    supabase
+      .from('especialidades_tecnicas')
+      .select('clave,nombre,grupo')
+      .eq('estado', 'activo')
+      .order('orden'),
+    supabase
+      .from('sistemas_instalacion')
+      .select('id,instalacion_id,especialidad_clave,nombre,codigo,criticidad,estado')
+      .eq('tenant_id', tenantId)
+      .neq('estado', 'inactivo')
+      .is('deleted_at', null)
+      .order('nombre'),
+    supabase
+      .from('tenant_member_especialidades')
+      .select('user_id,especialidad_clave')
+      .eq('tenant_id', tenantId),
   ]);
 
-  for (const result of [clientResult, installationResult, locationResult, assetResult, memberResult]) {
+  for (const result of [
+    clientResult,
+    installationResult,
+    locationResult,
+    assetResult,
+    memberResult,
+    specialtyResult,
+    systemResult,
+    memberSpecialtyResult,
+  ]) {
     if (result.error) throw result.error;
   }
 
@@ -254,6 +351,15 @@ export async function loadWorkOrderCreationCatalog(
   const profileNames = new Map(
     profiles.map((profile) => [String(profile.id), String(profile.nombre || 'Técnico sin nombre')]),
   );
+  const specialtiesByMember = new Map<string, TechnicalSpecialtyKey[]>();
+  for (const row of (memberSpecialtyResult.data ?? []) as unknown as MemberSpecialtyRow[]) {
+    if (!isTechnicalSpecialtyKey(String(row.especialidad_clave))) continue;
+    const userId = String(row.user_id);
+    specialtiesByMember.set(userId, [
+      ...(specialtiesByMember.get(userId) ?? []),
+      row.especialidad_clave as TechnicalSpecialtyKey,
+    ]);
+  }
 
   return {
     clients: ((clientResult.data ?? []) as unknown as ClientRow[]).map((row) => ({
@@ -266,7 +372,26 @@ export async function loadWorkOrderCreationCatalog(
       clientId: String(row.cliente_id),
       name: String(row.nombre),
       code: row.codigo ? String(row.codigo) : null,
+      sector: String(row.sector || 'general'),
     })),
+    systems: ((systemResult.data ?? []) as unknown as SystemRow[])
+      .filter((row) => isTechnicalSpecialtyKey(String(row.especialidad_clave)))
+      .map((row) => ({
+        id: String(row.id),
+        installationId: String(row.instalacion_id),
+        specialtyKey: row.especialidad_clave as TechnicalSpecialtyKey,
+        name: String(row.nombre),
+        code: row.codigo ? String(row.codigo) : null,
+        criticality: String(row.criticidad),
+        status: String(row.estado),
+      })),
+    specialties: ((specialtyResult.data ?? []) as unknown as SpecialtyRow[])
+      .filter((row) => isTechnicalSpecialtyKey(String(row.clave)))
+      .map((row) => ({
+        key: row.clave as TechnicalSpecialtyKey,
+        name: String(row.nombre),
+        group: String(row.grupo),
+      })),
     locations: ((locationResult.data ?? []) as unknown as LocationRow[]).map((row) => ({
       id: String(row.id),
       installationId: String(row.instalacion_id),
@@ -276,12 +401,14 @@ export async function loadWorkOrderCreationCatalog(
       id: String(row.id),
       installationId: String(row.instalacion_id),
       locationId: row.ubicacion_id ? String(row.ubicacion_id) : null,
+      systemId: row.sistema_id ? String(row.sistema_id) : null,
       name: String(row.nombre),
     })),
     technicians: members.map((member) => ({
       id: String(member.user_id),
       name: profileNames.get(String(member.user_id)) ?? 'Técnico sin nombre',
       role: member.role,
+      specialtyKeys: specialtiesByMember.get(String(member.user_id)) ?? [],
     })),
   };
 }
@@ -295,6 +422,7 @@ export async function createInstallation(
   if (!input.name.trim()) throw new Error('Indica el nombre de la instalación.');
 
   const createdBy = await currentUserId(supabase);
+  const sector = nullableText(input.sector) ?? nullableText(input.type) ?? 'general';
   const { data, error } = await supabase
     .from('instalaciones')
     .insert({
@@ -302,7 +430,8 @@ export async function createInstallation(
       cliente_id: input.clientId,
       nombre: input.name.trim(),
       codigo: nullableText(input.code),
-      tipo: nullableText(input.type) ?? 'general',
+      tipo: nullableText(input.type) ?? sector,
+      sector,
       direccion: nullableText(input.address),
       contacto_nombre: nullableText(input.contactName),
       contacto_telefono: nullableText(input.contactPhone),
@@ -311,7 +440,7 @@ export async function createInstallation(
       estado: 'activo',
       created_by: createdBy,
     })
-    .select('id,cliente_id,nombre,codigo')
+    .select('id,cliente_id,nombre,codigo,sector')
     .single();
 
   if (error) throw error;
@@ -324,6 +453,7 @@ export async function createInstallation(
     clientId: String(row.cliente_id),
     name: String(row.nombre),
     code: row.codigo ? String(row.codigo) : null,
+    sector: String(row.sector || 'general'),
   };
 }
 
@@ -341,9 +471,10 @@ export async function createAsset(
     .insert({
       tenant_id: input.tenantId,
       instalacion_id: input.installationId,
+      sistema_id: input.systemId || null,
       ubicacion_id: input.locationId || null,
       nombre: input.name.trim(),
-      tipo: nullableText(input.type) ?? 'general',
+      tipo: nullableText(input.type) ?? 'equipo_general',
       marca: nullableText(input.brand),
       modelo: nullableText(input.model),
       numero_serie: nullableText(input.serialNumber),
@@ -354,7 +485,7 @@ export async function createAsset(
       observaciones: nullableText(input.notes),
       created_by: createdBy,
     })
-    .select('id,instalacion_id,ubicacion_id,nombre')
+    .select('id,instalacion_id,ubicacion_id,sistema_id,nombre')
     .single();
 
   if (error) throw error;
@@ -366,6 +497,7 @@ export async function createAsset(
     id: String(row.id),
     installationId: String(row.instalacion_id),
     locationId: row.ubicacion_id ? String(row.ubicacion_id) : null,
+    systemId: row.sistema_id ? String(row.sistema_id) : null,
     name: String(row.nombre),
   };
 }
@@ -375,7 +507,7 @@ export async function createWorkOrder(
   input: CreateWorkOrderInput,
 ): Promise<CreatedWorkOrder> {
   const { data, error } = await supabase.rpc(
-    'create_work_order',
+    'create_work_order_v2',
     toCreateWorkOrderRpcArgs(input),
   );
 

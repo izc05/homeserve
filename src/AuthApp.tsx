@@ -24,12 +24,14 @@ import {
 import App from './App';
 import ProductBrand, { DemoBrandFooter } from './components/ProductBrand';
 import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
+import { resetProductBrandFromRuntime, setActiveProductBrand, useProductBrand, type ProductBrandKey } from './config/productBrand';
 
 type Membership = {
   tenantId: string;
   tenantName: string;
   role: string;
   status: string;
+  brandKey: ProductBrandKey;
 };
 
 type Identity = {
@@ -78,11 +80,14 @@ async function loadIdentity(session: Session): Promise<Identity> {
   if (memberError) throw memberError;
 
   const tenantIds = (memberRows ?? []).map((row) => String(row.tenant_id));
-  const tenantNames = new Map<string, string>();
+  const tenantData = new Map<string, { name: string; brandKey: ProductBrandKey }>();
   if (tenantIds.length > 0) {
-    const { data: tenants, error: tenantsError } = await supabase.from('tenants').select('id,nombre').in('id', tenantIds);
+    const { data: tenants, error: tenantsError } = await supabase.from('tenants').select('id,nombre,branding_key').in('id', tenantIds);
     if (tenantsError) throw tenantsError;
-    for (const tenant of tenants ?? []) tenantNames.set(String(tenant.id), String(tenant.nombre));
+    for (const tenant of tenants ?? []) tenantData.set(String(tenant.id), {
+      name: String(tenant.nombre),
+      brandKey: tenant.branding_key === 'homeserve-demo' ? 'homeserve-demo' : 'isivoltpro',
+    });
   }
 
   return {
@@ -90,7 +95,8 @@ async function loadIdentity(session: Session): Promise<Identity> {
     email: String(profile?.email || session.user.email || ''),
     memberships: (memberRows ?? []).map((row) => ({
       tenantId: String(row.tenant_id),
-      tenantName: tenantNames.get(String(row.tenant_id)) ?? 'Organización',
+      tenantName: tenantData.get(String(row.tenant_id))?.name ?? 'Organización',
+      brandKey: tenantData.get(String(row.tenant_id))?.brandKey ?? 'isivoltpro',
       role: String(row.role),
       status: String(row.estado),
     })),
@@ -98,7 +104,8 @@ async function loadIdentity(session: Session): Promise<Identity> {
 }
 
 function LoadingScreen() {
-  return <main className="auth-loading"><ProductBrand variant="auth" /><span className="auth-loading-status"><LoaderCircle className="spin" size={34} /><strong>Cargando HomeServe Operaciones</strong></span></main>;
+  const brand = useProductBrand();
+  return <main className="auth-loading"><ProductBrand variant="auth" /><span className="auth-loading-status"><LoaderCircle className="spin" size={34} /><strong>Cargando {brand.productName}</strong></span></main>;
 }
 
 function ConfigurationScreen() {
@@ -361,6 +368,11 @@ export default function AuthApp() {
   }, [refreshIdentity]);
 
   useEffect(() => {
+    const membership = identity?.memberships.find((item) => item.tenantId === activeTenantId) ?? identity?.memberships[0];
+    if (membership) setActiveProductBrand(membership.brandKey);
+  }, [activeTenantId, identity]);
+
+  useEffect(() => {
     if (!session || !invitation.token || invitationHandled) return;
     setInvitationHandled(true);
     setMessage('Validando la invitación…');
@@ -411,6 +423,7 @@ export default function AuthApp() {
   const logout = async () => {
     setUsersOpen(false);
     await getSupabaseClient().auth.signOut();
+    resetProductBrandFromRuntime();
   };
 
   if (loading) return <LoadingScreen />;

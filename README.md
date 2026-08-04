@@ -1,52 +1,82 @@
 # IsiVoltPro OT
 
-Gestor profesional de órdenes de trabajo para mantenimiento técnico.
+Gestor profesional de órdenes de trabajo para mantenimiento técnico y primera aplicación operativa del ecosistema IsiVoltPro.
 
-## Objetivo
+## Modelo de producto
 
-Construir una única aplicación web y móvil centrada exclusivamente en el ciclo completo de las órdenes de trabajo:
+Este repositorio contiene **una única aplicación** con dos identidades configurables:
+
+- **IsiVoltPro OT**: producto principal para uso real.
+- **HomeServe OT Demo**: demostración funcional del mismo producto con datos ficticios.
+
+No existen dos desarrollos independientes. Las mejoras de técnicos, órdenes, checklist, fotos, firmas, informes y seguridad se comparten automáticamente. La marca se selecciona por dominio y queda asociada también a la organización mediante `tenants.branding_key`.
+
+Dominios previstos:
+
+- `ot.isivoltpro.es`
+- `demo-homeserve.isivoltpro.es`
+
+## Flujo principal
 
 1. El responsable crea y prepara la OT.
-2. El responsable define el checklist y los requisitos de cierre.
-3. La OT se asigna a un técnico activo.
-4. El técnico acepta, inicia y ejecuta únicamente sus OT.
-5. El técnico registra checklist, observaciones, fotos, mediciones, materiales y firmas.
-6. El técnico envía la OT para revisión.
+2. Define checklist y requisitos de cierre.
+3. Asigna la OT a un técnico activo.
+4. El técnico acepta, inicia y ejecuta sus OT.
+5. Registra checklist, observaciones, fotos, materiales y firma.
+6. Finaliza la intervención y se genera el informe provisional cuando corresponde.
 7. El responsable revisa, solicita correcciones o valida.
-8. El sistema genera y conserva el informe PDF final y la auditoría.
+8. Se genera y conserva el informe final privado, versionado e inmutable.
 
-## Principio del producto
-
-La aplicación tendrá una sola base de datos y dos experiencias claramente separadas:
+## Experiencias de usuario
 
 - **Panel central**: administración, coordinación, asignación, planificación, seguimiento, revisión, informes y usuarios.
-- **Zona técnico**: consulta y ejecución de las OT asignadas, sin acceso a gestión ni a OT de otros técnicos.
+- **Zona técnico**: consulta y ejecución móvil de las OT asignadas, sin acceso a gestión ni a OT de otros técnicos.
 
-No se desarrollará como un gestor genérico de activos, inventario, OCA o mantenimiento completo. Instalaciones, ubicaciones, activos y materiales existirán únicamente como datos auxiliares de una OT.
-
-## Tecnología prevista
+## Tecnología
 
 - React + TypeScript + Vite.
-- Supabase Auth, PostgreSQL, Storage privado y Realtime.
-- Row Level Security como control real de permisos.
-- PWA instalable en móvil.
-- Capacitor para APK cuando la PWA esté estable.
-- jsPDF o generación de PDF en servidor según las pruebas de calidad.
-- Vitest y Playwright para pruebas.
+- Supabase Auth, PostgreSQL, Storage privado y Edge Functions.
+- Row Level Security para aislamiento real por organización.
+- Firma táctil e informes PDF versionados.
+- PWA y futura envoltura Capacitor.
+- Vitest, ESLint, TypeScript y GitHub Actions.
+- Docker multietapa con Nginx para el mini PC.
 
-## Roles iniciales
+## Desarrollo
 
-### Administrador
+```bash
+npm ci
+npm run dev
+```
 
-Control total del sistema, usuarios, configuración, auditoría y todas las OT.
+Variables necesarias:
 
-### Coordinador
+```dotenv
+VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
+```
 
-Crea, asigna, planifica, revisa y valida OT. No administra la infraestructura global del sistema.
+## Calidad
 
-### Técnico
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
 
-Solo puede ver y ejecutar las OT que tiene asignadas. No puede cambiar la definición, prioridad, técnico asignado ni checklist de una OT enviada.
+GitHub Actions valida además la construcción completa de la imagen Docker de producción.
+
+## Mini PC
+
+```bash
+cp .env.example .env
+docker compose build --pull
+docker compose up -d
+curl http://127.0.0.1:8088/healthz
+```
+
+El servicio solo escucha en `127.0.0.1:8088`. Los dos dominios pueden apuntar al mismo contenedor mediante Cloudflare Tunnel. Consulta [`docs/DEPLOY_MINI_PC.md`](docs/DEPLOY_MINI_PC.md).
 
 ## Estados oficiales de OT
 
@@ -59,31 +89,24 @@ Solo puede ver y ejecutar las OT que tiene asignadas. No puede cambiar la defini
 - `VALIDADA`
 - `CANCELADA`
 
-El motivo de bloqueo se guarda aparte: material, acceso, responsable, empresa externa u otro.
-
 ## Documentación principal
 
-- [`CLAUDE.md`](CLAUDE.md): reglas obligatorias para Claude y otros agentes.
-- [`AGENTS.md`](AGENTS.md): normas comunes para cualquier agente de desarrollo.
-- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md): alcance funcional completo.
+- [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md): estado real, validaciones y bloqueos.
+- [`docs/DEPLOY_MINI_PC.md`](docs/DEPLOY_MINI_PC.md): instalación Docker y Cloudflare.
+- [`docs/ECOSYSTEM.md`](docs/ECOSYSTEM.md): visión del ecosistema IsiVoltPro.
+- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md): alcance funcional.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura técnica.
 - [`docs/DATABASE.md`](docs/DATABASE.md): modelo de datos y permisos.
 - [`docs/SECURITY.md`](docs/SECURITY.md): requisitos de seguridad.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md): fases de construcción.
 - [`docs/QA_ACCEPTANCE.md`](docs/QA_ACCEPTANCE.md): pruebas y criterios de aceptación.
-- [`docs/UI_FLOWS.md`](docs/UI_FLOWS.md): pantallas y recorridos.
 
 ## Reglas innegociables
 
 - Ningún permiso crítico depende solo de React.
-- Un técnico no puede leer ni modificar la OT de otro técnico, aunque conozca la URL o el UUID.
+- Un técnico no puede leer ni modificar la OT de otro técnico.
 - Toda OT validada queda inmutable salvo reapertura administrativa auditada.
 - No se puede finalizar una OT con requisitos obligatorios incompletos.
-- Los PDFs nunca se sobrescriben; se versionan.
+- Los informes finales se versionan y almacenan de forma privada.
 - Toda acción crítica queda registrada en auditoría.
-- No se almacenan contraseñas propias ni credenciales demo en el código.
-- No se incluyen logos o marcas de terceros sin autorización.
-
-## Estado actual
-
-Proyecto inicializado. La primera fase consiste en crear el esqueleto React, las migraciones de Supabase y la autenticación con roles antes de desarrollar las pantallas operativas.
+- No se almacenan credenciales privadas en el frontend.
+- HomeServe OT Demo y IsiVoltPro OT comparten código, pero no datos fuera de las políticas RLS.

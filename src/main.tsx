@@ -3,8 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import AuthApp from './AuthApp';
+import { applyProductBrand } from './config/productBrand';
 import './styles/global.css';
 import './styles/product-brand.css';
+import './styles/product-brand-themes.css';
 import './styles/auth.css';
 import './styles/real-data.css';
 import './styles/work-order-create.css';
@@ -21,6 +23,8 @@ import './styles/checklist-templates.css';
 import './styles/installation-gallery.css';
 import './styles/location-map.css';
 import './styles/orders-table-premium.css';
+
+applyProductBrand();
 
 const queryClient = new QueryClient({
   defaultOptions: {

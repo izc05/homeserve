@@ -17,6 +17,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { getSupabaseClient } from '../../../lib/supabase';
 import {
+  INSTALLATION_SECTORS,
+  TECHNICAL_SPECIALTIES,
+  technicalSpecialtyLabel,
+} from '../../../config/technicalCatalog';
+import {
   createAsset,
   createInstallation,
   createWorkOrder,
@@ -55,6 +60,8 @@ const DEFAULT_VALUES: CreateWorkOrderFormValues = {
   description: '',
   clientId: '',
   installationId: '',
+  specialtyKey: 'general',
+  systemId: '',
   locationId: '',
   assetId: '',
   technicianId: '',
@@ -81,7 +88,8 @@ const DEFAULT_VALUES: CreateWorkOrderFormValues = {
 const EMPTY_INSTALLATION_DRAFT = {
   name: '',
   code: '',
-  type: 'fotovoltaica',
+  type: 'general',
+  sector: 'general',
   address: '',
   gps: '',
   mapUrl: '',
@@ -91,7 +99,7 @@ const EMPTY_INSTALLATION_DRAFT = {
 
 const EMPTY_ASSET_DRAFT = {
   name: '',
-  type: 'inversor_fotovoltaico',
+  type: 'equipo_general',
   reference: '',
   criticality: 'media',
 };
@@ -152,12 +160,20 @@ export default function CreateWorkOrderForm({
 
   const clientId = form.watch('clientId');
   const installationId = form.watch('installationId');
+  const specialtyKey = form.watch('specialtyKey');
+  const systemId = form.watch('systemId');
   const locationId = form.watch('locationId');
+  const assetId = form.watch('assetId');
   const catalog = catalogQuery.data;
 
   const installations = useMemo(
     () => catalog?.installations.filter((installation) => installation.clientId === clientId) ?? [],
     [catalog, clientId],
+  );
+
+  const systems = useMemo(
+    () => catalog?.systems.filter((system) => system.installationId === installationId) ?? [],
+    [catalog, installationId],
   );
 
   const locations = useMemo(
@@ -169,6 +185,8 @@ export default function CreateWorkOrderForm({
     const selectedInstallation = catalog?.installations.find((installation) => installation.id === installationId);
     if (selectedInstallation && selectedInstallation.clientId !== clientId) {
       form.setValue('installationId', '', { shouldDirty: true, shouldValidate: true });
+      form.setValue('specialtyKey', 'general', { shouldDirty: true });
+      form.setValue('systemId', '', { shouldDirty: true });
       form.setValue('locationId', '', { shouldDirty: true });
       form.setValue('assetId', '', { shouldDirty: true });
     }
@@ -177,10 +195,25 @@ export default function CreateWorkOrderForm({
   const assets = useMemo(
     () => catalog?.assets.filter((asset) => (
       asset.installationId === installationId
+      && (!systemId || !asset.systemId || asset.systemId === systemId)
       && (!locationId || !asset.locationId || asset.locationId === locationId)
     )) ?? [],
-    [catalog, installationId, locationId],
+    [catalog, installationId, locationId, systemId],
   );
+
+  useEffect(() => {
+    const selectedSystem = catalog?.systems.find((system) => system.id === systemId);
+    if (selectedSystem) {
+      form.setValue('specialtyKey', selectedSystem.specialtyKey, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [catalog, form, systemId]);
+
+  useEffect(() => {
+    const selectedAsset = catalog?.assets.find((asset) => asset.id === assetId);
+    if (selectedAsset?.systemId && selectedAsset.systemId !== systemId) {
+      form.setValue('systemId', selectedAsset.systemId, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [assetId, catalog, form, systemId]);
 
   const quickInstallationMutation = useMutation({
     mutationFn: () => createInstallation(getSupabaseClient(), {
@@ -189,6 +222,7 @@ export default function CreateWorkOrderForm({
       name: installationDraft.name,
       code: installationDraft.code,
       type: installationDraft.type,
+      sector: installationDraft.sector,
       address: installationDraft.address,
       description: buildInstallationDescription(installationDraft),
     }),
@@ -211,6 +245,7 @@ export default function CreateWorkOrderForm({
     mutationFn: () => createAsset(getSupabaseClient(), {
       tenantId,
       installationId,
+      systemId: systemId || null,
       locationId: locationId || null,
       name: assetDraft.name,
       type: assetDraft.type,
@@ -240,6 +275,8 @@ export default function CreateWorkOrderForm({
       const input: CreateWorkOrderInput = {
         tenantId,
         installationId: values.installationId,
+        systemId: values.systemId || null,
+        specialtyKey: values.specialtyKey,
         locationId: values.locationId || null,
         assetId: values.assetId || null,
         technicianId: mode === 'assigned' ? values.technicianId || null : null,
@@ -346,7 +383,7 @@ export default function CreateWorkOrderForm({
         )}
 
         <div className="creation-section-heading">
-          <div><span>+</span><strong>Alta rápida de instalación FV</strong></div>
+          <div><span>+</span><strong>Alta rápida de instalación</strong></div>
           <small>Incluye mapa, localización, foto general y detalles de acceso.</small>
         </div>
 
@@ -361,23 +398,28 @@ export default function CreateWorkOrderForm({
           <label>Nombre instalación
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, name: event.target.value }))}
-              placeholder="Ej. Cubierta FV edificio A"
+              placeholder="Ej. Hospital, nave industrial o edificio A"
               value={installationDraft.name}
             />
           </label>
           <label>Código
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, code: event.target.value }))}
-              placeholder="FV-CUB-001"
+              placeholder="INST-001"
               value={installationDraft.code}
             />
           </label>
-          <label>Tipo
-            <input
-              onChange={(event) => setInstallationDraft((draft) => ({ ...draft, type: event.target.value }))}
-              placeholder="fotovoltaica"
-              value={installationDraft.type}
-            />
+          <label>Sector
+            <select
+              onChange={(event) => setInstallationDraft((draft) => ({
+                ...draft,
+                sector: event.target.value,
+                type: event.target.value,
+              }))}
+              value={installationDraft.sector}
+            >
+              {INSTALLATION_SECTORS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
           </label>
           <label>Dirección / zona
             <input
@@ -400,7 +442,7 @@ export default function CreateWorkOrderForm({
               value={installationDraft.mapUrl}
             />
           </label>
-          <label>Foto instalación completa
+          <label>Foto general de la instalación
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, photoUrl: event.target.value }))}
               placeholder="URL de foto general de la planta"
@@ -430,7 +472,7 @@ export default function CreateWorkOrderForm({
             <input
               disabled={!canCreateAsset}
               onChange={(event) => setAssetDraft((draft) => ({ ...draft, name: event.target.value }))}
-              placeholder="Ej. Inversor FV 50 kW"
+              placeholder="Ej. Cuadro general, bomba o climatizador"
               value={assetDraft.name}
             />
           </label>
@@ -438,7 +480,7 @@ export default function CreateWorkOrderForm({
             <input
               disabled={!canCreateAsset}
               onChange={(event) => setAssetDraft((draft) => ({ ...draft, type: event.target.value }))}
-              placeholder="inversor_fotovoltaico"
+              placeholder="cuadro_electrico, bomba, climatizador..."
               value={assetDraft.type}
             />
           </label>
@@ -446,7 +488,7 @@ export default function CreateWorkOrderForm({
             <input
               disabled={!canCreateAsset}
               onChange={(event) => setAssetDraft((draft) => ({ ...draft, reference: event.target.value }))}
-              placeholder="INV-FV-001"
+              placeholder="EQ-001"
               value={assetDraft.reference}
             />
           </label>
@@ -480,7 +522,7 @@ export default function CreateWorkOrderForm({
 
         <div className="form-grid">
           <label className="full-field">Título
-            <input {...form.register('title')} placeholder="Ej. Revisar inversor FV de cubierta" />
+            <input {...form.register('title')} placeholder="Ej. Revisar cuadro, climatizador o bomba principal" />
             {errors.title && <small className="field-error">{errors.title.message}</small>}
           </label>
 
@@ -493,6 +535,24 @@ export default function CreateWorkOrderForm({
           </label>
 
           {clientId && installations.length === 0 && <p className="read-only-note full-field"><MapPin size={16} /> Este cliente no tiene instalaciones activas. Crea una instalación desde la alta rápida antes de continuar.</p>}
+
+          <label>Especialidad técnica
+            <select {...form.register('specialtyKey')} disabled={Boolean(systemId)}>
+              {(catalog.specialties.length > 0 ? catalog.specialties : TECHNICAL_SPECIALTIES.map((item) => ({ key: item.key, name: item.label, group: item.group }))).map((specialty) => (
+                <option key={specialty.key} value={specialty.key}>{specialty.name}</option>
+              ))}
+            </select>
+            <small>{systemId ? `Definida por el sistema: ${technicalSpecialtyLabel(specialtyKey)}` : 'Clasifica la OT para filtros, técnicos y checklist.'}</small>
+          </label>
+
+          <label>Sistema técnico
+            <select {...form.register('systemId')} disabled={!installationId}>
+              <option value="">Sin sistema concreto</option>
+              {systems.map((system) => <option key={system.id} value={system.id}>{system.code ? `${system.code} · ` : ''}{system.name} · {technicalSpecialtyLabel(system.specialtyKey)}</option>)}
+            </select>
+          </label>
+
+          {installationId && systems.length === 0 && <p className="read-only-note full-field"><Boxes size={16} /> Esta instalación todavía no tiene sistemas técnicos activos. La OT puede guardarse como General.</p>}
 
           <label>Ubicación
             <select {...form.register('locationId')} disabled={!installationId}>
@@ -534,7 +594,7 @@ export default function CreateWorkOrderForm({
           <label>Técnico
             <select {...form.register('technicianId')}>
               <option value="">Sin asignar</option>
-              {catalog.technicians.map((technician) => <option key={technician.id} value={technician.id}>{technician.name}{technician.role === 'tecnico_externo' ? ' · Externo' : ''}</option>)}
+              {catalog.technicians.map((technician) => <option key={technician.id} value={technician.id}>{technician.name}{technician.role === 'tecnico_externo' ? ' · Externo' : ''}{technician.specialtyKeys.includes(specialtyKey) ? ' · Especialidad compatible' : ''}</option>)}
             </select>
           </label>
 

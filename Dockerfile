@@ -1,0 +1,31 @@
+# check=skip=SecretsUsedInArgOrEnv
+# La clave publishable de Supabase es pública por diseño y queda incluida en el bundle del navegador.
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ARG VITE_BASE_PATH=/
+ARG VITE_PRODUCT_BRAND
+
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
+ENV VITE_BASE_PATH=$VITE_BASE_PATH
+ENV VITE_PRODUCT_BRAND=$VITE_PRODUCT_BRAND
+
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY . .
+RUN npm run build
+
+FROM nginx:1.27-alpine
+
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/healthz || exit 1

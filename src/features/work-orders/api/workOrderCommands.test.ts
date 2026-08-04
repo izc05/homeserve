@@ -9,6 +9,8 @@ import {
 const baseInput: CreateWorkOrderInput = {
   tenantId: '11111111-1111-4111-8111-111111111111',
   installationId: '22222222-2222-4222-8222-222222222222',
+  systemId: '44444444-4444-4444-8444-444444444444',
+  specialtyKey: 'electricidad_bt',
   locationId: null,
   assetId: null,
   technicianId: null,
@@ -37,12 +39,14 @@ const baseInput: CreateWorkOrderInput = {
 };
 
 describe('toCreateWorkOrderRpcArgs', () => {
-  it('prepara un borrador sin técnico y normaliza textos', () => {
+  it('prepara un borrador multisector y normaliza textos', () => {
     const args = toCreateWorkOrderRpcArgs(baseInput);
 
     expect(args).toMatchObject({
       tenant_uuid: baseInput.tenantId,
       installation_uuid: baseInput.installationId,
+      system_uuid: baseInput.systemId,
+      specialty_key_text: 'electricidad_bt',
       technician_uuid: null,
       title_text: 'Revisar cuadro principal',
       description_text: 'Comprobar protecciones',
@@ -86,21 +90,24 @@ describe('toCreateWorkOrderRpcArgs', () => {
 });
 
 describe('createWorkOrder', () => {
-  it('conserva el mensaje y código seguros de un error PostgREST plano', async () => {
-    const supabase = {
-      rpc: vi.fn().mockResolvedValue({
-        data: null,
-        error: {
-          code: '42501',
-          details: null,
-          hint: null,
-          message: 'new row violates row-level security policy',
-        },
-      }),
-    } as unknown as SupabaseClient;
+  it('usa la RPC multisector y conserva el mensaje seguro de PostgREST', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        code: '42501',
+        details: null,
+        hint: null,
+        message: 'new row violates row-level security policy',
+      },
+    });
+    const supabase = { rpc } as unknown as SupabaseClient;
 
     await expect(createWorkOrder(supabase, baseInput)).rejects.toThrow(
       'new row violates row-level security policy (42501)',
     );
+    expect(rpc).toHaveBeenCalledWith('create_work_order_v2', expect.objectContaining({
+      system_uuid: baseInput.systemId,
+      specialty_key_text: baseInput.specialtyKey,
+    }));
   });
 });

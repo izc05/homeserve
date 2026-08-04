@@ -1,40 +1,45 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import ProductBrand, { DemoBrandFooter, DEMO_FOOTER_TEXT } from './ProductBrand';
+import { setActiveProductBrand } from '../config/productBrand';
+import ProductBrand, { ProductBrandFooter } from './ProductBrand';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setActiveProductBrand('isivoltpro');
+});
 
 describe('ProductBrand', () => {
-  it('renders the official logo and complete demonstration identity', () => {
+  it('renderiza la identidad accesible de IsiVoltPro OT', () => {
+    setActiveProductBrand('isivoltpro');
     render(<ProductBrand variant="auth" />);
 
-    const logo = screen.getByRole('img', { name: 'HomeServe' });
-    expect(logo.getAttribute('src')).toContain('/brand/homeserve-logo-red.png');
-    expect(logo.getAttribute('width')).toBe('198');
-    expect(logo.getAttribute('height')).toBe('58');
-    expect(screen.getByText('HomeServe Operaciones')).toBeTruthy();
-    expect(screen.getByText('Gestión de órdenes de trabajo')).toBeTruthy();
+    expect(screen.getByRole('group', { name: /IsiVoltPro OT · Gestión profesional/ })).toBeTruthy();
+    expect(screen.getByText('IsiVoltPro OT')).toBeTruthy();
+    expect(screen.getByText('Operaciones')).toBeTruthy();
+    expect(screen.getByText('Una aplicación del ecosistema IsiVoltPro')).toBeTruthy();
+  });
+
+  it('renderiza HomeServe como demostración del mismo producto', () => {
+    setActiveProductBrand('homeserve-demo');
+    render(<ProductBrand variant="inverse" />);
+
+    expect(screen.getByRole('group', { name: /HomeServe OT Demo/ })).toBeTruthy();
+    expect(screen.getByText('HomeServe OT Demo')).toBeTruthy();
     expect(screen.getByText('Demostración')).toBeTruthy();
-    expect(screen.getByText('Desarrollado por IsiVoltPro')).toBeTruthy();
+    expect(screen.getByText('Versión demostrativa basada en IsiVoltPro OT')).toBeTruthy();
   });
 
-  it('keeps an accessible HomeServe fallback when the image cannot load', () => {
-    render(<ProductBrand />);
-
-    fireEvent.error(screen.getByAltText('HomeServe'));
-
-    const fallback = screen.getByRole('img', { name: 'HomeServe' });
-    expect(fallback.tagName).toBe('SPAN');
-    expect(fallback.textContent).toBe('HomeServe');
-    expect(screen.getByRole('group', { name: /HomeServe Operaciones/ })).toBeTruthy();
+  it('mantiene una identidad vectorial propia sin imágenes de terceros', () => {
+    const { container } = render(<ProductBrand variant="inverse" />);
+    expect(container.querySelector('.product-brand--inverse')).toBeTruthy();
+    expect(container.querySelector('img')).toBeNull();
   });
 
-  it('preserves the exact demonstration footer', () => {
-    render(<DemoBrandFooter className="test-footer" />);
-    expect(screen.getByText(DEMO_FOOTER_TEXT).textContent).toBe(
-      'Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro',
-    );
+  it('adapta el pie a la marca activa', () => {
+    setActiveProductBrand('homeserve-demo');
+    render(<ProductBrandFooter className="test-footer" />);
+    expect(screen.getByText('HomeServe OT Demo · Demostración creada con IsiVoltPro OT')).toBeTruthy();
   });
 });

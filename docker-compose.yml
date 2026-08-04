@@ -1,0 +1,18 @@
+services:
+  isivoltpro-ot:
+    container_name: isivoltpro-ot
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_BASE_PATH: /
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

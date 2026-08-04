@@ -99,7 +99,7 @@ describe('ficha administrativa premium de OT', () => {
     expect(screen.getByText('En curso')).toBeTruthy();
     expect(screen.getByText('Media')).toBeTruthy();
     expect(screen.getAllByText('Completar ejecución').length).toBeGreaterThan(0);
-    expect(screen.getByText('Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro')).toBeTruthy();
+    expect(screen.getByText('IsiVoltPro OT · Parte del ecosistema IsiVoltPro')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Registrar avance/i })).toBeNull();
   });
 

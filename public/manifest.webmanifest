@@ -1,18 +1,18 @@
 {
-  "name": "HomeServe Operaciones · Gestión de órdenes de trabajo",
-  "short_name": "HomeServe Operaciones",
-  "description": "Propuesta demostrativa para la gestión de órdenes de trabajo, técnicos, instalaciones y mantenimiento.",
-  "start_url": "/homeserve/",
-  "scope": "/homeserve/",
+  "name": "IsiVoltPro OT · Gestión de órdenes de trabajo",
+  "short_name": "IsiVoltPro OT",
+  "description": "Gestión profesional de órdenes de trabajo, técnicos, clientes, instalaciones e informes de mantenimiento.",
+  "start_url": "/isivoltpro-ot/",
+  "scope": "/isivoltpro-ot/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#18212f",
+  "background_color": "#f5f7fa",
+  "theme_color": "#172033",
   "lang": "es",
   "orientation": "portrait-primary",
   "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/homeserve/icon.svg",
+      "src": "/isivoltpro-ot/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

@@ -1,11 +1,24 @@
 name: Quality
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
+    name: Typecheck, lint, test, build and container
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -13,16 +26,39 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
 
-      - name: Install
-        run: npm install --no-audit --no-fund
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
 
       - name: Test
         run: npm test -- --passWithNoTests
 
       - name: Build
         run: npm run build
+
+      - name: Validate mini PC deployment
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+        run: |
+          bash -n scripts/mini-pc.sh
+          docker compose config --quiet
+          grep -q '127.0.0.1:8088:80' docker-compose.yml
+          grep -q 'demo-homeserve.isivoltpro.es' deploy/cloudflared-config.yml.example
+
+      - name: Build production container
+        run: |
+          docker build \
+            --build-arg VITE_SUPABASE_URL=https://example.supabase.co \
+            --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder \
+            --build-arg VITE_BASE_PATH=/ \
+            --tag isivoltpro-ot:ci \
+            .

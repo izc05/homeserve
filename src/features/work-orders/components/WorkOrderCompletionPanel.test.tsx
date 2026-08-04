@@ -34,6 +34,14 @@ vi.mock('../api/workOrderLifecycle', async (importOriginal) => {
   return { ...actual, finalizeActiveWorkOrderVisit: mocks.finalize };
 });
 
+vi.mock('./TechnicianSignaturePanel', () => ({
+  default: () => <div data-testid="technician-signature-panel" />,
+}));
+
+vi.mock('./WorkOrderReportsPanel', () => ({
+  default: () => <div data-testid="work-order-reports-panel" />,
+}));
+
 const order: WorkOrderListItem = {
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   tenantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -130,15 +138,28 @@ describe('finalización guiada de OT', () => {
     expect(await screen.findByText(/Intervención finalizada y enviada/)).toBeTruthy();
   });
 
-  it('mantiene bloqueado el cierre cuando falta una evidencia requerida', async () => {
+  it('mantiene bloqueado el cierre cuando falta una evidencia previa', async () => {
     mocks.listPhotos.mockResolvedValue([photos[0]]);
     render(<WorkOrderCompletionPanel order={order} canComplete client={{} as never} />, { wrapper: wrapper() });
 
-    expect(await screen.findByText(/Pendiente: fotografías finales/)).toBeTruthy();
+    expect(await screen.findByText(/Pendiente antes de finalizar: fotografías finales/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/Resumen del trabajo/), { target: { value: 'Trabajo realizado' } });
     fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que el resumen/ }));
     expect((screen.getByRole('button', { name: 'Finalizar intervención' }) as HTMLButtonElement).disabled).toBe(true);
     expect(mocks.finalize).not.toHaveBeenCalled();
+  });
+
+  it('permite finalizar cuando solo queda generar el informe posterior', async () => {
+    const reportOrder = { ...order, requirements: { ...order.requirements, report: true } };
+    render(<WorkOrderCompletionPanel order={reportOrder} canComplete client={{} as never} />, { wrapper: wrapper() });
+
+    expect(await screen.findByText(/Después del cierre: informe técnico/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Resumen del trabajo/), { target: { value: 'Trabajo realizado y comprobado' } });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que el resumen/ }));
+    const button = screen.getByRole('button', { name: 'Finalizar intervención' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    fireEvent.click(button);
+    await waitFor(() => expect(mocks.finalize).toHaveBeenCalledTimes(1));
   });
 
   it('muestra un error seguro sin filtrar detalles inesperados', () => {
@@ -159,6 +180,7 @@ describe('finalización guiada de OT', () => {
     });
     const first = render(<WorkOrderVisitSummaryPanel workOrderId={order.id} displayDate={(value) => value || 'Sin fecha'} client={{} as never} />, { wrapper: wrapper() });
     expect(await screen.findByText('Ajuste y prueba realizados')).toBeTruthy();
+    expect(screen.getByTestId('work-order-reports-panel')).toBeTruthy();
     first.unmount();
 
     mocks.loadSupport.mockResolvedValueOnce({ technicianSignatures: 0, responsibleSignatures: 0, reports: 0, latestVisit: null });
@@ -166,11 +188,14 @@ describe('finalización guiada de OT', () => {
     expect(await screen.findByText('Sin resumen técnico')).toBeTruthy();
   });
 
-  it('presenta las funciones P2 requeridas como pendientes, no completadas', async () => {
+  it('presenta firma e informe como funciones disponibles', async () => {
     render(<WorkOrderCompletionPanel order={{ ...order, requirements: { ...order.requirements, technicianSignature: true, report: true } }} canComplete client={{} as never} />, { wrapper: wrapper() });
     await screen.findByText('1 de 1 puntos completados');
-    expect(await screen.findAllByText('No se puede registrar desde esta versión.')).toHaveLength(2);
-    expect(screen.getByText('Firma del técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente');
-    expect(screen.getByText('Informe técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente');
+
+    expect(screen.getByTestId('technician-signature-panel')).toBeTruthy();
+    expect(screen.getByTestId('work-order-reports-panel')).toBeTruthy();
+    expect(screen.queryByText('No se puede registrar desde esta versión.')).toBeNull();
+    expect(screen.getByText('Firma del técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente de firma');
+    expect(screen.getByText('Informe técnico').closest('.completion-requirement')?.textContent).toContain('Después del cierre');
   });
 });

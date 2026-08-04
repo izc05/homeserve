@@ -1,49 +1,43 @@
-import { useState } from 'react';
-
-export const DEMO_FOOTER_TEXT = 'Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro';
+import { House, Zap } from 'lucide-react';
+import { useProductBrand } from '../config/productBrand';
 
 type ProductBrandProps = {
   className?: string;
   variant?: 'auth' | 'navigation' | 'compact' | 'inverse';
 };
 
-const logoSource = `${import.meta.env.BASE_URL}brand/homeserve-logo-red.png`;
-
 export default function ProductBrand({ className = '', variant = 'navigation' }: ProductBrandProps) {
-  const [logoFailed, setLogoFailed] = useState(false);
+  const brand = useProductBrand();
+  const Symbol = brand.icon === 'home' ? House : Zap;
 
   return (
     <div
-      aria-label="HomeServe Operaciones · Gestión de órdenes de trabajo · Demostración"
+      aria-label={brand.ariaLabel}
       className={`product-brand product-brand--${variant} ${className}`.trim()}
+      data-brand={brand.key}
       role="group"
     >
-      <span className="product-brand-logo-frame">
-        {logoFailed ? (
-          <span aria-label="HomeServe" className="product-brand-logo-fallback" role="img">HomeServe</span>
-        ) : (
-          <img
-            alt="HomeServe"
-            decoding="async"
-            height="58"
-            onError={() => setLogoFailed(true)}
-            src={logoSource}
-            width="198"
-          />
-        )}
+      <span className="product-brand-logo-frame" aria-hidden="true">
+        <span className="product-brand-symbol"><Symbol fill={brand.icon === 'zap' ? 'currentColor' : 'none'} size={22} /></span>
+        <span className="product-brand-wordmark">
+          {brand.wordmarkStart}<span>{brand.wordmarkAccent}</span>{brand.wordmarkEnd}
+        </span>
       </span>
       <span className="product-brand-copy">
         <span className="product-brand-title-row">
-          <strong>HomeServe Operaciones</strong>
-          <span className="product-brand-demo">Demostración</span>
+          <strong>{brand.productName}</strong>
+          <span className="product-brand-demo">{brand.badge}</span>
         </span>
-        <span className="product-brand-descriptor">Gestión de órdenes de trabajo</span>
-        <small>Desarrollado por IsiVoltPro</small>
+        <span className="product-brand-descriptor">{brand.descriptor}</span>
+        <small>{brand.supportingText}</small>
       </span>
     </div>
   );
 }
 
-export function DemoBrandFooter({ className = '' }: { className?: string }) {
-  return <footer className={className}>{DEMO_FOOTER_TEXT}</footer>;
+export function ProductBrandFooter({ className = '' }: { className?: string }) {
+  const brand = useProductBrand();
+  return <footer className={className}>{brand.footerText}</footer>;
 }
+
+export const DemoBrandFooter = ProductBrandFooter;

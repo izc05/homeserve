@@ -34,7 +34,7 @@ export type CompletionRequirement = {
 };
 
 type SignatureRow = { tipo?: string | null };
-type ReportRow = { path?: string | null };
+type ReportRow = { path?: string | null; estado?: string | null };
 type VisitRow = {
   id?: string;
   ot_id?: string;
@@ -88,7 +88,7 @@ export async function loadWorkOrderCompletionSupport(
   requireUuid(workOrderId);
   const [signaturesResult, reportsResult, visitsResult] = await Promise.all([
     supabase.from('ot_firmas').select('tipo').eq('ot_id', workOrderId),
-    supabase.from('ot_informes').select('path').eq('ot_id', workOrderId),
+    supabase.from('ot_informes').select('path,estado').eq('ot_id', workOrderId),
     supabase
       .from('ot_visitas')
       .select('id,ot_id,tecnico_id,estado,fecha_inicio,fecha_fin,trabajo_realizado,diagnostico,pruebas_realizadas,recomendaciones,trabajo_pendiente')
@@ -107,7 +107,7 @@ export async function loadWorkOrderCompletionSupport(
   return {
     technicianSignatures: signatures.filter((row) => row.tipo === 'tecnico').length,
     responsibleSignatures: signatures.filter((row) => row.tipo === 'responsable').length,
-    reports: reports.filter((row) => Boolean(row.path?.trim())).length,
+    reports: reports.filter((row) => row.estado === 'listo' && Boolean(row.path?.trim())).length,
     latestVisit: mapVisit(visits[0]),
   };
 }
@@ -198,8 +198,8 @@ export function evaluateCompletionRequirements(
       label: 'Firma del técnico',
       required: requirements.technicianSignature,
       complete: support.technicianSignatures > 0,
-      available: support.technicianSignatures > 0,
-      detail: support.technicianSignatures > 0 ? 'Registrada' : 'No disponible en esta versión',
+      available: true,
+      detail: support.technicianSignatures > 0 ? 'Registrada' : 'Pendiente de firma',
     },
     {
       id: 'responsible-signature',
@@ -214,8 +214,8 @@ export function evaluateCompletionRequirements(
       label: 'Informe técnico',
       required: requirements.report,
       complete: support.reports > 0,
-      available: support.reports > 0,
-      detail: support.reports > 0 ? `${support.reports} registrado${support.reports === 1 ? '' : 's'}` : 'No disponible en esta versión',
+      available: true,
+      detail: support.reports > 0 ? `${support.reports} registrado${support.reports === 1 ? '' : 's'}` : 'Pendiente de generación',
     },
   ];
 }
