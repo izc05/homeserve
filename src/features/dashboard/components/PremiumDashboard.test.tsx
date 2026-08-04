@@ -133,6 +133,6 @@ describe('dashboard administrativo premium', () => {
     expect(screen.getByText('Sin órdenes visibles')).toBeTruthy();
     expect(screen.getByText('Sin carga asignada')).toBeTruthy();
     expect(screen.getByText('Sin próximas OT')).toBeTruthy();
-    expect(screen.getByText('Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro')).toBeTruthy();
+    expect(screen.getByText('IsiVoltPro OT · Parte del ecosistema IsiVoltPro')).toBeTruthy();
   });
 });
