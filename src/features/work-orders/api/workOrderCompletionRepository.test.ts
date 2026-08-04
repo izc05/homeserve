@@ -106,10 +106,10 @@ describe('evaluación de requisitos de finalización', () => {
     expect(result.every((item) => !item.required)).toBe(true);
     expect(result.find((item) => item.id === 'checklist')?.complete).toBe(false);
     expect(result.find((item) => item.id === 'initial-photos')?.complete).toBe(false);
-    expect(result.find((item) => item.id === 'report')?.detail).toBe('No disponible en esta versión');
+    expect(result.find((item) => item.id === 'report')?.detail).toBe('Pendiente de generación');
   });
 
-  it('distingue la firma disponible de los requisitos todavía no implementados', () => {
+  it('distingue funciones disponibles de la firma responsable pendiente', () => {
     const p2Requirements = {
       ...requirements,
       checklist: false,
@@ -133,6 +133,8 @@ describe('evaluación de requisitos de finalización', () => {
     ]);
     expect(pending.find((item) => item.id === 'technician-signature')?.available).toBe(true);
     expect(pending.find((item) => item.id === 'technician-signature')?.detail).toBe('Pendiente de firma');
-    expect(pending.filter((item) => item.id !== 'technician-signature').every((item) => !item.available)).toBe(true);
+    expect(pending.find((item) => item.id === 'report')?.available).toBe(true);
+    expect(pending.find((item) => item.id === 'report')?.detail).toBe('Pendiente de generación');
+    expect(pending.find((item) => item.id === 'responsible-signature')?.available).toBe(false);
   });
 });
