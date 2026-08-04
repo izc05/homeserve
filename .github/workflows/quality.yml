@@ -15,9 +15,9 @@ concurrency:
 
 jobs:
   validate:
-    name: Typecheck, lint, test and build
+    name: Typecheck, lint, test, build and container
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -43,3 +43,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build production container
+        run: |
+          docker build \
+            --build-arg VITE_SUPABASE_URL=https://example.supabase.co \
+            --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder \
+            --build-arg VITE_BASE_PATH=/ \
+            --tag isivoltpro-ot:ci \
+            .
