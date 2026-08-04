@@ -1,0 +1,11 @@
+# Copiar como ~/.cloudflared/config.yml únicamente para un túnel gestionado localmente.
+# Sustituir TUNNEL_UUID, USUARIO y la ruta del archivo de credenciales.
+tunnel: TUNNEL_UUID
+credentials-file: /home/USUARIO/.cloudflared/TUNNEL_UUID.json
+
+ingress:
+  - hostname: ot.isivoltpro.es
+    service: http://localhost:8088
+  - hostname: demo-homeserve.isivoltpro.es
+    service: http://localhost:8088
+  - service: http_status:404
