@@ -30,6 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Reject visible legacy branding
+        run: |
+          set -euo pipefail
+          if grep -RIn --exclude='*.map' --exclude-dir='node_modules' --exclude-dir='dist' 'HomeServe' index.html demo.html public src; then
+            echo '::error::Se ha encontrado una referencia visible de la identidad anterior.'
+            exit 1
+          fi
+
       - name: Typecheck
         run: npm run typecheck
 
