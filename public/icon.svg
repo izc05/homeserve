@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="IsiVoltPro FV">
-  <rect width="512" height="512" rx="112" fill="#18212f"/>
-  <path d="M284 46 112 292h126l-30 174 188-272H268l16-148Z" fill="#facc15"/>
-  <path d="M104 370h304" stroke="#38bdf8" stroke-width="28" stroke-linecap="round"/>
-  <path d="M138 420h236" stroke="#22c55e" stroke-width="24" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="IsiVoltPro OT">
+  <rect width="512" height="512" rx="116" fill="#071a33"/>
+  <path d="M291 54 135 292h110l-25 166 173-268H281L291 54Z" fill="#ef2636"/>
+  <circle cx="376" cy="116" r="37" fill="#fff" opacity=".96"/>
 </svg>
