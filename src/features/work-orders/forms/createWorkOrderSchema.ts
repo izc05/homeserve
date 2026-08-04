@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TECHNICAL_SPECIALTY_KEYS } from '../../../config/technicalCatalog';
 import {
   WORK_ORDER_PRIORITIES,
   WORK_ORDER_TYPES,
@@ -22,6 +23,8 @@ export const createWorkOrderSchema = z
     description: z.string().max(8000).optional().default(''),
     clientId: z.string().uuid('Selecciona un cliente'),
     installationId: z.string().uuid('Selecciona una instalación'),
+    specialtyKey: z.enum(TECHNICAL_SPECIALTY_KEYS).default('general'),
+    systemId: optionalUuid.default(''),
     locationId: optionalUuid.default(''),
     assetId: optionalUuid.default(''),
     technicianId: optionalUuid.default(''),
