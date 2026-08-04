@@ -67,3 +67,12 @@ Las plantillas de checklist también quedan clasificadas por especialidad para o
 - La nueva creación utiliza `create_work_order_v2`.
 - RLS mantiene el aislamiento entre organizaciones.
 - HomeServe OT Demo e IsiVoltPro OT comparten este mismo modelo funcional.
+
+## Estado de implantación
+
+- Esquema multisector aplicado en Supabase.
+- Catálogo de especialidades centralizado en base de datos y frontend.
+- Un sistema general creado para cada instalación existente.
+- Formulario de OT preparado para especialidad, sistema y activo compatible.
+- Técnicos preparados para varias especialidades.
+- Datos y documentos históricos conservados sin alterar OT inmutables.
