@@ -6,6 +6,7 @@ import AuthApp from './AuthApp';
 import './styles/global.css';
 import './styles/product-brand.css';
 import './styles/auth.css';
+import './styles/auth-ecosystem.css';
 import './styles/real-data.css';
 import './styles/work-order-create.css';
 import './styles/ui-polish.css';
