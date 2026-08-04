@@ -1,3 +1,5 @@
+# check=skip=SecretsUsedInArgOrEnv
+# La clave publishable de Supabase es pública por diseño y queda incluida en el bundle del navegador.
 FROM node:22-alpine AS build
 
 WORKDIR /app
