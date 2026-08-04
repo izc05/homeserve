@@ -28,6 +28,8 @@ export type WorkOrderReport = {
 
 export type WorkOrderReportCapabilities = {
   workOrderStatus: string;
+  reportRequired: boolean;
+  provisionalReportExists: boolean;
   canGenerateProvisional: boolean;
   canGenerateFinal: boolean;
   finalReportExists: boolean;
@@ -55,6 +57,8 @@ type ReportRow = {
 
 type CapabilityRow = {
   work_order_status?: string;
+  report_required?: boolean;
+  provisional_report_exists?: boolean;
   can_generate_provisional?: boolean;
   can_generate_final?: boolean;
   final_report_exists?: boolean;
@@ -118,6 +122,8 @@ export async function loadWorkOrderReportCapabilities(
   const row = (data ?? {}) as CapabilityRow;
   return {
     workOrderStatus: String(row.work_order_status || ''),
+    reportRequired: Boolean(row.report_required),
+    provisionalReportExists: Boolean(row.provisional_report_exists),
     canGenerateProvisional: Boolean(row.can_generate_provisional),
     canGenerateFinal: Boolean(row.can_generate_final),
     finalReportExists: Boolean(row.final_report_exists),
