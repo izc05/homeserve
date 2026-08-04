@@ -138,15 +138,28 @@ describe('finalización guiada de OT', () => {
     expect(await screen.findByText(/Intervención finalizada y enviada/)).toBeTruthy();
   });
 
-  it('mantiene bloqueado el cierre cuando falta una evidencia requerida', async () => {
+  it('mantiene bloqueado el cierre cuando falta una evidencia previa', async () => {
     mocks.listPhotos.mockResolvedValue([photos[0]]);
     render(<WorkOrderCompletionPanel order={order} canComplete client={{} as never} />, { wrapper: wrapper() });
 
-    expect(await screen.findByText(/Pendiente: fotografías finales/)).toBeTruthy();
+    expect(await screen.findByText(/Pendiente antes de finalizar: fotografías finales/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/Resumen del trabajo/), { target: { value: 'Trabajo realizado' } });
     fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que el resumen/ }));
     expect((screen.getByRole('button', { name: 'Finalizar intervención' }) as HTMLButtonElement).disabled).toBe(true);
     expect(mocks.finalize).not.toHaveBeenCalled();
+  });
+
+  it('permite finalizar cuando solo queda generar el informe posterior', async () => {
+    const reportOrder = { ...order, requirements: { ...order.requirements, report: true } };
+    render(<WorkOrderCompletionPanel order={reportOrder} canComplete client={{} as never} />, { wrapper: wrapper() });
+
+    expect(await screen.findByText(/Después del cierre: informe técnico/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Resumen del trabajo/), { target: { value: 'Trabajo realizado y comprobado' } });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que el resumen/ }));
+    const button = screen.getByRole('button', { name: 'Finalizar intervención' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    fireEvent.click(button);
+    await waitFor(() => expect(mocks.finalize).toHaveBeenCalledTimes(1));
   });
 
   it('muestra un error seguro sin filtrar detalles inesperados', () => {
@@ -183,6 +196,6 @@ describe('finalización guiada de OT', () => {
     expect(screen.getByTestId('work-order-reports-panel')).toBeTruthy();
     expect(screen.queryByText('No se puede registrar desde esta versión.')).toBeNull();
     expect(screen.getByText('Firma del técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente de firma');
-    expect(screen.getByText('Informe técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente de generación');
+    expect(screen.getByText('Informe técnico').closest('.completion-requirement')?.textContent).toContain('Después del cierre');
   });
 });
