@@ -1,0 +1,22 @@
+:root {
+  --brand: #ef2636;
+  --brand-dark: #c7192a;
+  --brand-soft: #fff0f2;
+  --navy: #071a33;
+  --navy-soft: #173858;
+  --auth-red: #ef2636;
+  --auth-red-dark: #c7192a;
+  --auth-navy: #071a33;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-color: rgba(239, 38, 54, .24);
+}
+
+.sidebar::before {
+  background: linear-gradient(180deg, #ff5b67 0%, #ef2636 48%, #b81424 100%);
+}

@@ -18,10 +18,10 @@ import {
   UserPlus,
   UserRound,
   UsersRound,
-  Wrench,
   X,
 } from 'lucide-react';
 import App from './App';
+import AuthEcosystemVisual from './components/AuthEcosystemVisual';
 import ProductBrand, { DemoBrandFooter } from './components/ProductBrand';
 import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
 
@@ -98,15 +98,42 @@ async function loadIdentity(session: Session): Promise<Identity> {
 }
 
 function LoadingScreen() {
-  return <main className="auth-loading"><ProductBrand variant="auth" /><span className="auth-loading-status"><LoaderCircle className="spin" size={34} /><strong>Cargando HomeServe Operaciones</strong></span></main>;
+  return (
+    <main className="auth-loading">
+      <ProductBrand variant="auth" />
+      <span className="auth-loading-status">
+        <LoaderCircle className="spin" size={34} />
+        <strong>Cargando IsiVoltPro OT</strong>
+      </span>
+    </main>
+  );
 }
 
 function ConfigurationScreen() {
-  return <main className="auth-page"><section className="auth-card auth-message-card"><ProductBrand variant="auth" /><AlertTriangle size={34} /><h1>Falta configurar Supabase</h1><p>Añade las variables <code>VITE_SUPABASE_URL</code> y <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> para activar el acceso real.</p></section></main>;
+  return (
+    <main className="auth-page">
+      <section className="auth-card auth-message-card">
+        <ProductBrand variant="auth" />
+        <AlertTriangle size={34} />
+        <h1>Falta configurar Supabase</h1>
+        <p>Añade las variables <code>VITE_SUPABASE_URL</code> y <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> para activar el acceso real.</p>
+      </section>
+    </main>
+  );
 }
 
 function NoOrganisationScreen({ name, logout }: { name: string; logout: () => void }) {
-  return <main className="auth-page"><section className="auth-card auth-message-card"><ProductBrand variant="auth" /><Building2 size={36} /><h1>Hola, {name}</h1><p>Tu cuenta está autenticada, pero todavía no tiene una organización activa. Un administrador debe completar la invitación o reactivar tu membresía.</p><button className="secondary-button" onClick={logout} type="button"><LogOut size={17} /> Cerrar sesión</button></section></main>;
+  return (
+    <main className="auth-page">
+      <section className="auth-card auth-message-card">
+        <ProductBrand variant="auth" />
+        <Building2 size={36} />
+        <h1>Hola, {name}</h1>
+        <p>Tu cuenta está autenticada, pero todavía no tiene una organización activa. Un administrador debe completar la invitación o reactivar tu membresía.</p>
+        <button className="secondary-button" onClick={logout} type="button"><LogOut size={17} /> Cerrar sesión</button>
+      </section>
+    </main>
+  );
 }
 
 function AccessScreen({
@@ -131,6 +158,7 @@ function AccessScreen({
   const [email, setEmail] = useState(invitationEmail);
   const [password, setPassword] = useState('');
   const [inviteMode, setInviteMode] = useState(hasInvitation);
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (inviteMode) void onSignUp(email, password);
@@ -142,20 +170,33 @@ function AccessScreen({
       <section className="auth-card">
         <div className="auth-form-panel">
           <ProductBrand variant="auth" />
-          <div className="auth-copy"><span className="section-kicker">{inviteMode ? 'Invitación de acceso' : 'Acceso profesional'}</span><h1>{inviteMode ? 'Crea tu cuenta de trabajo' : 'Todo el mantenimiento bajo control'}</h1><p>{inviteMode ? 'Esta alta está vinculada a una invitación emitida por un administrador.' : 'Accede con tu cuenta de administrador, coordinador o técnico.'}</p></div>
+          <div className="auth-copy">
+            <span className="section-kicker">{inviteMode ? 'Invitación de acceso' : 'Acceso profesional'}</span>
+            <h1>{inviteMode ? 'Crea tu cuenta de trabajo' : 'Todo el mantenimiento bajo control'}</h1>
+            <p>{inviteMode ? 'Esta alta está vinculada a una invitación emitida por un administrador.' : 'Accede con tu cuenta de administrador, coordinador o técnico.'}</p>
+          </div>
           <form className="auth-form" onSubmit={submit}>
-            <label>Correo electrónico<span className="auth-input"><Mail size={18} /><input autoComplete="email" disabled={hasInvitation} onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></span></label>
-            <label>Contraseña<span className="auth-input"><KeyRound size={18} /><input autoComplete={inviteMode ? 'new-password' : 'current-password'} minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></span></label>
+            <label>
+              Correo electrónico
+              <span className="auth-input"><Mail size={18} /><input autoComplete="email" disabled={hasInvitation} onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></span>
+            </label>
+            <label>
+              Contraseña
+              <span className="auth-input"><KeyRound size={18} /><input autoComplete={inviteMode ? 'new-password' : 'current-password'} minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></span>
+            </label>
             {error && <p className="auth-feedback error">{error}</p>}
             {message && <p className="auth-feedback success">{message}</p>}
-            <button className="primary-button auth-submit" disabled={busy} type="submit">{busy && <LoaderCircle className="spin" size={18} />}{inviteMode ? 'Crear cuenta' : 'Iniciar sesión'}</button>
+            <button className="primary-button auth-submit" disabled={busy} type="submit">
+              {busy && <LoaderCircle className="spin" size={18} />}
+              {inviteMode ? 'Crear cuenta' : 'Iniciar sesión'}
+            </button>
           </form>
           {!inviteMode && <button className="text-link auth-reset" disabled={!email || busy} onClick={() => void onReset(email)} type="button">¿Has olvidado tu contraseña?</button>}
           {hasInvitation && <button className="secondary-button auth-mode-toggle" onClick={() => setInviteMode((value) => !value)} type="button">{inviteMode ? 'Ya tengo una cuenta' : 'Crear cuenta con la invitación'}</button>}
           <p className="auth-disclaimer">El alta de administradores no es pública. Solo puede iniciarla otro administrador autorizado.</p>
           <DemoBrandFooter className="auth-brand-footer" />
         </div>
-        <div className="auth-visual" aria-hidden="true"><div className="auth-grid" /><div className="auth-visual-copy"><span><Wrench size={22} /></span><strong>Trabajo técnico, información clara.</strong><small>Planifica, ejecuta, documenta y valida cada intervención.</small></div></div>
+        <AuthEcosystemVisual />
       </section>
     </main>
   );
@@ -163,7 +204,21 @@ function AccessScreen({
 
 function RecoveryScreen({ busy, error, onSave }: { busy: boolean; error: string; onSave: (password: string) => Promise<void> }) {
   const [password, setPassword] = useState('');
-  return <main className="auth-page"><section className="auth-card auth-message-card"><ProductBrand variant="auth" /><ShieldCheck size={36} /><h1>Define una contraseña nueva</h1><form className="auth-form recovery-form" onSubmit={(event) => { event.preventDefault(); void onSave(password); }}><label>Nueva contraseña<span className="auth-input"><KeyRound size={18} /><input minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></span></label>{error && <p className="auth-feedback error">{error}</p>}<button className="primary-button auth-submit" disabled={busy} type="submit">Guardar contraseña</button></form></section></main>;
+  return (
+    <main className="auth-page">
+      <section className="auth-card auth-message-card">
+        <ProductBrand variant="auth" />
+        <ShieldCheck size={36} />
+        <h1>Define una contraseña nueva</h1>
+        <p>Actualiza la contraseña de acceso a IsiVoltPro OT.</p>
+        <form className="auth-form recovery-form" onSubmit={(event) => { event.preventDefault(); void onSave(password); }}>
+          <label>Nueva contraseña<span className="auth-input"><KeyRound size={18} /><input minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></span></label>
+          {error && <p className="auth-feedback error">{error}</p>}
+          <button className="primary-button auth-submit" disabled={busy} type="submit">Guardar contraseña</button>
+        </form>
+      </section>
+    </main>
+  );
 }
 
 function AccountDock({
@@ -194,7 +249,15 @@ function AccountDock({
         <div className="account-dock-panel">
           <div className="account-dock-context">
             <div className="account-identity"><strong>{identity.name}</strong><small>{role}</small></div>
-            {identity.memberships.length > 1 ? <label className="tenant-select"><Building2 aria-hidden="true" size={15} /><select aria-label="Organización activa" onChange={(event) => onTenantChange(event.target.value)} value={activeTenantId}>{identity.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select><ChevronDown aria-hidden="true" size={15} /></label> : <span className="single-tenant"><Building2 aria-hidden="true" size={15} /> {membership?.tenantName ?? 'Sin organización'}</span>}
+            {identity.memberships.length > 1 ? (
+              <label className="tenant-select">
+                <Building2 aria-hidden="true" size={15} />
+                <select aria-label="Organización activa" onChange={(event) => onTenantChange(event.target.value)} value={activeTenantId}>
+                  {identity.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}
+                </select>
+                <ChevronDown aria-hidden="true" size={15} />
+              </label>
+            ) : <span className="single-tenant"><Building2 aria-hidden="true" size={15} /> {membership?.tenantName ?? 'Sin organización'}</span>}
           </div>
           <div className="account-dock-actions">
             {canManageUsers(membership?.role) && <button className="dock-button" onClick={onUsers} type="button"><UsersRound aria-hidden="true" size={17} /> Usuarios</button>}
@@ -239,8 +302,22 @@ function UserManagement({ tenantId, tenantName, onClose }: { tenantId: string; t
         for (const profile of profiles ?? []) profileMap.set(String(profile.id), { name: String(profile.nombre || 'Usuario'), email: String(profile.email || '') });
       }
 
-      setMembers((memberRows ?? []).map((row) => ({ id: String(row.id), userId: String(row.user_id), name: profileMap.get(String(row.user_id))?.name ?? 'Usuario', email: profileMap.get(String(row.user_id))?.email ?? '', role: String(row.role), status: String(row.estado) })));
-      setInvitations((inviteRows ?? []).map((row) => ({ id: String(row.id), name: String(row.nombre || 'Invitación'), email: String(row.email), role: String(row.role), status: String(row.estado || 'pendiente'), expiresAt: String(row.expires_at) })));
+      setMembers((memberRows ?? []).map((row) => ({
+        id: String(row.id),
+        userId: String(row.user_id),
+        name: profileMap.get(String(row.user_id))?.name ?? 'Usuario',
+        email: profileMap.get(String(row.user_id))?.email ?? '',
+        role: String(row.role),
+        status: String(row.estado),
+      })));
+      setInvitations((inviteRows ?? []).map((row) => ({
+        id: String(row.id),
+        name: String(row.nombre || 'Invitación'),
+        email: String(row.email),
+        role: String(row.role),
+        status: String(row.estado || 'pendiente'),
+        expiresAt: String(row.expires_at),
+      })));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No se pudo cargar la gestión de usuarios.');
     } finally {
@@ -291,7 +368,10 @@ function UserManagement({ tenantId, tenantName, onClose }: { tenantId: string; t
   return (
     <div className="users-modal-backdrop" role="presentation">
       <section className="users-modal" role="dialog" aria-modal="true" aria-label="Gestión de usuarios">
-        <header className="users-modal-header"><div><span className="section-kicker">Administración</span><h1>Usuarios y accesos</h1><p>{tenantName}</p></div><button className="icon-button" onClick={onClose} type="button"><X size={21} /></button></header>
+        <header className="users-modal-header">
+          <div><span className="section-kicker">Administración</span><h1>Usuarios y accesos</h1><p>{tenantName}</p></div>
+          <button className="icon-button" onClick={onClose} type="button"><X size={21} /></button>
+        </header>
         <div className="users-modal-body">
           <article className="panel invite-panel">
             <div className="panel-heading"><div><h2>Invitar usuario</h2><p>Crea un acceso controlado para esta organización.</p></div><UserPlus size={24} /></div>
@@ -307,8 +387,14 @@ function UserManagement({ tenantId, tenantName, onClose }: { tenantId: string; t
           </article>
           <div className="users-data-column">
             {error && <p className="auth-feedback error">{error}</p>}
-            <article className="panel members-panel"><div className="panel-heading"><div><h2>Miembros activos</h2><p>{members.length} usuarios vinculados</p></div><button className="icon-button" onClick={() => void load()} type="button"><RefreshCw size={18} /></button></div>{loading ? <div className="inline-loading"><LoaderCircle className="spin" size={22} /> Cargando usuarios…</div> : <div className="member-list">{members.map((member) => <div className="member-row" key={member.id}><span className="member-avatar"><UserRound size={18} /></span><span><strong>{member.name}</strong><small>{member.email}</small></span><span className={`member-status ${member.status}`}>{member.status}</span><b>{roleLabels[member.role] ?? member.role}</b></div>)}</div>}</article>
-            <article className="panel invitations-panel"><div className="panel-heading"><div><h2>Invitaciones</h2><p>Altas pendientes, aceptadas o caducadas</p></div><Clipboard size={22} /></div><div className="invitation-list">{invitations.length === 0 ? <p className="empty-state">No hay invitaciones registradas.</p> : invitations.map((invitation) => <div className="invitation-row" key={invitation.id}><span><strong>{invitation.name}</strong><small>{invitation.email}</small></span><b>{roleLabels[invitation.role] ?? invitation.role}</b><span className={`invitation-state ${invitation.status}`}>{invitation.status}</span><small>Caduca {new Date(invitation.expiresAt).toLocaleDateString('es-ES')}</small></div>)}</div></article>
+            <article className="panel members-panel">
+              <div className="panel-heading"><div><h2>Miembros activos</h2><p>{members.length} usuarios vinculados</p></div><button className="icon-button" onClick={() => void load()} type="button"><RefreshCw size={18} /></button></div>
+              {loading ? <div className="inline-loading"><LoaderCircle className="spin" size={22} /> Cargando usuarios…</div> : <div className="member-list">{members.map((member) => <div className="member-row" key={member.id}><span className="member-avatar"><UserRound size={18} /></span><span><strong>{member.name}</strong><small>{member.email}</small></span><span className={`member-status ${member.status}`}>{member.status}</span><b>{roleLabels[member.role] ?? member.role}</b></div>)}</div>}
+            </article>
+            <article className="panel invitations-panel">
+              <div className="panel-heading"><div><h2>Invitaciones</h2><p>Altas pendientes, aceptadas o caducadas</p></div><Clipboard size={22} /></div>
+              <div className="invitation-list">{invitations.length === 0 ? <p className="empty-state">No hay invitaciones registradas.</p> : invitations.map((invitation) => <div className="invitation-row" key={invitation.id}><span><strong>{invitation.name}</strong><small>{invitation.email}</small></span><b>{roleLabels[invitation.role] ?? invitation.role}</b><span className={`invitation-state ${invitation.status}`}>{invitation.status}</span><small>Caduca {new Date(invitation.expiresAt).toLocaleDateString('es-ES')}</small></div>)}</div>
+            </article>
           </div>
         </div>
       </section>
@@ -396,7 +482,7 @@ export default function AuthApp() {
     const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
     const { error: resetError } = await getSupabaseClient().auth.resetPasswordForEmail(email, { redirectTo });
     if (resetError) setError(resetError.message);
-    else setMessage('Te hemos enviado un correo para restablecer la contraseña.');
+    else setMessage('Te hemos enviado un correo de IsiVoltPro OT para restablecer la contraseña.');
     setBusy(false);
   };
 

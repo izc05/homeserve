@@ -1,40 +1,31 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import ProductBrand, { DemoBrandFooter, DEMO_FOOTER_TEXT } from './ProductBrand';
 
 afterEach(cleanup);
 
 describe('ProductBrand', () => {
-  it('renders the official logo and complete demonstration identity', () => {
+  it('renders the complete IsiVoltPro OT identity', () => {
     render(<ProductBrand variant="auth" />);
 
-    const logo = screen.getByRole('img', { name: 'HomeServe' });
-    expect(logo.getAttribute('src')).toContain('/brand/homeserve-logo-red.png');
-    expect(logo.getAttribute('width')).toBe('198');
-    expect(logo.getAttribute('height')).toBe('58');
-    expect(screen.getByText('HomeServe Operaciones')).toBeTruthy();
-    expect(screen.getByText('Gestión de órdenes de trabajo')).toBeTruthy();
-    expect(screen.getByText('Demostración')).toBeTruthy();
-    expect(screen.getByText('Desarrollado por IsiVoltPro')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'IsiVoltPro' })).toBeTruthy();
+    expect(screen.getByText('IsiVoltPro OT')).toBeTruthy();
+    expect(screen.getByText('Gestión profesional de órdenes de trabajo')).toBeTruthy();
+    expect(screen.getAllByText('Desarrollado por IsiVoltPro').length).toBeGreaterThan(0);
+    expect(screen.getByRole('group', { name: /IsiVoltPro OT/ })).toBeTruthy();
   });
 
-  it('keeps an accessible HomeServe fallback when the image cannot load', () => {
-    render(<ProductBrand />);
-
-    fireEvent.error(screen.getByAltText('HomeServe'));
-
-    const fallback = screen.getByRole('img', { name: 'HomeServe' });
-    expect(fallback.tagName).toBe('SPAN');
-    expect(fallback.textContent).toBe('HomeServe');
-    expect(screen.getByRole('group', { name: /HomeServe Operaciones/ })).toBeTruthy();
+  it('does not expose third-party branding', () => {
+    const { container } = render(<ProductBrand />);
+    const legacyBrand = ['Home', 'Serve'].join('');
+    expect(container.textContent).not.toContain(legacyBrand);
+    expect(container.textContent).not.toMatch(/Demostración/i);
   });
 
-  it('preserves the exact demonstration footer', () => {
+  it('preserves the IsiVoltPro footer', () => {
     render(<DemoBrandFooter className="test-footer" />);
-    expect(screen.getByText(DEMO_FOOTER_TEXT).textContent).toBe(
-      'Aplicación demostrativa para HomeServe · Elaborada por IsiVoltPro',
-    );
+    expect(screen.getByText(DEMO_FOOTER_TEXT).textContent).toBe('Desarrollado por IsiVoltPro');
   });
 });
