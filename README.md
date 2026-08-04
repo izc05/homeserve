@@ -1,38 +1,48 @@
 # IsiVoltPro OT
 
-Gestor profesional de órdenes de trabajo para mantenimiento técnico.
+Gestor profesional de órdenes de trabajo para mantenimiento técnico y primera aplicación operativa del ecosistema IsiVoltPro.
 
 ## Objetivo
 
-Construir una única aplicación web y móvil centrada exclusivamente en el ciclo completo de las órdenes de trabajo:
+Construir una aplicación web y móvil centrada en el ciclo completo de las órdenes de trabajo:
 
 1. El responsable crea y prepara la OT.
-2. El responsable define el checklist y los requisitos de cierre.
-3. La OT se asigna a un técnico activo.
+2. Define el checklist y los requisitos de cierre.
+3. Asigna la OT a un técnico activo.
 4. El técnico acepta, inicia y ejecuta únicamente sus OT.
-5. El técnico registra checklist, observaciones, fotos, mediciones, materiales y firmas.
-6. El técnico envía la OT para revisión.
+5. Registra checklist, observaciones, fotos, mediciones, materiales y firmas.
+6. Envía la OT para revisión.
 7. El responsable revisa, solicita correcciones o valida.
-8. El sistema genera y conserva el informe PDF final y la auditoría.
+8. El sistema conserva el informe final y la auditoría.
 
-## Principio del producto
-
-La aplicación tendrá una sola base de datos y dos experiencias claramente separadas:
+## Experiencias de usuario
 
 - **Panel central**: administración, coordinación, asignación, planificación, seguimiento, revisión, informes y usuarios.
 - **Zona técnico**: consulta y ejecución de las OT asignadas, sin acceso a gestión ni a OT de otros técnicos.
 
-No se desarrollará como un gestor genérico de activos, inventario, OCA o mantenimiento completo. Instalaciones, ubicaciones, activos y materiales existirán únicamente como datos auxiliares de una OT.
+## Ecosistema IsiVoltPro
 
-## Tecnología prevista
+IsiVoltPro OT es el primer producto de una familia de herramientas técnicas. La portada del ecosistema está disponible en `ecosystem.html` y la estrategia completa se documenta en [`docs/ECOSYSTEM.md`](docs/ECOSYSTEM.md).
+
+Módulos previstos:
+
+- Activos QR / NFC.
+- Inventario, almacén y herramientas.
+- Inspecciones eléctricas.
+- RITE, climatización y refrigeración.
+- PCI.
+- Legionella.
+- Cálculos técnicos.
+- Informes y documentación.
+
+## Tecnología
 
 - React + TypeScript + Vite.
 - Supabase Auth, PostgreSQL, Storage privado y Realtime.
-- Row Level Security como control real de permisos.
+- Row Level Security para permisos reales.
 - PWA instalable en móvil.
 - Capacitor para APK cuando la PWA esté estable.
-- jsPDF o generación de PDF en servidor según las pruebas de calidad.
-- Vitest y Playwright para pruebas.
+- Vitest y pruebas de aceptación.
 
 ## Roles iniciales
 
@@ -42,7 +52,7 @@ Control total del sistema, usuarios, configuración, auditoría y todas las OT.
 
 ### Coordinador
 
-Crea, asigna, planifica, revisa y valida OT. No administra la infraestructura global del sistema.
+Crea, asigna, planifica, revisa y valida OT.
 
 ### Técnico
 
@@ -59,31 +69,30 @@ Solo puede ver y ejecutar las OT que tiene asignadas. No puede cambiar la defini
 - `VALIDADA`
 - `CANCELADA`
 
-El motivo de bloqueo se guarda aparte: material, acceso, responsable, empresa externa u otro.
-
 ## Documentación principal
 
-- [`CLAUDE.md`](CLAUDE.md): reglas obligatorias para Claude y otros agentes.
-- [`AGENTS.md`](AGENTS.md): normas comunes para cualquier agente de desarrollo.
-- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md): alcance funcional completo.
+- [`CLAUDE.md`](CLAUDE.md): reglas obligatorias para agentes.
+- [`AGENTS.md`](AGENTS.md): normas comunes de desarrollo.
+- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md): alcance funcional.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura técnica.
 - [`docs/DATABASE.md`](docs/DATABASE.md): modelo de datos y permisos.
 - [`docs/SECURITY.md`](docs/SECURITY.md): requisitos de seguridad.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): fases de construcción.
 - [`docs/QA_ACCEPTANCE.md`](docs/QA_ACCEPTANCE.md): pruebas y criterios de aceptación.
 - [`docs/UI_FLOWS.md`](docs/UI_FLOWS.md): pantallas y recorridos.
+- [`docs/ECOSYSTEM.md`](docs/ECOSYSTEM.md): visión y estructura del ecosistema.
 
 ## Reglas innegociables
 
 - Ningún permiso crítico depende solo de React.
-- Un técnico no puede leer ni modificar la OT de otro técnico, aunque conozca la URL o el UUID.
+- Un técnico no puede leer ni modificar la OT de otro técnico.
 - Toda OT validada queda inmutable salvo reapertura administrativa auditada.
 - No se puede finalizar una OT con requisitos obligatorios incompletos.
-- Los PDFs nunca se sobrescriben; se versionan.
+- Los informes finales se versionan.
 - Toda acción crítica queda registrada en auditoría.
 - No se almacenan contraseñas propias ni credenciales demo en el código.
 - No se incluyen logos o marcas de terceros sin autorización.
 
-## Estado actual
+## Publicación prevista
 
-Proyecto inicializado. La primera fase consiste en crear el esqueleto React, las migraciones de Supabase y la autenticación con roles antes de desarrollar las pantallas operativas.
+El proyecto queda preparado para publicarse bajo la ruta `/isivoltpro-ot/`. Antes de activar GitHub Pages en un repositorio nuevo, deben configurarse las variables de Supabase y revisar el flujo de despliegue.
