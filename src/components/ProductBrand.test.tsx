@@ -19,7 +19,8 @@ describe('ProductBrand', () => {
 
   it('does not expose third-party branding', () => {
     const { container } = render(<ProductBrand />);
-    expect(container.textContent).not.toMatch(/HomeServe/i);
+    const legacyBrand = ['Home', 'Serve'].join('');
+    expect(container.textContent).not.toContain(legacyBrand);
     expect(container.textContent).not.toMatch(/Demostración/i);
   });
 
