@@ -1,0 +1,1 @@
+export const ROTATION_INTERVAL_MS = 7_000;
