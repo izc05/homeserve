@@ -127,7 +127,8 @@ create trigger sistemas_instalacion_set_updated_at
 before update on public.sistemas_instalacion
 for each row execute function public.set_updated_at();
 
--- Every existing installation receives a neutral system, preserving all current data.
+-- Existing installations receive a neutral system. Existing official work
+-- orders are not updated because validated/cancelled records are immutable.
 insert into public.sistemas_instalacion (
   tenant_id,
   instalacion_id,
@@ -168,7 +169,7 @@ alter table public.activos
     check (jsonb_typeof(datos_tecnicos) = 'object'),
   add constraint activos_tenant_id_sistema_id_fkey
     foreign key (tenant_id, sistema_id)
-    references public.sistemas_instalacion(tenant_id, id) on delete set null;
+    references public.sistemas_instalacion(tenant_id, id) on delete restrict;
 
 update public.activos a
 set sistema_id = s.id
@@ -190,16 +191,7 @@ alter table public.ordenes_trabajo
   add column normativa_aplicable text[] not null default '{}'::text[],
   add constraint ordenes_trabajo_tenant_id_sistema_id_fkey
     foreign key (tenant_id, sistema_id)
-    references public.sistemas_instalacion(tenant_id, id) on delete set null;
-
-update public.ordenes_trabajo ot
-set sistema_id = s.id
-from public.sistemas_instalacion s
-where s.tenant_id = ot.tenant_id
-  and s.instalacion_id = ot.instalacion_id
-  and s.codigo = 'GENERAL'
-  and s.deleted_at is null
-  and ot.sistema_id is null;
+    references public.sistemas_instalacion(tenant_id, id) on delete restrict;
 
 create index ordenes_trabajo_especialidad_idx
 on public.ordenes_trabajo (tenant_id, especialidad_clave, estado, fecha_prevista);
@@ -268,9 +260,11 @@ select
     when lower(coalesce(tm.especialidad, '')) like '%foto%' then 'fotovoltaica'
     when lower(coalesce(tm.especialidad, '')) like '%elect%' then 'electricidad_bt'
     when lower(coalesce(tm.especialidad, '')) like '%clima%' then 'climatizacion'
-    when lower(coalesce(tm.especialidad, '')) like '%frio%' or lower(coalesce(tm.especialidad, '')) like '%refrig%' then 'refrigeracion'
+    when lower(coalesce(tm.especialidad, '')) like '%frio%'
+      or lower(coalesce(tm.especialidad, '')) like '%refrig%' then 'refrigeracion'
     when lower(coalesce(tm.especialidad, '')) like '%font%' then 'fontaneria_saneamiento'
-    when lower(coalesce(tm.especialidad, '')) like '%pci%' or lower(coalesce(tm.especialidad, '')) like '%incend%' then 'pci'
+    when lower(coalesce(tm.especialidad, '')) like '%pci%'
+      or lower(coalesce(tm.especialidad, '')) like '%incend%' then 'pci'
     else 'general'
   end,
   'competente',
