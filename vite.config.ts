@@ -20,6 +20,15 @@ export default defineConfig(({ mode }) => {
           demo: fileURLToPath(new URL('./demo.html', import.meta.url)),
           ecosystem: fileURLToPath(new URL('./ecosystem.html', import.meta.url)),
         },
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            supabase: ['@supabase/supabase-js'],
+            query: ['@tanstack/react-query'],
+            forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+            icons: ['lucide-react'],
+          },
+        },
       },
     },
     server: {
