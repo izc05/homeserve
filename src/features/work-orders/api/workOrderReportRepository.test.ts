@@ -7,7 +7,27 @@ import {
   safeReportError,
 } from './workOrderReportRepository';
 
-const readyRow = {
+type ReportFixture = {
+  id: string;
+  tenant_id: string;
+  ot_id: string;
+  version: number;
+  filename: string;
+  bucket: string;
+  path: string | null;
+  tipo: string;
+  estado: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  checksum_sha256: string | null;
+  generated_at: string;
+  completed_at: string | null;
+  failure_reason: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+const readyRow: ReportFixture = {
   id: 'report-2',
   tenant_id: 'tenant-1',
   ot_id: 'order-1',
@@ -27,7 +47,7 @@ const readyRow = {
   created_at: '2026-08-04T09:00:00Z',
 };
 
-function clientWithReports(rows = [readyRow]) {
+function clientWithReports(rows: ReportFixture[] = [readyRow]) {
   const order = vi.fn().mockResolvedValue({ data: rows, error: null });
   const eq = vi.fn(() => ({ order }));
   const select = vi.fn(() => ({ eq }));
@@ -64,7 +84,7 @@ describe('repositorio de informes PDF', () => {
   });
 
   it('no intenta firmar enlaces de informes fallidos', async () => {
-    const failed = { ...readyRow, id: 'report-1', path: null, tipo: 'provisional', estado: 'fallido', failure_reason: 'Error controlado' };
+    const failed: ReportFixture = { ...readyRow, id: 'report-1', path: null, tipo: 'provisional', estado: 'fallido', failure_reason: 'Error controlado' };
     const { client, createSignedUrls } = clientWithReports([failed]);
     const reports = await listWorkOrderReports(client, 'order-1');
 
