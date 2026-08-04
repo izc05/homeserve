@@ -133,7 +133,7 @@ describe('TechnicianMobileWorkspace premium', () => {
 
     expect(screen.getAllByText('Cliente no disponible').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Ubicación pendiente').length).toBeGreaterThan(0);
-    expect(screen.getByText('Desarrollado por IsiVoltPro')).toBeTruthy();
+    expect(screen.getAllByText('Desarrollado por IsiVoltPro').length).toBeGreaterThan(0);
   });
 
   it('mantiene clases responsive para tabla y tarjetas móviles', () => {
