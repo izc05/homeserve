@@ -34,6 +34,10 @@ vi.mock('../api/workOrderLifecycle', async (importOriginal) => {
   return { ...actual, finalizeActiveWorkOrderVisit: mocks.finalize };
 });
 
+vi.mock('./TechnicianSignaturePanel', () => ({
+  default: () => <div data-testid="technician-signature-panel" />,
+}));
+
 const order: WorkOrderListItem = {
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   tenantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -166,11 +170,13 @@ describe('finalización guiada de OT', () => {
     expect(await screen.findByText('Sin resumen técnico')).toBeTruthy();
   });
 
-  it('presenta las funciones P2 requeridas como pendientes, no completadas', async () => {
+  it('presenta la firma disponible y el informe pendiente de implementación', async () => {
     render(<WorkOrderCompletionPanel order={{ ...order, requirements: { ...order.requirements, technicianSignature: true, report: true } }} canComplete client={{} as never} />, { wrapper: wrapper() });
     await screen.findByText('1 de 1 puntos completados');
-    expect(await screen.findAllByText('No se puede registrar desde esta versión.')).toHaveLength(2);
-    expect(screen.getByText('Firma del técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente');
+
+    expect(screen.getByTestId('technician-signature-panel')).toBeTruthy();
+    expect(await screen.findAllByText('No se puede registrar desde esta versión.')).toHaveLength(1);
+    expect(screen.getByText('Firma del técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente de firma');
     expect(screen.getByText('Informe técnico').closest('.completion-requirement')?.textContent).toContain('Pendiente');
   });
 });
