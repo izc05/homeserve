@@ -14,10 +14,12 @@ function createInput(technicianIdValue: string | null): CreateWorkOrderInput {
   return {
     tenantId: '33333333-3333-4333-8333-333333333333',
     installationId: '44444444-4444-4444-8444-444444444444',
+    systemId: null,
+    specialtyKey: 'general',
     locationId: null,
     assetId: null,
     technicianId: technicianIdValue,
-    title: 'Revisión del inversor',
+    title: 'Revisión del equipo principal',
     description: null,
     type: 'revision',
     priority: 'alta',
