@@ -94,8 +94,8 @@ export default function TechnicianSignaturePanel({
   const signature = latestTechnicianSignature(query.data ?? []);
 
   useEffect(() => {
-    if (!signature && canvasRef.current) clearCanvas(canvasRef.current);
-  }, [signature]);
+    if (!query.isLoading && !signature && canvasRef.current) clearCanvas(canvasRef.current);
+  }, [query.isLoading, signature]);
 
   const mutation = useMutation({
     mutationFn: async () => {
