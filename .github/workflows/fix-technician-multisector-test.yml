@@ -1,0 +1,41 @@
+name: Fix technician multisector test
+
+on:
+  push:
+    branches: [feat/isivoltpro-ot-ecosystem]
+    paths:
+      - .github/workflows/fix-technician-multisector-test.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/isivoltpro-ot-ecosystem
+          fetch-depth: 0
+      - name: Patch test fixture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/features/technicians/api/technicianOperations.test.ts')
+          text = path.read_text(encoding='utf-8')
+          old = "    installationId: '44444444-4444-4444-8444-444444444444',\n    locationId: null,"
+          new = "    installationId: '44444444-4444-4444-8444-444444444444',\n    systemId: null,\n    specialtyKey: 'general',\n    locationId: null,"
+          if text.count(old) != 1:
+              raise SystemExit('Fixture anchor not found exactly once')
+          text = text.replace(old, new, 1)
+          text = text.replace("title: 'Revisión del inversor'", "title: 'Revisión del equipo principal'", 1)
+          path.write_text(text, encoding='utf-8')
+          Path('.github/workflows/fix-technician-multisector-test.yml').unlink()
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: adaptar operaciones de técnico al modelo multisector"
+          git push origin HEAD:feat/isivoltpro-ot-ecosystem
