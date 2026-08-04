@@ -35,6 +35,10 @@ html[data-product-brand='homeserve-demo'] textarea:focus-visible {
   outline-color: rgba(227, 6, 19, .22);
 }
 
+html[data-product-brand='isivoltpro'] .product-brand-symbol svg {
+  color: #facc15;
+}
+
 html[data-product-brand='homeserve-demo'] .product-brand-symbol {
   background: linear-gradient(145deg, #b9000b, #e30613);
 }
