@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Circle,
   ClipboardCheck,
+  FileClock,
   LoaderCircle,
   LockKeyhole,
   ShieldCheck,
@@ -38,6 +39,8 @@ const emptySupport: WorkOrderCompletionSupport = {
   latestVisit: null,
 };
 
+const postCloseRequirementIds = new Set(['report', 'responsible-signature']);
+
 export default function WorkOrderCompletionPanel({ order, canComplete, onCompleted, client }: WorkOrderCompletionPanelProps) {
   const supabase = client ?? getSupabaseClient();
   const queryClient = useQueryClient();
@@ -67,6 +70,8 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
     supportQuery.data ?? emptySupport,
   ), [checklistQuery.data, order.requirements, photosQuery.data, supportQuery.data]);
   const pendingRequirements = requirementItems.filter((item) => item.required && !item.complete);
+  const blockingRequirements = pendingRequirements.filter((item) => !postCloseRequirementIds.has(item.id));
+  const postCloseRequirements = pendingRequirements.filter((item) => postCloseRequirementIds.has(item.id));
   const isLoading = checklistQuery.isLoading || photosQuery.isLoading || supportQuery.isLoading;
   const hasQueryError = Boolean(checklistQuery.error || photosQuery.error || supportQuery.error);
   const isActive = order.status === 'EN_CURSO' && canComplete;
@@ -95,7 +100,7 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
 
   const submit = () => {
     if (submitGuard.current || mutation.isPending || !isActive || isLoading || hasQueryError) return;
-    if (!workSummary.trim() || !confirmed || pendingRequirements.length > 0) return;
+    if (!workSummary.trim() || !confirmed || blockingRequirements.length > 0) return;
     submitGuard.current = true;
     mutation.mutate();
   };
@@ -120,17 +125,19 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
       <div className="completion-requirements" aria-label="Requisitos de finalización">
         {requirementItems.map((item) => {
           const state = !item.required ? 'optional' : item.complete ? 'complete' : 'pending';
+          const isPostClose = item.required && !item.complete && postCloseRequirementIds.has(item.id);
           return <div className={`completion-requirement is-${state}`} key={item.id}>
-            <span aria-hidden="true">{state === 'complete' ? <CheckCircle2 size={19} /> : state === 'pending' ? <AlertTriangle size={19} /> : <Circle size={19} />}</span>
-            <span><strong>{item.label}</strong><small>{item.required ? item.detail : 'No obligatorio'}</small>{item.required && !item.available && !item.complete && <small>No se puede registrar desde esta versión.</small>}</span>
-            <b>{state === 'complete' ? 'Cumplido' : state === 'pending' ? 'Pendiente' : 'No obligatorio'}</b>
+            <span aria-hidden="true">{state === 'complete' ? <CheckCircle2 size={19} /> : isPostClose ? <FileClock size={19} /> : state === 'pending' ? <AlertTriangle size={19} /> : <Circle size={19} />}</span>
+            <span><strong>{item.label}</strong><small>{item.required ? item.detail : 'No obligatorio'}</small>{isPostClose && <small>Se completa después del cierre técnico.</small>}{item.required && !item.available && !item.complete && !isPostClose && <small>No se puede registrar desde esta versión.</small>}</span>
+            <b>{state === 'complete' ? 'Cumplido' : isPostClose ? 'Después del cierre' : state === 'pending' ? 'Pendiente' : 'No obligatorio'}</b>
           </div>;
         })}
       </div>
 
       {isLoading && <div className="execution-loading"><LoaderCircle className="spin" size={20} /> Comprobando requisitos reales…</div>}
       {hasQueryError && <p className="execution-inline-error" role="alert"><AlertTriangle size={17} /> No se pudieron comprobar todos los requisitos. No se realizará el cierre.</p>}
-      {!isLoading && !hasQueryError && pendingRequirements.length > 0 && <p className="completion-pending-note"><AlertTriangle size={17} /> Pendiente: {pendingRequirements.map((item) => item.label.toLowerCase()).join(', ')}.</p>}
+      {!isLoading && !hasQueryError && blockingRequirements.length > 0 && <p className="completion-pending-note"><AlertTriangle size={17} /> Pendiente antes de finalizar: {blockingRequirements.map((item) => item.label.toLowerCase()).join(', ')}.</p>}
+      {!isLoading && !hasQueryError && postCloseRequirements.length > 0 && <p className="read-only-note"><FileClock size={16} /> Después del cierre: {postCloseRequirements.map((item) => item.label.toLowerCase()).join(', ')}.</p>}
 
       <label className="completion-summary-field" htmlFor={`completion-summary-${order.id}`}>
         <span>Resumen del trabajo <b aria-hidden="true">*</b></span>
@@ -157,7 +164,7 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
       <div className="completion-actions">
         <button
           className="primary-button"
-          disabled={!isActive || isLoading || hasQueryError || pendingRequirements.length > 0 || !workSummary.trim() || !confirmed || mutation.isPending || mutation.isSuccess}
+          disabled={!isActive || isLoading || hasQueryError || blockingRequirements.length > 0 || !workSummary.trim() || !confirmed || mutation.isPending || mutation.isSuccess}
           onClick={submit}
           type="button"
         >
