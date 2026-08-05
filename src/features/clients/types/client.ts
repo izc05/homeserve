@@ -13,9 +13,9 @@ export type ClientRecord = {
   phone: string | null;
   address: string | null;
   notes: string | null;
-  logoBucket: string | null;
-  logoPath: string | null;
-  logoUrl: string | null;
+  logoBucket?: string | null;
+  logoPath?: string | null;
+  logoUrl?: string | null;
   status: EntityStatus;
   createdAt: string;
   updatedAt: string;
@@ -34,8 +34,8 @@ export type ClientInstallation = {
   code: string | null;
   type: string | null;
   address: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   description: string | null;
   contactName: string | null;
   contactPhone: string | null;
