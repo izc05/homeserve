@@ -73,39 +73,27 @@ where member.user_id = profile.id
   and profile.nombre in ('Administración Demo HomeServe', 'Técnico Demo HomeServe', 'HomeServe');
 
 update auth.users auth_user
-set raw_user_meta_data = jsonb_strip_nulls(
-  jsonb_set(
-    jsonb_set(
-      jsonb_set(
-        coalesce(auth_user.raw_user_meta_data, '{}'::jsonb),
-        '{nombre}',
-        to_jsonb(case auth_user.raw_user_meta_data ->> 'nombre'
-          when 'Administración Demo HomeServe' then 'Administración Demo IsiVoltPro'
-          when 'Técnico Demo HomeServe' then 'Técnico Demo IsiVoltPro'
-          when 'HomeServe' then 'IsiVoltPro'
-          else auth_user.raw_user_meta_data ->> 'nombre'
-        end),
-        true
-      ),
-      '{name}',
-      to_jsonb(case auth_user.raw_user_meta_data ->> 'name'
-        when 'Administración Demo HomeServe' then 'Administración Demo IsiVoltPro'
-        when 'Técnico Demo HomeServe' then 'Técnico Demo IsiVoltPro'
-        when 'HomeServe' then 'IsiVoltPro'
-        else auth_user.raw_user_meta_data ->> 'name'
-      end),
-      true
-    ),
-    '{full_name}',
-    to_jsonb(case auth_user.raw_user_meta_data ->> 'full_name'
+set raw_user_meta_data = coalesce(auth_user.raw_user_meta_data, '{}'::jsonb)
+  || jsonb_strip_nulls(jsonb_build_object(
+    'nombre', case auth_user.raw_user_meta_data ->> 'nombre'
       when 'Administración Demo HomeServe' then 'Administración Demo IsiVoltPro'
       when 'Técnico Demo HomeServe' then 'Técnico Demo IsiVoltPro'
       when 'HomeServe' then 'IsiVoltPro'
-      else auth_user.raw_user_meta_data ->> 'full_name'
-    end),
-    true
-  )
-),
+      else null
+    end,
+    'name', case auth_user.raw_user_meta_data ->> 'name'
+      when 'Administración Demo HomeServe' then 'Administración Demo IsiVoltPro'
+      when 'Técnico Demo HomeServe' then 'Técnico Demo IsiVoltPro'
+      when 'HomeServe' then 'IsiVoltPro'
+      else null
+    end,
+    'full_name', case auth_user.raw_user_meta_data ->> 'full_name'
+      when 'Administración Demo HomeServe' then 'Administración Demo IsiVoltPro'
+      when 'Técnico Demo HomeServe' then 'Técnico Demo IsiVoltPro'
+      when 'HomeServe' then 'IsiVoltPro'
+      else null
+    end
+  )),
 updated_at = now()
 where auth_user.id in (
   select member.user_id
