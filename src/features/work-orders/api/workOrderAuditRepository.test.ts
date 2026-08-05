@@ -4,6 +4,8 @@ import {
   humanAuditAction,
   listWorkOrderAuditEvents,
   workOrderAuditDetail,
+  workOrderAuditStateChange,
+  workOrderAuditTone,
   type WorkOrderAuditEvent,
 } from './workOrderAuditRepository';
 
@@ -21,7 +23,7 @@ function createQueryMock(data: unknown[], error: unknown = null) {
 }
 
 describe('workOrderAuditRepository', () => {
-  it('enriquece los eventos con el nombre del actor registrado en perfiles', async () => {
+  it('enriquece los eventos y normaliza una etiqueta legacy exacta del actor', async () => {
     const auditQuery = createQueryMock([{
       id: 'audit-1',
       tenant_id: 'tenant-1',
@@ -32,7 +34,7 @@ describe('workOrderAuditRepository', () => {
       metadata: { estado_nuevo: 'ASIGNADA' },
       created_at: '2026-07-19T10:00:00.000Z',
     }]);
-    const profilesQuery = createQueryMock([{ id: 'user-1', nombre: 'Laura Sánchez' }]);
+    const profilesQuery = createQueryMock([{ id: 'user-1', nombre: 'Administración Demo HomeServe' }]);
     const supabase = {
       from: vi.fn((table: string) => table === 'audit_logs' ? auditQuery : profilesQuery),
     };
@@ -43,11 +45,11 @@ describe('workOrderAuditRepository', () => {
     expect(events).toEqual([expect.objectContaining({
       id: 'audit-1',
       userId: 'user-1',
-      actorName: 'Laura Sánchez',
+      actorName: 'Administración Demo IsiVoltPro',
     })]);
   });
 
-  it('presenta la asignación como evento independiente con el técnico y la transición', () => {
+  it('presenta la asignación como evento independiente con técnico, transición y tono', () => {
     const event: WorkOrderAuditEvent = {
       id: 'audit-assignment',
       tenantId: 'tenant-1',
@@ -57,7 +59,7 @@ describe('workOrderAuditRepository', () => {
       userId: 'admin-1',
       actorName: 'Administrador E2E',
       metadata: {
-        assigned_to_name: 'Técnico E2E Ficticio',
+        assigned_to_name: 'Técnico Demo HomeServe',
         estado_anterior: 'BORRADOR',
         estado_nuevo: 'ASIGNADA',
       },
@@ -66,7 +68,32 @@ describe('workOrderAuditRepository', () => {
 
     expect(humanAuditAction(event.action)).toBe('OT asignada');
     expect(workOrderAuditDetail(event)).toBe(
-      'BORRADOR → ASIGNADA · Técnico asignado: Técnico E2E Ficticio',
+      'BORRADOR → ASIGNADA · Técnico asignado: Técnico Demo IsiVoltPro',
     );
+    expect(workOrderAuditTone(event)).toBe('assignment');
+    expect(workOrderAuditStateChange(event)).toEqual({ previous: 'BORRADOR', next: 'ASIGNADA' });
+  });
+
+  it.each([
+    ['start_work_order_visit', 'start'],
+    ['block_work_order', 'blocked'],
+    ['resume_work_order', 'resume'],
+    ['finalize_active_work_order_visit', 'complete'],
+    ['validate_work_order', 'validation'],
+    ['request_work_order_correction', 'rejected'],
+    ['reassign_work_order', 'reassignment'],
+  ] as const)('clasifica %s con el tono %s', (action, tone) => {
+    const event: WorkOrderAuditEvent = {
+      id: action,
+      tenantId: 'tenant-1',
+      action,
+      entityType: 'ordenes_trabajo',
+      entityId: 'ot-1',
+      userId: null,
+      actorName: null,
+      metadata: {},
+      createdAt: '2026-07-20T18:00:00.000Z',
+    };
+    expect(workOrderAuditTone(event)).toBe(tone);
   });
 });
