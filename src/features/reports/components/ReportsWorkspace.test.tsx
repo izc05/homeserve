@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkOrderListItem } from '../../work-orders/api/workOrdersRepository';
 import ReportsWorkspace from './ReportsWorkspace';
 
@@ -86,6 +86,7 @@ describe('ReportsWorkspace', () => {
     orderQuery.in.mockReturnValue(orderQuery);
     orderQuery.order.mockResolvedValue({ data: [], error: null });
   });
+  afterEach(() => cleanup());
 
   it('presenta jerarquía completa sin una advertencia roja dominante', async () => {
     const { container } = renderWorkspace();
@@ -95,7 +96,7 @@ describe('ReportsWorkspace', () => {
     expect(screen.getByText('OT abiertas')).toBeTruthy();
     expect(screen.getByText('Pendientes de validación')).toBeTruthy();
     expect(screen.getByText('OT-2026-00031')).toBeTruthy();
-    expect(screen.getByText('Hospital Demo')).toBeTruthy();
+    expect(screen.getAllByText('Hospital Demo').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('Quirófano 3')).toBeTruthy();
     expect(container.querySelector('[data-label="Cliente e instalación"]')).toBeTruthy();
     expect(container.querySelector('.reports-development-note')?.classList.contains('error')).toBe(false);
@@ -118,6 +119,6 @@ describe('ReportsWorkspace', () => {
     fireEvent.change(screen.getByLabelText('Buscar informes'), { target: { value: 'Industria Sur' } });
     expect(screen.queryByText('OT-2026-00031')).toBeNull();
     expect(screen.getByText('OT-2026-00032')).toBeTruthy();
-    expect(screen.getByText('Industria Sur')).toBeTruthy();
+    expect(screen.getAllByText('Industria Sur').length).toBeGreaterThanOrEqual(2);
   });
 });
