@@ -13,7 +13,6 @@ type Props = {
 type ReportRow = {
   id: string;
   ot_id: string;
-  version: number;
   filename: string;
   bucket: string | null;
   path: string | null;
@@ -63,9 +62,9 @@ export default function ReportsWorkspace({ orders, open }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ot_informes')
-        .select('id,ot_id,version,filename,bucket,path,created_at')
+        .select('id,ot_id,filename,bucket,path,created_at')
         .in('ot_id', orderIds)
-        .order('version', { ascending: false });
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as ReportRow[];
     },
@@ -136,7 +135,7 @@ export default function ReportsWorkspace({ orders, open }: Props) {
         <div className="reports-row reports-row-head" role="row"><span>Código OT</span><span>Trabajo</span><span>Cliente e instalación</span><span>Técnico</span><span>Estado OT</span><span>Documentación</span><span>Actualización</span><span>Acciones</span></div>
         {filtered.length === 0 ? <p className="empty-state">No hay informes que coincidan con los filtros.</p> : filtered.map((order) => {
           const report = latestReportByOrder.get(order.id);
-          const documentStatus = report ? `Generado · v${report.version}` : order.status === 'FINALIZADA_TECNICO' ? 'Pendiente de validación' : 'Documentación pendiente';
+          const documentStatus = report ? 'Informe generado' : order.status === 'FINALIZADA_TECNICO' ? 'Pendiente de validación' : 'Documentación pendiente';
           return <article className="reports-row" key={order.id} role="row">
             <strong data-label="Código OT">{order.code}</strong>
             <span data-label="Trabajo"><b>{order.title}</b></span>
