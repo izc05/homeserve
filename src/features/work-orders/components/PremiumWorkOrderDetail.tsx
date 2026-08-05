@@ -20,10 +20,11 @@ import {
 } from 'lucide-react';
 import type { WorkOrderPriority, WorkOrderStatus } from '../types/workOrder';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
-import { humanAuditAction, workOrderAuditDetail, type WorkOrderAuditEvent } from '../api/workOrderAuditRepository';
+import type { WorkOrderAuditEvent } from '../api/workOrderAuditRepository';
 import { DemoBrandFooter } from '../../../components/ProductBrand';
 import { workOrderDirectionsUrl } from '../domain/workOrderDirections';
 import LocationMapCard from './LocationMapCard';
+import WorkOrderAuditTimeline from './WorkOrderAuditTimeline';
 
 export type PremiumWorkOrderDetailProps = {
   order: WorkOrderListItem;
@@ -96,12 +97,7 @@ function EmptyState({ children }: { children: ReactNode }) {
 
 function AuditTimeline({ events, displayDate, compact = false }: { events: WorkOrderAuditEvent[]; displayDate: (value: string | null) => string; compact?: boolean }) {
   if (events.length === 0) return <div className="premium-empty-card"><Info size={20} /><strong>No hay eventos visibles para esta OT.</strong><p>La auditoría aparecerá aquí cuando exista una actuación registrada.</p></div>;
-  return <div className={`premium-timeline ${compact ? 'premium-timeline-compact' : ''}`}>
-    {events.map((event) => <div className="premium-timeline-item" key={event.id}>
-      <span className="premium-timeline-dot" aria-hidden="true"><CheckCircle2 size={14} /></span>
-      <div><strong>{humanAuditAction(event.action)}</strong><span>{workOrderAuditDetail(event)}</span><small>{event.actorName ?? 'Sistema'} · {displayDate(event.createdAt)}</small></div>
-    </div>)}
-  </div>;
+  return <WorkOrderAuditTimeline events={events} displayDate={displayDate} limit={compact ? 4 : undefined} />;
 }
 
 function ReadOnlyPanel({ title, children, icon: Icon }: { title: string; children: ReactNode; icon: typeof Building2 }) {
@@ -175,7 +171,7 @@ export default function PremiumWorkOrderDetail({
             <ReadOnlyPanel icon={ClipboardList} title="Información del trabajo"><dl className="premium-fields-grid"><Field label="Cliente" value={order.clientName ?? <EmptyState>Sin cliente</EmptyState>} empty={!order.clientName} /><Field label="Tipo" value={typeLabel} /><Field label="Siguiente acción" value={nextAction} /><Field label="Descripción" value={order.description || <EmptyState>Sin descripción registrada.</EmptyState>} empty={!order.description} /><Field label="Instrucciones" value={order.instructions || <EmptyState>Sin instrucciones adicionales.</EmptyState>} empty={!order.instructions} /><Field label="Riesgos y precauciones" value={order.safetyNotes || <EmptyState>Sin riesgos registrados.</EmptyState>} empty={!order.safetyNotes} /></dl></ReadOnlyPanel>
             <ReadOnlyPanel icon={Building2} title="Contexto de instalación y técnico"><dl className="premium-fields-grid"><Field label="Instalación" value={order.siteName || <EmptyState>Sin instalación</EmptyState>} /><Field label="Ubicación" value={order.siteAddress || order.locationName || <span><span className="premium-pending-badge">Ubicación pendiente</span><small className="premium-subvalue">Sin dirección ni coordenadas</small></span>} empty={!order.siteAddress && !order.locationName} /><Field label="Equipo" value={order.assetName ?? <EmptyState>Sin equipo vinculado</EmptyState>} empty={!order.assetName} /><Field label="Técnico asignado" value={order.assignedToName ? <span className="premium-technician"><span className="premium-avatar">{initials(order.assignedToName)}</span><span><strong>{order.assignedToName}</strong><small>Contacto no disponible en los datos visibles</small></span></span> : <EmptyState>Sin técnico asignado</EmptyState>} empty={!order.assignedToName} /></dl></ReadOnlyPanel>
           </section>
-          <ReadOnlyPanel icon={History} title="Historial reciente"><AuditTimeline events={orderAudit.slice(0, 4)} displayDate={displayDate} compact /></ReadOnlyPanel>
+          <ReadOnlyPanel icon={History} title="Historial reciente"><AuditTimeline events={orderAudit} displayDate={displayDate} compact /></ReadOnlyPanel>
           <section className="premium-requirements" aria-label="Requisitos de la orden"><div className="premium-section-heading"><span className="premium-section-icon"><ShieldCheck size={18} /></span><h3>Requisitos registrados</h3></div><div className="premium-requirement-grid"><div><ListIcon checked={order.requirements.checklist} /><strong>{order.requirements.checklist ? 'Checklist requerido' : 'Checklist no obligatorio'}</strong><small>{required.length ? required.join(' · ') : 'Sin requisitos especiales'}</small></div><div><ListIcon checked={order.requirements.report} /><strong>{order.requirements.report ? 'Informe requerido' : 'Informe opcional'}</strong><small>Registro documental</small></div><div><ListIcon checked={Boolean(order.dueAt)} /><strong>{order.dueAt ? 'Fecha límite registrada' : 'Sin fecha límite'}</strong><small>{order.dueAt ? displayDate(order.dueAt) : 'No disponible'}</small></div></div></section>
           {(operationalPanels?.assignment || operationalPanels?.technical || operationalPanels?.cancel) && <section className="premium-operational-panels"><div className="premium-section-heading"><span className="premium-section-icon"><Wrench size={18} /></span><h3>Controles operativos existentes</h3></div>{operationalPanels.assignment}{operationalPanels.technical}{operationalPanels.cancel}</section>}
         </>}
