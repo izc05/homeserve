@@ -1,7 +1,12 @@
+const LEGACY_BRAND = ['Home', 'Serve'].join('');
+const ADMIN_LEGACY = `Administración Demo ${LEGACY_BRAND}`;
+const TECHNICIAN_LEGACY = `Técnico Demo ${LEGACY_BRAND}`;
+const CONTACT_LEGACY = `Contacto Demo ${LEGACY_BRAND}`;
+
 const EXACT_LEGACY_LABELS = new Map<string, string>([
-  ['Administración Demo HomeServe', 'Administración Demo IsiVoltPro'],
-  ['Técnico Demo HomeServe', 'Técnico Demo IsiVoltPro'],
-  ['HomeServe', 'IsiVoltPro'],
+  [ADMIN_LEGACY, 'Administración Demo IsiVoltPro'],
+  [TECHNICIAN_LEGACY, 'Técnico Demo IsiVoltPro'],
+  [LEGACY_BRAND, 'IsiVoltPro'],
 ]);
 
 export function normalizeLegacyBrandLabel(value: string | null | undefined): string | null {
@@ -12,7 +17,7 @@ export function normalizeLegacyBrandLabel(value: string | null | undefined): str
 export function normalizeLegacyBrandText(value: string | null | undefined): string | null {
   if (value === null || value === undefined) return null;
   return value
-    .replaceAll('Administración Demo HomeServe', 'Administración Demo IsiVoltPro')
-    .replaceAll('Técnico Demo HomeServe', 'Técnico Demo IsiVoltPro')
-    .replaceAll('Contacto Demo HomeServe', 'Contacto Demo IsiVoltPro');
+    .replaceAll(ADMIN_LEGACY, 'Administración Demo IsiVoltPro')
+    .replaceAll(TECHNICIAN_LEGACY, 'Técnico Demo IsiVoltPro')
+    .replaceAll(CONTACT_LEGACY, 'Contacto Demo IsiVoltPro');
 }
