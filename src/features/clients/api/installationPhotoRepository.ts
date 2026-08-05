@@ -49,6 +49,19 @@ const MIME_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/pn
 function required(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
 }
+
+function safeFilename(value: string) {
+  const stem = value
+    .replace(/\.[^.]+$/, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-ES')
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+  return stem || 'imagen';
+}
+
 function mapPhoto(row: PhotoRow, signedUrl: string | null = null): InstallationPhoto {
   if (!row.id || !row.tenant_id || !row.instalacion_id || !row.path || !row.mime_type || !row.created_by) {
     throw new Error('La base de datos devolvió una fotografía de instalación incompleta.');
@@ -79,13 +92,17 @@ export function validateInstallationPhotoFile(file: Pick<File, 'type' | 'size'>)
   if (file.size > INSTALLATION_PHOTO_MAX_BYTES) throw new Error('La fotografía no puede superar 10 MiB.');
 }
 
-export function createInstallationPhotoPath(tenantId: string, installationId: string, file: Pick<File, 'type'>) {
+export function createInstallationPhotoPath(
+  tenantId: string,
+  installationId: string,
+  file: Pick<File, 'type' | 'name'>,
+) {
   required(tenantId, 'No se ha indicado la organización.');
   required(installationId, 'No se ha indicado la instalación.');
   const extension = MIME_EXTENSIONS[file.type];
   if (!extension) throw new Error('El formato de fotografía no está permitido.');
   if (!globalThis.crypto?.randomUUID) throw new Error('El navegador no puede generar una ruta segura.');
-  return `${tenantId}/${installationId}/foto/${globalThis.crypto.randomUUID()}.${extension}`;
+  return `${tenantId}/${installationId}/${globalThis.crypto.randomUUID()}-${safeFilename(file.name)}.${extension}`;
 }
 
 export async function listInstallationPhotos(supabase: SupabaseClient, installationId: string) {
@@ -118,7 +135,7 @@ export async function uploadInstallationPhoto(supabase: SupabaseClient, input: {
     contentType: input.file.type,
     cacheControl: '3600',
     upsert: false,
-    metadata: { size: input.file.size },
+    metadata: { size: input.file.size, mimetype: input.file.type },
   });
   if (uploadError) throw uploadError;
   input.onProgress?.(70);
@@ -138,6 +155,22 @@ export async function uploadInstallationPhoto(supabase: SupabaseClient, input: {
     throw error;
   }
   input.onProgress?.(100);
+  return mapPhoto((data ?? {}) as PhotoRow);
+}
+
+export async function updateInstallationPhotoMetadata(
+  supabase: SupabaseClient,
+  photoId: string,
+  input: { title?: string | null; description?: string | null; category: InstallationPhotoCategory },
+) {
+  required(photoId, 'No se ha indicado la fotografía.');
+  const { data, error } = await supabase.rpc('update_installation_photo_metadata', {
+    photo_uuid: photoId,
+    title_text: input.title?.trim() || null,
+    description_text: input.description?.trim() || null,
+    category_text: input.category,
+  });
+  if (error) throw error;
   return mapPhoto((data ?? {}) as PhotoRow);
 }
 
