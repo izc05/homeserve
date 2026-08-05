@@ -29,6 +29,7 @@ import './styles/orders-polish.css';
 import './styles/work-order-detail-polish.css';
 import './styles/planning-polish.css';
 import './styles/technicians-polish.css';
+import './styles/navigation-polish.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
