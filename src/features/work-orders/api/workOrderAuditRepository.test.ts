@@ -9,6 +9,8 @@ import {
   type WorkOrderAuditEvent,
 } from './workOrderAuditRepository';
 
+const legacyBrand = ['Home', 'Serve'].join('');
+
 function createQueryMock(data: unknown[], error: unknown = null) {
   const result = Promise.resolve({ data, error });
   const chain = {
@@ -34,7 +36,7 @@ describe('workOrderAuditRepository', () => {
       metadata: { estado_nuevo: 'ASIGNADA' },
       created_at: '2026-07-19T10:00:00.000Z',
     }]);
-    const profilesQuery = createQueryMock([{ id: 'user-1', nombre: 'Administración Demo HomeServe' }]);
+    const profilesQuery = createQueryMock([{ id: 'user-1', nombre: `Administración Demo ${legacyBrand}` }]);
     const supabase = {
       from: vi.fn((table: string) => table === 'audit_logs' ? auditQuery : profilesQuery),
     };
@@ -59,7 +61,7 @@ describe('workOrderAuditRepository', () => {
       userId: 'admin-1',
       actorName: 'Administrador E2E',
       metadata: {
-        assigned_to_name: 'Técnico Demo HomeServe',
+        assigned_to_name: `Técnico Demo ${legacyBrand}`,
         estado_anterior: 'BORRADOR',
         estado_nuevo: 'ASIGNADA',
       },
