@@ -27,6 +27,7 @@ import './styles/visual-system.css';
 import './styles/dashboard-polish.css';
 import './styles/orders-polish.css';
 import './styles/work-order-detail-polish.css';
+import './styles/planning-polish.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
