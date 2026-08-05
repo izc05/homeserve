@@ -35,7 +35,7 @@ import { listAccessibleWorkOrders, type WorkOrderListItem } from './features/wor
 import { loadWorkOrderCreationCatalog, type WorkOrderCreationCatalog } from './features/work-orders/api/workOrderCommands';
 import { acceptWorkOrder, blockWorkOrder, resumeWorkOrder, startWorkOrderVisit } from './features/work-orders/api/workOrderLifecycle';
 import { reviewWorkOrder, type WorkOrderReviewDecision } from './features/work-orders/api/workOrderReview';
-import { humanAuditAction, listWorkOrderAuditEvents, workOrderAuditDetail, type WorkOrderAuditEvent } from './features/work-orders/api/workOrderAuditRepository';
+import { listWorkOrderAuditEvents, type WorkOrderAuditEvent } from './features/work-orders/api/workOrderAuditRepository';
 import { cancelWorkOrder, canCancelWorkOrder } from './features/work-orders/api/workOrderCancellation';
 import type { WorkOrderPriority, WorkOrderStatus, WorkOrderType } from './features/work-orders/types/workOrder';
 import type { CreateWorkOrderFormValues } from './features/work-orders/forms/createWorkOrderSchema';
