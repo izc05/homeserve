@@ -26,6 +26,7 @@ import './styles/orders-table-premium.css';
 import './styles/visual-system.css';
 import './styles/dashboard-polish.css';
 import './styles/orders-polish.css';
+import './styles/work-order-detail-polish.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
