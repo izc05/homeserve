@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { normalizeLegacyBrandLabel, normalizeLegacyBrandText } from '../../../lib/legacyBranding';
 
 export type WorkOrderAuditEvent = {
   id: string;
@@ -11,6 +12,19 @@ export type WorkOrderAuditEvent = {
   metadata: Record<string, unknown>;
   createdAt: string;
 };
+
+export type WorkOrderAuditTone =
+  | 'creation'
+  | 'assignment'
+  | 'acceptance'
+  | 'start'
+  | 'blocked'
+  | 'resume'
+  | 'complete'
+  | 'validation'
+  | 'rejected'
+  | 'reassignment'
+  | 'neutral';
 
 type AuditLogRow = {
   id: string;
@@ -41,7 +55,7 @@ function mapAuditRow(row: AuditLogRow, actorName: string | null): WorkOrderAudit
     entityType: String(row.entity_type),
     entityId: row.entity_id ? String(row.entity_id) : null,
     userId: row.user_id ? String(row.user_id) : null,
-    actorName,
+    actorName: normalizeLegacyBrandLabel(actorName),
     metadata: asRecord(row.metadata),
     createdAt: String(row.created_at),
   };
@@ -60,7 +74,7 @@ async function loadActorNames(
   return new Map(
     ((data ?? []) as unknown as ProfileRow[]).map((profile) => [
       String(profile.id),
-      profile.nombre?.trim() || 'Usuario sin nombre',
+      normalizeLegacyBrandLabel(profile.nombre?.trim() || 'Usuario sin nombre') || 'Usuario sin nombre',
     ]),
   );
 }
@@ -118,15 +132,37 @@ export function humanAuditAction(action: string): string {
   return labels[action] ?? action.replaceAll('_', ' ');
 }
 
+export function workOrderAuditTone(event: WorkOrderAuditEvent): WorkOrderAuditTone {
+  const action = event.action;
+  const nextStatus = String(event.metadata.estado_nuevo ?? '').toLocaleUpperCase('es-ES');
+  if (action === 'create_work_order') return 'creation';
+  if (action === 'reassign_work_order' || action === 'update_work_order_assignment') return 'reassignment';
+  if (action === 'assign_work_order') return 'assignment';
+  if (action === 'accept_work_order') return 'acceptance';
+  if (action === 'start_work_order_visit') return 'start';
+  if (action === 'block_work_order' || nextStatus === 'BLOQUEADA') return 'blocked';
+  if (action === 'resume_work_order') return 'resume';
+  if (action.includes('finalize') || nextStatus === 'FINALIZADA_TECNICO') return 'complete';
+  if (action === 'validate_work_order' || nextStatus === 'VALIDADA') return 'validation';
+  if (action.includes('correction') || nextStatus === 'CANCELADA') return 'rejected';
+  return 'neutral';
+}
+
+export function workOrderAuditStateChange(event: WorkOrderAuditEvent): { previous: string | null; next: string | null } {
+  const previous = event.metadata.estado_anterior ? String(event.metadata.estado_anterior) : null;
+  const next = event.metadata.estado_nuevo ? String(event.metadata.estado_nuevo) : null;
+  return { previous, next };
+}
+
 export function workOrderAuditDetail(event: WorkOrderAuditEvent): string {
   const meta = event.metadata;
   const parts = [
     meta.estado_anterior && meta.estado_nuevo
       ? `${String(meta.estado_anterior)} → ${String(meta.estado_nuevo)}`
       : null,
-    meta.assigned_to_name ? `Técnico asignado: ${String(meta.assigned_to_name)}` : null,
-    meta.motivo ? String(meta.motivo) : null,
-    meta.reason ? String(meta.reason) : null,
+    meta.assigned_to_name ? `Técnico asignado: ${normalizeLegacyBrandText(String(meta.assigned_to_name))}` : null,
+    meta.motivo ? normalizeLegacyBrandText(String(meta.motivo)) : null,
+    meta.reason ? normalizeLegacyBrandText(String(meta.reason)) : null,
     meta.filename ? String(meta.filename) : null,
     meta.created_items ? `${String(meta.created_items)} puntos creados` : null,
     meta.plantilla_item_id ? `Punto: ${String(meta.plantilla_item_id)}` : null,
