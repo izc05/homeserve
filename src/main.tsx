@@ -28,6 +28,7 @@ import './styles/dashboard-polish.css';
 import './styles/orders-polish.css';
 import './styles/work-order-detail-polish.css';
 import './styles/planning-polish.css';
+import './styles/technicians-polish.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
