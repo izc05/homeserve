@@ -30,6 +30,7 @@ import './styles/work-order-detail-polish.css';
 import './styles/planning-polish.css';
 import './styles/technicians-polish.css';
 import './styles/navigation-polish.css';
+import './styles/admin-modules-polish.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
