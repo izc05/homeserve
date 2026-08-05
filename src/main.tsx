@@ -23,6 +23,7 @@ import './styles/checklist-templates.css';
 import './styles/installation-gallery.css';
 import './styles/location-map.css';
 import './styles/orders-table-premium.css';
+import './styles/ux-reports-media-map-history.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
