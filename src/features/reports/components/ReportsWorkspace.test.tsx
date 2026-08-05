@@ -106,7 +106,7 @@ describe('ReportsWorkspace', () => {
     const { open } = renderWorkspace();
     fireEvent.click(screen.getByRole('button', { name: 'Abrir OT' }));
     expect(open).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111');
-    expect(screen.getByRole('button', { name: 'Generar' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generar' }).hasAttribute('disabled')).toBe(true);
   });
 
   it('filtra por búsqueda sin cortar los datos principales', () => {
