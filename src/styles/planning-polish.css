@@ -1,0 +1,441 @@
+/* Segunda pasada visual del módulo de Planificación.
+   Se limita a la vista que contiene Agenda de OT y Vencidas / riesgo. */
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) {
+  position: relative;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .page-heading {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20px;
+  padding: 24px 26px;
+  border: 1px solid #dce3eb;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(227, 6, 19, .07), transparent 26%),
+    linear-gradient(135deg, #ffffff 0%, #fbfcfe 100%);
+  box-shadow: 0 14px 34px rgba(7, 26, 51, .06);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .page-heading::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #ff313c 0%, var(--brand) 58%, #a90009 100%);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .page-heading h1 {
+  margin-bottom: 7px;
+  color: #071a33;
+  font-size: clamp(32px, 3vw, 42px);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .page-heading p {
+  max-width: 720px;
+  color: #617187;
+  font-size: 14px;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid {
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card {
+  min-height: 118px;
+  overflow: hidden;
+  border-color: #dde4ec;
+  border-radius: 15px;
+  box-shadow: 0 12px 28px rgba(7, 26, 51, .055);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: #dce3eb;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card:nth-child(1)::before { background: var(--brand); }
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card:nth-child(2)::before { background: #169563; }
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card:nth-child(3)::before { background: #e28a13; }
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card:nth-child(4)::before { background: #7850b5; }
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5df;
+  box-shadow: 0 16px 34px rgba(7, 26, 51, .075);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-content strong {
+  color: #071a33;
+  font-size: 28px;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-content span {
+  color: #2f4057;
+  font-size: 13px;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-content small {
+  color: #7b899b;
+  font-size: 11px;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .dashboard-grid-bottom {
+  grid-template-columns: minmax(0, 1.45fr) minmax(310px, .72fr);
+  align-items: start;
+  gap: 18px;
+  margin-bottom: 0;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel,
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel {
+  overflow: hidden;
+  padding: 0;
+  border-color: #dce3eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(7, 26, 51, .06);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel > .panel-heading,
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading {
+  min-height: 74px;
+  align-items: center;
+  margin: 0;
+  padding: 19px 21px;
+  border-bottom: 1px solid #e7ecf1;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel > .panel-heading::before,
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading::before {
+  content: "";
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(23, 58, 94, .08), rgba(23, 58, 94, .02)),
+    #eef3f8;
+  box-shadow: inset 0 0 0 1px rgba(23, 58, 94, .06);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel > .panel-heading::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin-left: 11px;
+  border: 2px solid #173a5e;
+  border-radius: 4px;
+  box-shadow: inset 0 5px #eef3f8;
+  pointer-events: none;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel > .panel-heading {
+  position: relative;
+  justify-content: flex-start;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel > .panel-heading h2,
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading h2 {
+  margin-right: auto;
+  color: #071a33;
+  font-size: 18px;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .source-badge {
+  min-width: 34px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid #d6dee8;
+  border-radius: 999px;
+  background: #f5f8fb;
+  color: #36516e;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel .day-plan-list,
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel .day-plan-list {
+  gap: 0;
+  margin: 0;
+  padding: 8px 12px 12px;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 12px;
+  border: 0;
+  border-bottom: 1px solid #e9edf2;
+  border-radius: 0;
+  background: transparent;
+  color: #24364d;
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button:last-child {
+  border-bottom: 0;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button:hover {
+  z-index: 1;
+  border-radius: 12px;
+  background: #f8fafc;
+  box-shadow: inset 4px 0 var(--brand);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button:active {
+  transform: translateY(1px);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button > svg {
+  width: 42px;
+  height: 42px;
+  padding: 11px;
+  border-radius: 12px;
+  color: #17445d;
+  background: linear-gradient(145deg, #e8f3f6, #dcecf1);
+  box-shadow: inset 0 0 0 1px rgba(23, 68, 93, .07);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button > span:nth-child(2) {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button strong {
+  overflow: hidden;
+  color: #071a33;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button small {
+  overflow: hidden;
+  margin: 0;
+  color: #66768a;
+  font-size: 12px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button .status {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid rgba(17, 72, 106, .08);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button .status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.72);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel {
+  border-color: #eadbde;
+  background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading {
+  position: relative;
+  justify-content: flex-start;
+  border-bottom-color: #f0e2e5;
+  background: linear-gradient(180deg, #fff 0%, #fff9fa 100%);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading::before {
+  background: #fff0f1;
+  box-shadow: inset 0 0 0 1px rgba(227, 6, 19, .07);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading::after {
+  content: "!";
+  position: absolute;
+  left: 31px;
+  top: 28px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel .day-plan-list > button > svg {
+  color: #a82735;
+  background: linear-gradient(145deg, #fff0f1, #f9e5e8);
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel .day-plan-list > button:hover {
+  background: #fff7f8;
+  box-shadow: inset 4px 0 #c92a39;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .empty-state {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  margin: 0;
+  padding: 28px;
+  color: #718096;
+  font-size: 13px;
+  text-align: center;
+}
+
+.main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel .empty-state {
+  color: #7b6469;
+}
+
+@media (max-width: 1080px) {
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .dashboard-grid-bottom {
+    grid-template-columns: minmax(0, 1.25fr) minmax(285px, .75fr);
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .dashboard-grid-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel {
+    order: -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .page-heading {
+    margin-bottom: 14px;
+    padding: 20px 18px 19px;
+    border-radius: 14px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .page-heading h1 {
+    font-size: 31px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .page-heading p {
+    font-size: 13px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card {
+    min-height: 104px;
+    padding: 14px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-content strong {
+    font-size: 24px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel,
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel {
+    border-radius: 14px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel > .panel-heading,
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading {
+    min-height: 66px;
+    padding: 15px 16px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .planning-list-panel > .panel-heading h2,
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .alert-panel > .panel-heading h2 {
+    font-size: 17px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button {
+    grid-template-columns: 40px minmax(0, 1fr);
+    min-height: 94px;
+    gap: 12px;
+    padding: 14px 10px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button > svg {
+    width: 38px;
+    height: 38px;
+    padding: 10px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button .status {
+    grid-column: 2;
+    justify-self: start;
+    min-height: 27px;
+    font-size: 10px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button strong,
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button small {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 430px) {
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-card {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) > .metrics-grid .metric-icon {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .metric-card,
+  .main-content:has(.dashboard-grid-bottom > .planning-list-panel + .alert-panel) .day-plan-list > button {
+    transition: none;
+  }
+}
