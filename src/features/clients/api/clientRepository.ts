@@ -12,6 +12,7 @@ import type {
   UpdateInstallationInput,
 } from '../types/client';
 import { normalizeWorkOrderStatus } from '../../work-orders/domain/statusCompatibility';
+import { CLIENT_LOGO_URL_TTL_SECONDS, CLIENT_MEDIA_BUCKET } from './clientLogoRepository';
 
 type ClientRow = {
   id: string;
@@ -24,6 +25,8 @@ type ClientRow = {
   telefono: string | null;
   direccion: string | null;
   observaciones: string | null;
+  logo_bucket: string | null;
+  logo_path: string | null;
   estado: EntityStatus;
   created_at: string;
   updated_at: string;
@@ -37,6 +40,8 @@ type InstallationRow = {
   codigo: string | null;
   tipo: string | null;
   direccion: string | null;
+  latitud: number | string | null;
+  longitud: number | string | null;
   descripcion: string | null;
   contacto_nombre: string | null;
   contacto_telefono: string | null;
@@ -55,8 +60,8 @@ type WorkOrderRow = {
   updated_at: string;
 };
 
-const CLIENT_COLUMNS = 'id,tenant_id,nombre,codigo,cif_nif,contacto_nombre,email,telefono,direccion,observaciones,estado,created_at,updated_at';
-const INSTALLATION_COLUMNS = 'id,tenant_id,cliente_id,nombre,codigo,tipo,direccion,descripcion,contacto_nombre,contacto_telefono,contacto_email,estado,created_at,updated_at';
+const CLIENT_COLUMNS = 'id,tenant_id,nombre,codigo,cif_nif,contacto_nombre,email,telefono,direccion,observaciones,logo_bucket,logo_path,estado,created_at,updated_at';
+const INSTALLATION_COLUMNS = 'id,tenant_id,cliente_id,nombre,codigo,tipo,direccion,latitud,longitud,descripcion,contacto_nombre,contacto_telefono,contacto_email,estado,created_at,updated_at';
 const WORK_ORDER_COLUMNS = 'id,cliente_id,codigo_ot,titulo,estado,updated_at';
 const CLOSED_WORK_ORDER_STATUSES = new Set(['VALIDADA', 'CANCELADA']);
 
@@ -65,12 +70,16 @@ function nullableText(value: string | null | undefined): string | null {
   return normalized || null;
 }
 
+function nullableCoordinate(value: number | null | undefined): number | null {
+  return Number.isFinite(value) ? Number(value) : null;
+}
+
 export function normalizeEntityStatus(value: string): EntityStatus {
   if (value === 'activo' || value === 'inactivo') return value;
   throw new Error('El estado debe ser activo o inactivo.');
 }
 
-export function mapClientRow(row: ClientRow): ClientRecord {
+export function mapClientRow(row: ClientRow, logoUrl: string | null = null): ClientRecord {
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -82,6 +91,9 @@ export function mapClientRow(row: ClientRow): ClientRecord {
     phone: row.telefono ? String(row.telefono) : null,
     address: row.direccion ? String(row.direccion) : null,
     notes: row.observaciones ? String(row.observaciones) : null,
+    logoBucket: row.logo_bucket ? String(row.logo_bucket) : null,
+    logoPath: row.logo_path ? String(row.logo_path) : null,
+    logoUrl,
     status: normalizeEntityStatus(row.estado),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -97,6 +109,8 @@ export function mapInstallationRow(row: InstallationRow): ClientInstallation {
     code: row.codigo ? String(row.codigo) : null,
     type: row.tipo ? String(row.tipo) : null,
     address: row.direccion ? String(row.direccion) : null,
+    latitude: row.latitud === null ? null : Number(row.latitud),
+    longitude: row.longitud === null ? null : Number(row.longitud),
     description: row.descripcion ? String(row.descripcion) : null,
     contactName: row.contacto_nombre ? String(row.contacto_nombre) : null,
     contactPhone: row.contacto_telefono ? String(row.contacto_telefono) : null,
@@ -137,12 +151,22 @@ export function toInstallationPayload(input: CreateInstallationInput | UpdateIns
     codigo: nullableText(input.code),
     tipo: nullableText(input.type),
     direccion: nullableText(input.address),
+    latitud: nullableCoordinate(input.latitude),
+    longitud: nullableCoordinate(input.longitude),
     descripcion: nullableText(input.description),
     contacto_nombre: nullableText(input.contactName),
     contacto_telefono: nullableText(input.contactPhone),
     contacto_email: nullableText(input.contactEmail),
     estado: normalizeEntityStatus(input.status),
   };
+}
+
+async function signedLogoUrls(supabase: SupabaseClient, rows: ClientRow[]) {
+  const paths = [...new Set(rows.map((row) => row.logo_path).filter((path): path is string => Boolean(path)))];
+  if (paths.length === 0) return new Map<string, string | null>();
+  const { data, error } = await supabase.storage.from(CLIENT_MEDIA_BUCKET).createSignedUrls(paths, CLIENT_LOGO_URL_TTL_SECONDS);
+  if (error) return new Map<string, string | null>();
+  return new Map((data ?? []).map((item) => [String(item.path), item.signedUrl || null]));
 }
 
 export function filterClients(clients: ClientListItem[], search: string, status: 'todos' | EntityStatus): ClientListItem[] {
@@ -182,6 +206,8 @@ export async function listClients(supabase: SupabaseClient, tenantId: string): P
   if (installationsResult.error) throw installationsResult.error;
   if (ordersResult.error) throw ordersResult.error;
 
+  const rows = (clientsResult.data ?? []) as unknown as ClientRow[];
+  const logoUrls = await signedLogoUrls(supabase, rows);
   const installationCounts = new Map<string, number>();
   for (const installation of (installationsResult.data ?? []) as Array<{ cliente_id: string | null }>) {
     if (installation.cliente_id) installationCounts.set(installation.cliente_id, (installationCounts.get(installation.cliente_id) ?? 0) + 1);
@@ -192,8 +218,8 @@ export async function listClients(supabase: SupabaseClient, tenantId: string): P
       openOrderCounts.set(order.cliente_id, (openOrderCounts.get(order.cliente_id) ?? 0) + 1);
     }
   }
-  return ((clientsResult.data ?? []) as unknown as ClientRow[]).map((row) => ({
-    ...mapClientRow(row),
+  return rows.map((row) => ({
+    ...mapClientRow(row, row.logo_path ? logoUrls.get(row.logo_path) ?? null : null),
     installationCount: installationCounts.get(row.id) ?? 0,
     openWorkOrderCount: openOrderCounts.get(row.id) ?? 0,
   }));
@@ -210,9 +236,10 @@ export async function getClientDetail(supabase: SupabaseClient, tenantId: string
   if (ordersResult.error) throw ordersResult.error;
   const client = clientResult.data as unknown as ClientRow | null;
   if (!client) throw new Error('El cliente ya no está disponible.');
+  const logoUrls = await signedLogoUrls(supabase, [client]);
   const orders = ((ordersResult.data ?? []) as unknown as WorkOrderRow[]).map(mapWorkOrderRow);
   return {
-    client: mapClientRow(client),
+    client: mapClientRow(client, client.logo_path ? logoUrls.get(client.logo_path) ?? null : null),
     installations: ((installationsResult.data ?? []) as unknown as InstallationRow[]).map(mapInstallationRow),
     openWorkOrders: orders.filter((order) => !CLOSED_WORK_ORDER_STATUSES.has(order.status)),
     recentWorkOrders: orders,
