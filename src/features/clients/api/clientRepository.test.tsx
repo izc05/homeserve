@@ -15,6 +15,7 @@ import {
   mapClientRow,
   setClientStatus,
   toClientPayload,
+  toInstallationPayload,
 } from './clientRepository';
 
 const tenantId = '11111111-1111-4111-8111-111111111111';
@@ -31,6 +32,9 @@ const sampleClient = (): ClientListItem => ({
   phone: '600 111 222',
   address: null,
   notes: null,
+  logoBucket: null,
+  logoPath: null,
+  logoUrl: null,
   status: 'activo',
   createdAt: '2026-07-19T08:00:00.000Z',
   updatedAt: '2026-07-19T08:00:00.000Z',
@@ -46,6 +50,8 @@ const sampleInstallation = (id = '33333333-3333-4333-8333-333333333333'): Client
   code: 'INS-001',
   type: 'Fotovoltaica',
   address: null,
+  latitude: null,
+  longitude: null,
   description: null,
   contactName: null,
   contactPhone: null,
@@ -56,7 +62,7 @@ const sampleInstallation = (id = '33333333-3333-4333-8333-333333333333'): Client
 });
 
 describe('gestión de clientes e instalaciones', () => {
-  it('mapea los campos canónicos de un cliente', () => {
+  it('mapea los campos canónicos y la imagen privada de un cliente', () => {
     const row: Parameters<typeof mapClientRow>[0] = {
       id: clientId,
       tenant_id: tenantId,
@@ -68,12 +74,21 @@ describe('gestión de clientes e instalaciones', () => {
       telefono: '600 111 222',
       direccion: 'Calle Sol 1',
       observaciones: 'Acceso por recepción',
+      logo_bucket: 'client-media',
+      logo_path: `${tenantId}/${clientId}/logo.webp`,
       estado: 'activo',
       created_at: '2026-07-19T08:00:00.000Z',
       updated_at: '2026-07-19T08:00:00.000Z',
     };
 
-    expect(mapClientRow(row)).toMatchObject({ cifNif: 'B12345678', contactName: 'Marina López', status: 'activo' });
+    expect(mapClientRow(row, 'https://signed.example/logo')).toMatchObject({
+      cifNif: 'B12345678',
+      contactName: 'Marina López',
+      logoBucket: 'client-media',
+      logoPath: `${tenantId}/${clientId}/logo.webp`,
+      logoUrl: 'https://signed.example/logo',
+      status: 'activo',
+    });
   });
 
   it('normaliza los estados de OT de la ficha de cliente sin exponer el valor interno', () => {
@@ -95,6 +110,23 @@ describe('gestión de clientes e instalaciones', () => {
       codigo: 'CLI-001',
       estado: 'activo',
     });
+  });
+
+  it('valida coordenadas completas y las conserva en el payload', () => {
+    const parsed = installationFormSchema.parse({
+      clientId,
+      name: 'Cubierta principal',
+      latitude: '37.177336',
+      longitude: '-3.598557',
+    });
+    expect(parsed).toMatchObject({ latitude: 37.177336, longitude: -3.598557 });
+    expect(toInstallationPayload({ ...sampleInstallation(), latitude: parsed.latitude, longitude: parsed.longitude }))
+      .toMatchObject({ latitud: 37.177336, longitud: -3.598557 });
+  });
+
+  it('rechaza coordenadas incompletas o fuera de rango', () => {
+    expect(installationFormSchema.safeParse({ clientId, name: 'Cubierta', latitude: 37.17 }).success).toBe(false);
+    expect(installationFormSchema.safeParse({ clientId, name: 'Cubierta', latitude: 91, longitude: 0 }).success).toBe(false);
   });
 
   it('mantiene el estado exacto activo', () => {
@@ -130,6 +162,8 @@ describe('gestión de clientes e instalaciones', () => {
       code: '',
       type: '',
       address: '',
+      latitude: null,
+      longitude: null,
       description: '',
       contactName: '',
       contactPhone: '',
@@ -152,6 +186,8 @@ describe('gestión de clientes e instalaciones', () => {
         telefono: null,
         direccion: null,
         observaciones: null,
+        logo_bucket: null,
+        logo_path: null,
         estado: 'inactivo',
         created_at: '2026-07-19T08:00:00.000Z',
         updated_at: '2026-07-19T08:00:00.000Z',
