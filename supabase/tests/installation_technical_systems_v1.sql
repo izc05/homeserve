@@ -23,7 +23,7 @@ insert into clientes(id,tenant_id,nombre) values
   ('31000000-0000-0000-0000-000000000002','21000000-0000-0000-0000-000000000002','Cliente Sistemas B');
 
 insert into instalaciones(id,tenant_id,cliente_id,nombre) values
-  ('41000000-0000-0000-0000-000000000001','21000000-0000-0000-0000-000000000001','31000000-0000-0000-0000-000000000001','Instalación Sistemas A1'),
+  ('41000000-0000-0000-0000-000000000001','21000000-0000-0000-000000000001','31000000-0000-0000-0000-000000000001','Instalación Sistemas A1'),
   ('41000000-0000-0000-0000-000000000002','21000000-0000-0000-0000-000000000001','31000000-0000-0000-0000-000000000001','Instalación Sistemas A2'),
   ('41000000-0000-0000-0000-000000000003','21000000-0000-0000-0000-000000000002','31000000-0000-0000-0000-000000000002','Instalación Sistemas B1');
 
@@ -76,10 +76,18 @@ select throws_matching(
   '.*row-level security.*',
   '8. técnico no puede crear sistemas'
 );
-select throws_matching(
-  $$ update sistemas_instalacion set descripcion='Cambio técnico prohibido' where codigo='ELEC' $$,
-  '.*row-level security.*',
-  '9. técnico no puede editar sistemas'
+select is(
+  (
+    with changed as (
+      update sistemas_instalacion
+      set descripcion='Cambio técnico prohibido'
+      where codigo='ELEC'
+      returning 1
+    )
+    select count(*)::integer from changed
+  ),
+  0,
+  '9. técnico no puede editar sistemas: RLS filtra la fila y actualiza 0 registros'
 );
 
 select set_config('request.jwt.claim.sub','11000000-0000-0000-0000-000000000004',true);
