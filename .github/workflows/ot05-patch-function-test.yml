@@ -1,0 +1,50 @@
+name: OT05 Patch Function Test
+
+on:
+  push:
+    branches:
+      - feat/ot-technical-system-v1
+    paths:
+      - '.github/workflows/ot05-patch-function-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/ot-technical-system-v1
+          fetch-depth: 0
+
+      - name: Replace only the stale private-schema count assertion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/function_execute_privileges.sql')
+          text = path.read_text(encoding='utf-8')
+          old = """select is(\n  (\n    select count(*)::integer\n    from pg_proc function_row\n    where function_row.pronamespace = 'private'::regnamespace\n  ),\n  1,\n  '9. private contiene únicamente la función interna esperada'\n);"""
+          new = """select is(\n  (\n    select count(*)::integer\n    from pg_proc function_row\n    where function_row.pronamespace = 'private'::regnamespace\n      and function_row.oid = to_regprocedure(\n        'private.next_work_order_code_internal()'\n      )\n  ),\n  1,\n  '9. existe una única función interna de numeración esperada'\n);"""
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Se esperaba exactamente 1 bloque legacy y se encontraron {count}')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+
+      - name: Verify narrow diff
+        run: |
+          git diff --check
+          git diff -- supabase/tests/function_execute_privileges.sql
+          test "$(git diff --numstat -- supabase/tests/function_execute_privileges.sql | awk '{print $1+$2}')" -le 6
+
+      - name: Commit patch
+        run: |
+          git config user.name 'IsiVoltPro Mantenimiento'
+          git config user.email 'isiciozafracantos@gmail.com'
+          git add supabase/tests/function_execute_privileges.sql
+          git commit -m 'test: actualizar contrato de helper privado'
+          git push origin HEAD:feat/ot-technical-system-v1
