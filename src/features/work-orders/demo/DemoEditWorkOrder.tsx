@@ -235,7 +235,7 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
   return (
     <section className="demo-create-page">
       <div className="page-heading page-heading-row">
-        <div><span className="section-kicker">Edición FV local</span><h1>Editar {order.code}</h1><p>Modifica estado, fechas límite, instrucciones, riesgos y requisitos de la OT de mantenimiento FV.</p></div>
+        <div><span className="section-kicker">Edición OT local</span><h1>Editar {order.code}</h1><p>Modifica estado, fechas límite, instrucciones, riesgos y requisitos de la orden de trabajo.</p></div>
         <button className="secondary-button" onClick={onCancel} type="button"><ArrowLeft size={17} /> Volver</button>
       </div>
       <form className="panel demo-create-form" onSubmit={submit}>
@@ -260,10 +260,10 @@ export default function DemoEditWorkOrder({ order, onCancel, onSave }: DemoEditW
           <label className="demo-field">Fecha límite<input onChange={(event) => setDueAt(event.target.value)} type="datetime-local" value={dueAt} /></label>
           <label className="demo-field">Duración estimada<div className="demo-number-field"><input min="1" onChange={(event) => setEstimatedMinutes(event.target.value)} type="number" value={estimatedMinutes} /><span>min</span></div></label>
           <label className="demo-field demo-field-wide">Ubicación<input onChange={(event) => setLocation(event.target.value)} value={location} /></label>
-          {order.assetName && <div className="demo-field demo-field-wide readonly-summary"><strong>Equipo vinculado</strong><span>{order.assetName} · {order.assetReference ?? 'Sin referencia'} · {order.assetType ?? 'Tipo no indicado'}</span></div>}
+          {order.assetName && <div className="demo-field demo-field-wide readonly-summary"><strong>Activo vinculado</strong><span>{order.assetName} · {order.assetReference ?? 'Sin referencia'} · {order.assetType ?? 'Tipo no indicado'}</span></div>}
           <label className="demo-field demo-field-wide">Descripción<textarea onChange={(event) => setDescription(event.target.value)} rows={4} value={description} /></label>
           <label className="demo-field demo-field-wide">Instrucciones al técnico<textarea onChange={(event) => setInstructions(event.target.value)} placeholder="Indicaciones, acceso, prioridad del trabajo..." rows={3} value={instructions} /></label>
-          <label className="demo-field demo-field-wide">Riesgos y seguridad<textarea onChange={(event) => setSafetyNotes(event.target.value)} placeholder="EPIs, consignación DC/AC, cubierta, zonas críticas..." rows={3} value={safetyNotes} /></label>
+          <label className="demo-field demo-field-wide">Riesgos y seguridad<textarea onChange={(event) => setSafetyNotes(event.target.value)} placeholder="EPIs, consignación, trabajos en altura, zonas críticas..." rows={3} value={safetyNotes} /></label>
           <label className="demo-field demo-field-wide">Resultado esperado<textarea onChange={(event) => setExpectedResult(event.target.value)} placeholder="Qué debe quedar comprobado al finalizar" rows={3} value={expectedResult} /></label>
         </div>
         <div className="demo-requirements-edit-grid">
