@@ -31,8 +31,8 @@ jobs:
           new_legacy = "  ('public.finalize_work_order_visit(uuid,jsonb)', false),"
           anchor = "  ('public.set_updated_at()', false),"
           inserted = "  ('public.set_work_order_collaborator(uuid,uuid,boolean,text)', true),\n" + anchor
-          old_count = "    47,\n  '1. la matriz ACL enumera las 47 funciones públicas de aplicación'"
-          new_count = "    48,\n  '1. la matriz ACL enumera las 48 funciones públicas de aplicación'"
+          old_count = "  47,\n  '1. la matriz ACL enumera las 47 funciones públicas de aplicación'"
+          new_count = "  48,\n  '1. la matriz ACL enumera las 48 funciones públicas de aplicación'"
 
           assert text.count(old_legacy) == 1, 'legacy ACL expectation not found exactly once'
           assert text.count(anchor) == 1, 'set_updated_at anchor not found exactly once'
