@@ -26,7 +26,7 @@ jobs:
           cp supabase/demo/seed_demo.sql supabase/tests/fixtures/seed_demo.sql
           test "$(git hash-object supabase/tests/fixtures/seed_demo.sql)" = "814ae76ec22b110b32f56add4f83ae449996220c"
 
-      - name: Patch only include paths and malformed fixture UUIDs
+      - name: Patch only include paths and malformed fixture UUID
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -41,16 +41,12 @@ jobs:
 
           systems = Path('supabase/tests/installation_technical_systems_v1.sql')
           systems_text = systems.read_text(encoding='utf-8')
-          replacements = {
-              '21000000-0000-0000-000000000001': ('21000000-0000-0000-0000-000000000001', 1),
-              '21000000-0000-0000-000000000002': ('21000000-0000-0000-0000-000000000002', 1),
-          }
-          for old, (new, expected) in replacements.items():
-              found = systems_text.count(old)
-              if found != expected:
-                  raise SystemExit(f'{old}: se esperaban {expected} coincidencias y hay {found}')
-              systems_text = systems_text.replace(old, new)
-          systems.write_text(systems_text, encoding='utf-8')
+          old_uuid = '21000000-0000-0000-000000000001'
+          new_uuid = '21000000-0000-0000-0000-000000000001'
+          found = systems_text.count(old_uuid)
+          if found != 1:
+              raise SystemExit(f'{old_uuid}: se esperaba 1 coincidencia y hay {found}')
+          systems.write_text(systems_text.replace(old_uuid, new_uuid), encoding='utf-8')
           PY
 
       - name: Verify narrow diff
