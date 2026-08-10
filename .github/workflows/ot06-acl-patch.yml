@@ -1,0 +1,57 @@
+name: OT-06 ACL patch
+
+on:
+  push:
+    branches:
+      - feat/ot-multi-technician-visits-v1
+    paths:
+      - .github/workflows/ot06-acl-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ot-multi-technician-visits-v1
+          fetch-depth: 0
+      - name: Patch ACL contract exactly
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/function_execute_privileges.sql')
+          text = path.read_text()
+
+          old_legacy = "  ('public.finalize_work_order_visit(uuid,jsonb)', true),"
+          new_legacy = "  ('public.finalize_work_order_visit(uuid,jsonb)', false),"
+          anchor = "  ('public.set_updated_at()', false),"
+          inserted = "  ('public.set_work_order_collaborator(uuid,uuid,boolean,text)', true),\n" + anchor
+          old_count = "    47,\n  '1. la matriz ACL enumera las 47 funciones públicas de aplicación'"
+          new_count = "    48,\n  '1. la matriz ACL enumera las 48 funciones públicas de aplicación'"
+
+          assert text.count(old_legacy) == 1, 'legacy ACL expectation not found exactly once'
+          assert text.count(anchor) == 1, 'set_updated_at anchor not found exactly once'
+          assert 'public.set_work_order_collaborator(uuid,uuid,boolean,text)' not in text, 'collaborator RPC already present'
+          assert text.count(old_count) == 1, 'ACL count assertion not found exactly once'
+
+          text = text.replace(old_legacy, new_legacy, 1)
+          text = text.replace(anchor, inserted, 1)
+          text = text.replace(old_count, new_count, 1)
+          path.write_text(text)
+          PY
+          git diff --check
+          test "$(git diff --numstat -- supabase/tests/function_execute_privileges.sql | awk '{print $1+$2}')" -le 6
+      - name: Commit ACL contract patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/tests/function_execute_privileges.sql
+          git diff --cached --exit-code && exit 1 || true
+          git commit -m "test: actualizar matriz ACL para OT-06"
+          git push origin HEAD:feat/ot-multi-technician-visits-v1
