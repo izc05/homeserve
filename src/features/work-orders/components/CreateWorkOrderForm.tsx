@@ -56,6 +56,7 @@ const DEFAULT_VALUES: CreateWorkOrderFormValues = {
   clientId: '',
   installationId: '',
   locationId: '',
+  systemId: '',
   assetId: '',
   technicianId: '',
   type: 'mantenimiento_preventivo',
@@ -153,6 +154,8 @@ export default function CreateWorkOrderForm({
   const clientId = form.watch('clientId');
   const installationId = form.watch('installationId');
   const locationId = form.watch('locationId');
+  const systemId = form.watch('systemId');
+  const assetId = form.watch('assetId');
   const catalog = catalogQuery.data;
 
   const installations = useMemo(
@@ -165,22 +168,49 @@ export default function CreateWorkOrderForm({
     [catalog, installationId],
   );
 
-  useEffect(() => {
-    const selectedInstallation = catalog?.installations.find((installation) => installation.id === installationId);
-    if (selectedInstallation && selectedInstallation.clientId !== clientId) {
-      form.setValue('installationId', '', { shouldDirty: true, shouldValidate: true });
-      form.setValue('locationId', '', { shouldDirty: true });
-      form.setValue('assetId', '', { shouldDirty: true });
-    }
-  }, [catalog, clientId, form, installationId]);
+  const systems = useMemo(
+    () => catalog?.systems.filter((system) => system.installationId === installationId) ?? [],
+    [catalog, installationId],
+  );
 
   const assets = useMemo(
     () => catalog?.assets.filter((asset) => (
       asset.installationId === installationId
       && (!locationId || !asset.locationId || asset.locationId === locationId)
+      && (!systemId || !asset.systemId || asset.systemId === systemId)
     )) ?? [],
-    [catalog, installationId, locationId],
+    [catalog, installationId, locationId, systemId],
   );
+
+  useEffect(() => {
+    const selectedInstallation = catalog?.installations.find((installation) => installation.id === installationId);
+    if (selectedInstallation && selectedInstallation.clientId !== clientId) {
+      form.setValue('installationId', '', { shouldDirty: true, shouldValidate: true });
+      form.setValue('locationId', '', { shouldDirty: true });
+      form.setValue('systemId', '', { shouldDirty: true });
+      form.setValue('assetId', '', { shouldDirty: true });
+    }
+  }, [catalog, clientId, form, installationId]);
+
+  useEffect(() => {
+    if (locationId && !locations.some((location) => location.id === locationId)) {
+      form.setValue('locationId', '', { shouldDirty: true });
+    }
+    if (systemId && !systems.some((system) => system.id === systemId)) {
+      form.setValue('systemId', '', { shouldDirty: true });
+    }
+    if (assetId && !assets.some((asset) => asset.id === assetId)) {
+      form.setValue('assetId', '', { shouldDirty: true });
+    }
+  }, [assetId, assets, form, locationId, locations, systemId, systems]);
+
+  useEffect(() => {
+    if (!assetId || systemId) return;
+    const selectedAsset = catalog?.assets.find((asset) => asset.id === assetId);
+    if (selectedAsset?.systemId) {
+      form.setValue('systemId', selectedAsset.systemId, { shouldDirty: true });
+    }
+  }, [assetId, catalog, form, systemId]);
 
   const quickInstallationMutation = useMutation({
     mutationFn: () => createInstallation(getSupabaseClient(), {
@@ -197,6 +227,7 @@ export default function CreateWorkOrderForm({
       await catalogQuery.refetch();
       form.setValue('installationId', created.id, { shouldDirty: true, shouldValidate: true });
       form.setValue('locationId', '', { shouldDirty: true });
+      form.setValue('systemId', '', { shouldDirty: true });
       form.setValue('assetId', '', { shouldDirty: true });
       if (!form.getValues('title')) form.setValue('title', `Intervención en ${created.name}`);
       setInstallationDraft(EMPTY_INSTALLATION_DRAFT);
@@ -212,6 +243,7 @@ export default function CreateWorkOrderForm({
       tenantId,
       installationId,
       locationId: locationId || null,
+      systemId: systemId || null,
       name: assetDraft.name,
       type: assetDraft.type,
       reference: assetDraft.reference,
@@ -222,6 +254,9 @@ export default function CreateWorkOrderForm({
       await queryClient.invalidateQueries({ queryKey: ['work-order-creation-catalog', tenantId] });
       await catalogQuery.refetch();
       form.setValue('assetId', created.id, { shouldDirty: true, shouldValidate: true });
+      if (created.systemId && !form.getValues('systemId')) {
+        form.setValue('systemId', created.systemId, { shouldDirty: true });
+      }
       if (!form.getValues('title')) form.setValue('title', `Revisión de ${created.name}`);
       setAssetDraft(EMPTY_ASSET_DRAFT);
       form.clearErrors('root');
@@ -241,6 +276,7 @@ export default function CreateWorkOrderForm({
         tenantId,
         installationId: values.installationId,
         locationId: values.locationId || null,
+        systemId: values.systemId || null,
         assetId: values.assetId || null,
         technicianId: mode === 'assigned' ? values.technicianId || null : null,
         title: values.title,
@@ -303,7 +339,7 @@ export default function CreateWorkOrderForm({
   }
 
   if (catalogQuery.isLoading) {
-    return <section className="panel data-state"><LoaderCircle className="spin" size={30} /><strong>Preparando el formulario…</strong><p>Cargando instalaciones, ubicaciones, activos y técnicos de la organización activa.</p></section>;
+    return <section className="panel data-state"><LoaderCircle className="spin" size={30} /><strong>Preparando el formulario…</strong><p>Cargando instalaciones, ubicaciones, sistemas, activos y técnicos de la organización activa.</p></section>;
   }
 
   if (catalogQuery.error) {
@@ -337,7 +373,7 @@ export default function CreateWorkOrderForm({
       <div className="page-heading">
         <span className="section-kicker">Nueva intervención</span>
         <h1>Crear orden de trabajo</h1>
-        <p>Selecciona la instalación y, si aplica, el activo. Después guarda como borrador o asigna a un técnico.</p>
+        <p>Selecciona la instalación y, si aplica, el sistema o el activo. Después guarda como borrador o asigna a un técnico.</p>
       </div>
 
       <form className="panel work-order-create-form" onSubmit={(event) => event.preventDefault()}>
@@ -468,14 +504,14 @@ export default function CreateWorkOrderForm({
             onClick={() => quickAssetMutation.mutate()}
             type="button"
           >
-            {quickAssetMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Boxes size={17} />} Crear activo
+            {quickAssetMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Boxes size={17} />} Crear activo{systemId ? ' en sistema' : ''}
           </button>
           {!canCreateAsset && <p className="read-only-note"><Plus size={16} /> Selecciona o crea una instalación antes de crear el activo.</p>}
         </div>
 
         <div className="creation-section-heading">
           <div><span>1</span><strong>Trabajo y ubicación</strong></div>
-          <small>Campos obligatorios para identificar la intervención.</small>
+          <small>La instalación es obligatoria; ubicación, sistema y activo pueden completarse según el conocimiento disponible.</small>
         </div>
 
         <div className="form-grid">
@@ -494,14 +530,26 @@ export default function CreateWorkOrderForm({
 
           {clientId && installations.length === 0 && <p className="read-only-note full-field"><MapPin size={16} /> Este cliente no tiene instalaciones activas. Crea una instalación desde la alta rápida antes de continuar.</p>}
 
-          <label>Ubicación
+          <label>Ubicación <small>Opcional</small>
             <select {...form.register('locationId')} disabled={!installationId}>
               <option value="">Sin ubicación concreta</option>
               {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
             </select>
           </label>
 
-          <label>Activo relacionado
+          <label>Sistema técnico <small>Opcional</small>
+            <select {...form.register('systemId')} disabled={!installationId}>
+              <option value="">Sin sistema identificado</option>
+              {systems.map((system) => (
+                <option key={system.id} value={system.id}>
+                  {system.code ? `${system.code} · ` : ''}{system.name}{system.status === 'fuera_servicio' ? ' · fuera de servicio' : ''}
+                </option>
+              ))}
+            </select>
+            <small>Permite clasificar la intervención aunque todavía no se conozca el equipo.</small>
+          </label>
+
+          <label>Activo relacionado <small>Opcional</small>
             <select {...form.register('assetId')} disabled={!installationId}>
               <option value="">Sin activo relacionado</option>
               {assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.name}</option>)}

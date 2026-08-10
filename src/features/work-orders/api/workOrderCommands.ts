@@ -23,10 +23,20 @@ export type LocationOption = {
   name: string;
 };
 
+export type TechnicalSystemOption = {
+  id: string;
+  installationId: string;
+  name: string;
+  code: string | null;
+  specialty: string;
+  status: 'activo' | 'fuera_servicio' | 'inactivo';
+};
+
 export type AssetOption = {
   id: string;
   installationId: string;
   locationId: string | null;
+  systemId?: string | null;
   name: string;
 };
 
@@ -40,6 +50,7 @@ export type WorkOrderCreationCatalog = {
   clients: ClientOption[];
   installations: InstallationOption[];
   locations: LocationOption[];
+  systems: TechnicalSystemOption[];
   assets: AssetOption[];
   technicians: TechnicianOption[];
 };
@@ -61,6 +72,7 @@ export type CreateWorkOrderInput = {
   tenantId: string;
   installationId: string;
   locationId: string | null;
+  systemId: string | null;
   assetId: string | null;
   technicianId: string | null;
   title: string;
@@ -99,6 +111,7 @@ export type CreateAssetInput = {
   tenantId: string;
   installationId: string;
   locationId?: string | null;
+  systemId?: string | null;
   name: string;
   type?: string | null;
   brand?: string | null;
@@ -113,10 +126,19 @@ export type CreateAssetInput = {
 type ClientRow = { id: string; nombre: string; codigo: string | null };
 type InstallationRow = { id: string; cliente_id: string; nombre: string; codigo: string | null };
 type LocationRow = { id: string; instalacion_id: string; nombre: string };
+type TechnicalSystemRow = {
+  id: string;
+  instalacion_id: string;
+  nombre: string;
+  codigo: string | null;
+  especialidad: string;
+  estado: 'activo' | 'fuera_servicio' | 'inactivo';
+};
 type AssetRow = {
   id: string;
   instalacion_id: string;
   ubicacion_id: string | null;
+  sistema_id: string | null;
   nombre: string;
 };
 type MemberRow = {
@@ -130,6 +152,7 @@ type CreatedAssetRow = {
   id: string;
   instalacion_id: string;
   ubicacion_id: string | null;
+  sistema_id: string | null;
   nombre: string;
 };
 
@@ -178,6 +201,7 @@ export function toCreateWorkOrderRpcArgs(input: CreateWorkOrderInput): Record<st
     safety_notes_text: nullableText(input.safetyNotes),
     expected_result_text: nullableText(input.expectedResult),
     requirements_json: {
+      sistema_id: input.systemId,
       requiere_checklist: input.requirements.checklist,
       requiere_fotos_iniciales: input.requirements.initialPhotos,
       requiere_fotos_finales: input.requirements.finalPhotos,
@@ -198,7 +222,7 @@ export async function loadWorkOrderCreationCatalog(
 ): Promise<WorkOrderCreationCatalog> {
   if (!tenantId.trim()) throw new Error('Selecciona una organización antes de crear una OT.');
 
-  const [clientResult, installationResult, locationResult, assetResult, memberResult] = await Promise.all([
+  const [clientResult, installationResult, locationResult, systemResult, assetResult, memberResult] = await Promise.all([
     supabase
       .from('clientes')
       .select('id,nombre,codigo')
@@ -220,8 +244,15 @@ export async function loadWorkOrderCreationCatalog(
       .is('deleted_at', null)
       .order('nombre'),
     supabase
+      .from('sistemas_instalacion')
+      .select('id,instalacion_id,nombre,codigo,especialidad,estado')
+      .eq('tenant_id', tenantId)
+      .in('estado', ['activo', 'fuera_servicio'])
+      .is('deleted_at', null)
+      .order('nombre'),
+    supabase
       .from('activos')
-      .select('id,instalacion_id,ubicacion_id,nombre')
+      .select('id,instalacion_id,ubicacion_id,sistema_id,nombre')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
       .order('nombre'),
@@ -234,7 +265,7 @@ export async function loadWorkOrderCreationCatalog(
       .order('created_at'),
   ]);
 
-  for (const result of [clientResult, installationResult, locationResult, assetResult, memberResult]) {
+  for (const result of [clientResult, installationResult, locationResult, systemResult, assetResult, memberResult]) {
     if (result.error) throw result.error;
   }
 
@@ -272,10 +303,19 @@ export async function loadWorkOrderCreationCatalog(
       installationId: String(row.instalacion_id),
       name: String(row.nombre),
     })),
+    systems: ((systemResult.data ?? []) as unknown as TechnicalSystemRow[]).map((row) => ({
+      id: String(row.id),
+      installationId: String(row.instalacion_id),
+      name: String(row.nombre),
+      code: row.codigo ? String(row.codigo) : null,
+      specialty: String(row.especialidad),
+      status: row.estado,
+    })),
     assets: ((assetResult.data ?? []) as unknown as AssetRow[]).map((row) => ({
       id: String(row.id),
       installationId: String(row.instalacion_id),
       locationId: row.ubicacion_id ? String(row.ubicacion_id) : null,
+      systemId: row.sistema_id ? String(row.sistema_id) : null,
       name: String(row.nombre),
     })),
     technicians: members.map((member) => ({
@@ -342,6 +382,7 @@ export async function createAsset(
       tenant_id: input.tenantId,
       instalacion_id: input.installationId,
       ubicacion_id: input.locationId || null,
+      sistema_id: input.systemId || null,
       nombre: input.name.trim(),
       tipo: nullableText(input.type) ?? 'general',
       marca: nullableText(input.brand),
@@ -354,7 +395,7 @@ export async function createAsset(
       observaciones: nullableText(input.notes),
       created_by: createdBy,
     })
-    .select('id,instalacion_id,ubicacion_id,nombre')
+    .select('id,instalacion_id,ubicacion_id,sistema_id,nombre')
     .single();
 
   if (error) throw error;
@@ -366,6 +407,7 @@ export async function createAsset(
     id: String(row.id),
     installationId: String(row.instalacion_id),
     locationId: row.ubicacion_id ? String(row.ubicacion_id) : null,
+    systemId: row.sistema_id ? String(row.sistema_id) : null,
     name: String(row.nombre),
   };
 }
