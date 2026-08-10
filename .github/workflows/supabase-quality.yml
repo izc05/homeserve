@@ -1,0 +1,59 @@
+name: Supabase Quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-supabase:
+    name: Reset, lint and pgTAP
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENAI_API_KEY: ci-placeholder-not-a-real-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Show Supabase CLI version
+        run: npx --yes supabase --version
+
+      - name: Start local Supabase
+        run: npx --yes supabase start
+
+      - name: Reset database from migrations
+        run: npx --yes supabase db reset
+
+      - name: Lint database
+        run: npx --yes supabase db lint --level warning
+
+      - name: Run pgTAP database tests
+        run: npx --yes supabase test db
+
+      - name: Show local status on failure
+        if: failure()
+        run: npx --yes supabase status || true
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx --yes supabase stop || true
