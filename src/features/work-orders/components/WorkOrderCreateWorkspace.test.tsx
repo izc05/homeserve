@@ -34,9 +34,9 @@ describe('WorkOrderCreateWorkspace', () => {
   it('shows the quick form by default for a normal Nueva OT', () => {
     render(<WorkOrderCreateWorkspace {...baseProps} />);
 
-    expect(screen.getByTestId('quick-create-form')).toBeInTheDocument();
-    expect(screen.queryByTestId('advanced-create-form')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'OT rápida' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('quick-create-form')).toBeTruthy();
+    expect(screen.queryByTestId('advanced-create-form')).toBeNull();
+    expect(screen.getByRole('button', { name: 'OT rápida' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('lets the user switch to the advanced form', () => {
@@ -44,8 +44,8 @@ describe('WorkOrderCreateWorkspace', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'OT avanzada' }));
 
-    expect(screen.getByTestId('advanced-create-form')).toBeInTheDocument();
-    expect(screen.queryByTestId('quick-create-form')).not.toBeInTheDocument();
+    expect(screen.getByTestId('advanced-create-form')).toBeTruthy();
+    expect(screen.queryByTestId('quick-create-form')).toBeNull();
   });
 
   it('preserves contextual legacy flows by starting advanced', () => {
@@ -57,8 +57,8 @@ describe('WorkOrderCreateWorkspace', () => {
       }}
     />);
 
-    expect(screen.getByTestId('advanced-create-form')).toBeInTheDocument();
-    expect(screen.queryByTestId('quick-create-form')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'OT avanzada' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('advanced-create-form')).toBeTruthy();
+    expect(screen.queryByTestId('quick-create-form')).toBeNull();
+    expect(screen.getByRole('button', { name: 'OT avanzada' }).getAttribute('aria-pressed')).toBe('true');
   });
 });
