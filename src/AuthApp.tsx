@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import App from './App';
+import { hasCapability } from './auth/capabilities';
 import AuthEcosystemVisual from './components/AuthEcosystemVisual';
 import ProductBrand, { DemoBrandFooter } from './components/ProductBrand';
 import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
@@ -66,7 +67,7 @@ const roleLabels: Record<string, string> = {
   cliente_lectura: 'Solo lectura',
 };
 
-const canManageUsers = (role: string | undefined) => role === 'admin_cliente';
+const canManageUsers = (role: string | undefined) => hasCapability(role, 'users.manage');
 
 async function loadIdentity(session: Session): Promise<Identity> {
   const supabase = getSupabaseClient();
