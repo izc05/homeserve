@@ -120,7 +120,7 @@ function downloadDocument(name: string, order: WorkOrderListItem): void {
     `Ubicación: ${order.locationName ?? 'Sin ubicación'}`,
     `Estado: ${statusLabels[order.status]}`,
     '',
-    'Archivo local generado para validar el flujo de fotovoltaica y mantenimiento.',
+    'Archivo local generado para validar el flujo de órdenes de trabajo multisector.',
   ].join('\n');
   downloadTextFile(name.replace(/\.pdf$/i, '.txt'), content);
 }
@@ -128,14 +128,14 @@ function downloadDocument(name: string, order: WorkOrderListItem): void {
 function downloadWorkOrderPart(order: WorkOrderListItem, memory: DemoOrderMemory): void {
   const completedTasks = taskDefinitions.filter((task) => memory.tasks[task.id]).length;
   const lines = [
-    'ISIVOLTPRO OT · PARTE DE INTERVENCIÓN FV',
+    'ISIVOLTPRO OT · PARTE DE INTERVENCIÓN',
     `Orden: ${order.code}`,
     `Título: ${order.title}`,
     `Estado: ${statusLabels[order.status]}`,
     `Prioridad: ${priorityLabels[order.priority]}`,
     `Cliente / instalación: ${order.siteName}`,
     `Ubicación: ${order.locationName ?? 'Sin ubicación'}`,
-    `Equipo: ${order.assetName ?? 'Sin equipo vinculado'}`,
+    `Activo: ${order.assetName ?? 'Sin activo vinculado'}`,
     `Técnico: ${order.assignedToName ?? 'Sin asignar'}`,
     `Fecha prevista: ${displayDate(order.plannedAt)}`,
     '',
@@ -193,7 +193,7 @@ function DetailContent({ order }: { order: WorkOrderListItem }) {
       <dl className="detail-definition-grid">
         <div><dt>Cliente / instalación</dt><dd>{order.siteName}</dd></div>
         <div><dt>Ubicación</dt><dd>{order.locationName ?? 'Sin ubicación'}</dd></div>
-        <div><dt>Equipo</dt><dd>{order.assetName ?? 'Sin equipo vinculado'}</dd></div>
+        <div><dt>Activo</dt><dd>{order.assetName ?? 'Sin activo vinculado'}</dd></div>
         <div><dt>Tipo</dt><dd>{order.type.replaceAll('_', ' ')}</dd></div>
         <div><dt>Técnico asignado</dt><dd>{order.assignedToName ?? 'Sin asignar'}</dd></div>
         <div><dt>Fecha planificada</dt><dd>{displayDate(order.plannedAt)}</dd></div>
@@ -261,7 +261,7 @@ function PhotosContent({ order, memory, onUpdate, canEdit }: { order: WorkOrderL
 
   return (
     <article className="panel detail-tab-panel">
-      <div className="panel-heading"><div><h2>Evidencias fotográficas</h2><small>Fotos iniciales y finales para validar el flujo móvil FV</small></div><span className="source-badge">{memory.initialPhotos + memory.finalPhotos} archivos</span></div>
+      <div className="panel-heading"><div><h2>Evidencias fotográficas</h2><small>Fotos iniciales y finales para validar el flujo móvil de OT</small></div><span className="source-badge">{memory.initialPhotos + memory.finalPhotos} archivos</span></div>
       {!canEdit && <p className="read-only-note"><LockKeyhole size={16} /> Las evidencias se pueden consultar y descargar, no añadir.</p>}
       <div className="detail-inline-actions"><button className="filter-button" onClick={downloadSummary} type="button"><Download size={15} /> Resumen</button></div>
       <div className="photo-groups">
@@ -315,7 +315,7 @@ function PrintReport({ order, memory }: { order: WorkOrderListItem; memory: Demo
   const execution = memory.execution;
   return (
     <article className="demo-print-report">
-      <header><div><strong>IsiVoltPro OT</strong><span>Parte de intervención · FV y mantenimiento</span></div><b>{order.code}</b></header>
+      <header><div><strong>IsiVoltPro OT</strong><span>Parte de intervención · mantenimiento multisector</span></div><b>{order.code}</b></header>
       <h1>{order.title}</h1>
       <dl><div><dt>Cliente / instalación</dt><dd>{order.siteName}</dd></div><div><dt>Ubicación</dt><dd>{order.locationName ?? 'Sin ubicación'}</dd></div><div><dt>Técnico</dt><dd>{order.assignedToName ?? 'Sin asignar'}</dd></div><div><dt>Estado</dt><dd>{statusLabels[order.status]}</dd></div><div><dt>Prioridad</dt><dd>{priorityLabels[order.priority]}</dd></div><div><dt>Fecha prevista</dt><dd>{displayDate(order.plannedAt)}</dd></div></dl>
       <section><h2>Descripción</h2><p>{order.description || 'Sin descripción registrada.'}</p></section>
@@ -375,7 +375,7 @@ export default function PersistentWorkOrderDetailWorkspace({ order, viewerRole, 
 
   return (
     <>
-      <div className="demo-context-banner"><ShieldCheck size={17} /><span><strong>Modo presentación FV:</strong> pestañas, partes, fotos, informes e historial funcionan en este navegador.</span></div>
+      <div className="demo-context-banner"><ShieldCheck size={17} /><span><strong>Modo presentación:</strong> pestañas, partes, fotos, informes e historial funcionan en este navegador.</span></div>
       <div className="detail-header enhanced-detail-header">
         <button className="back-button" onClick={onBack} type="button"><ArrowLeft size={18} /> Volver</button>
         <div><span className="section-kicker">Orden de trabajo</span><h1>{order.code}</h1><p>{order.title}</p></div>
