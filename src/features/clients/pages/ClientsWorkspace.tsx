@@ -18,6 +18,7 @@ import { clientsService } from '../api/clientsService';
 import { filterClients, friendlyClientError, hasNoInstallations } from '../api/clientRepository';
 import ClientForm from '../components/ClientForm';
 import InstallationForm from '../components/InstallationForm';
+import InstallationLocationsPanel from '../components/InstallationLocationsPanel';
 import InstallationPhotoGallery from '../components/InstallationPhotoGallery';
 import type { ClientFormValues, InstallationFormValues } from '../schemas/clientSchemas';
 import type { ClientInstallation, ClientRecord, EntityStatus } from '../types/client';
@@ -29,6 +30,7 @@ type InstallationEditor = 'create' | string | null;
 type ClientsWorkspaceProps = {
   tenantId: string;
   canManage: boolean;
+  canManageLocations: boolean;
   onCreateWorkOrder: (client: ClientRecord) => void;
 };
 
@@ -73,7 +75,7 @@ function DataError({ onRetry }: { onRetry: () => void }) {
   return <section className="panel data-state error-state"><AlertTriangle size={30} /><strong>No se pudieron cargar los clientes</strong><p>Comprueba tu conexión o tus permisos e inténtalo de nuevo.</p><button className="secondary-button" onClick={onRetry} type="button"><RefreshCw size={17} /> Reintentar</button></section>;
 }
 
-export default function ClientsWorkspace({ tenantId, canManage, onCreateWorkOrder }: ClientsWorkspaceProps) {
+export default function ClientsWorkspace({ tenantId, canManage, canManageLocations, onCreateWorkOrder }: ClientsWorkspaceProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'todos' | EntityStatus>('todos');
@@ -191,7 +193,7 @@ export default function ClientsWorkspace({ tenantId, canManage, onCreateWorkOrde
         <section className="client-section"><div className="section-row"><div><h2>Instalaciones</h2><p>Centros y ubicaciones operativas de {detail.client.name}.</p></div>{canManage && <button className="secondary-button" onClick={() => setInstallationEditor(installationEditor === 'create' ? null : 'create')} type="button"><Plus size={17} /> Nueva instalación</button>}</div>
           {clientHasNoInstallations ? <section className="panel client-empty-state"><Building2 size={28} /><strong>Este cliente no tiene instalaciones</strong><p>Antes de crear una OT debes registrar al menos una instalación activa.</p>{canManage && <button className="primary-button" onClick={() => setInstallationEditor('create')} type="button"><Plus size={17} /> Crear instalación</button>}</section> : <div className="installation-list">{detail.installations.map((installation) => <article className={`installation-row ${selectedInstallationId === installation.id ? 'is-selected' : ''}`} key={installation.id}><div className="installation-icon"><Building2 size={20} /></div><div><strong>{installation.code ? `${installation.code} · ` : ''}{installation.name}</strong><small>{installation.type || 'Tipo sin definir'}{installation.address ? ` · ${installation.address}` : ''}</small><small>{installation.contactName || 'Sin contacto'}{installation.contactPhone ? ` · ${installation.contactPhone}` : ''}</small></div><span className={statusClass(installation.status)}>{statusLabel(installation.status)}</span><div className="row-actions"><button className="secondary-button installation-open-button" aria-expanded={selectedInstallationId === installation.id} onClick={() => setSelectedInstallationId((current) => current === installation.id ? null : installation.id)} type="button"><Eye size={16} /> {selectedInstallationId === installation.id ? 'Cerrar ficha' : 'Abrir ficha'}</button>{canManage && <><button className="icon-button" aria-label={`Editar ${installation.name}`} onClick={() => setInstallationEditor(installation.id)} type="button"><Edit3 size={16} /></button><button className="icon-button" aria-label={`${installation.status === 'activo' ? 'Desactivar' : 'Activar'} ${installation.name}`} onClick={() => toggleInstallation(installation)} type="button"><Power size={16} /></button></>}</div></article>)}</div>}
           {installationEditor && canManage && <section className="panel client-editor-panel"><div className="panel-heading"><h2>{installationEditor === 'create' ? 'Nueva instalación' : 'Editar instalación'}</h2></div><InstallationForm clientId={detail.client.id} initialValues={selectedInstallation ? toInstallationFormValues(selectedInstallation) : undefined} submitLabel={installationEditor === 'create' ? 'Guardar instalación' : 'Guardar cambios'} onSubmit={saveInstallation} /></section>}
-          {installationDetail && <InstallationPhotoGallery tenantId={tenantId} installationId={installationDetail.id} installationName={installationDetail.name} address={installationDetail.address} contactName={installationDetail.contactName} contactPhone={installationDetail.contactPhone} canManage={canManage} />}
+          {installationDetail && <><InstallationPhotoGallery tenantId={tenantId} installationId={installationDetail.id} installationName={installationDetail.name} address={installationDetail.address} contactName={installationDetail.contactName} contactPhone={installationDetail.contactPhone} canManage={canManage} /><InstallationLocationsPanel tenantId={tenantId} installationId={installationDetail.id} installationName={installationDetail.name} canManage={canManageLocations} /></>}
         </section>
 
         <div className="client-detail-grid">

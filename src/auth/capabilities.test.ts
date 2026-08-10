@@ -24,6 +24,7 @@ const expectedCapabilities: Record<LegacyOtRole, readonly OtCapability[]> = {
     'clients.read',
     'clients.manage',
     'installations.evidence.manage',
+    'installations.locations.manage',
     'reports.read',
     'work_order_templates.read',
     'work_order_templates.manage',
@@ -43,6 +44,7 @@ const expectedCapabilities: Record<LegacyOtRole, readonly OtCapability[]> = {
     'technicians.read',
     'clients.read',
     'installations.evidence.manage',
+    'installations.locations.manage',
     'reports.read',
     'work_order_templates.read',
     'work_order_templates.manage',
@@ -83,11 +85,16 @@ describe('legacy OT role capability parity', () => {
     expect(hasCapability('coordinador', 'technicians.invite')).toBe(false);
   });
 
-  it('keeps installation evidence management available to admin and coordinator', () => {
-    expect(hasCapability('admin_cliente', 'installations.evidence.manage')).toBe(true);
-    expect(hasCapability('coordinador', 'installations.evidence.manage')).toBe(true);
+  it('keeps installation evidence and location management available to admin and coordinator', () => {
+    for (const role of ['admin_cliente', 'coordinador'] as const) {
+      expect(hasCapability(role, 'installations.evidence.manage')).toBe(true);
+      expect(hasCapability(role, 'installations.locations.manage')).toBe(true);
+    }
+
     expect(hasCapability('tecnico', 'installations.evidence.manage')).toBe(false);
+    expect(hasCapability('tecnico', 'installations.locations.manage')).toBe(false);
     expect(hasCapability('cliente_lectura', 'installations.evidence.manage')).toBe(false);
+    expect(hasCapability('cliente_lectura', 'installations.locations.manage')).toBe(false);
   });
 
   it('keeps operational management available to admin and coordinator', () => {
@@ -125,6 +132,7 @@ describe('legacy OT role capability parity', () => {
       expect(hasCapability(role, 'work_orders.create')).toBe(false);
       expect(hasCapability(role, 'users.manage')).toBe(false);
       expect(hasCapability(role, 'work_orders.execute')).toBe(false);
+      expect(hasCapability(role, 'installations.locations.manage')).toBe(false);
     }
   });
 });
