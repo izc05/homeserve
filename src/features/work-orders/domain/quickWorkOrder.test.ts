@@ -7,13 +7,15 @@ const CLIENT_ID = '22222222-2222-4222-8222-222222222222';
 const INSTALLATION_ID = '33333333-3333-4333-8333-333333333333';
 const LOCATION_ID = '44444444-4444-4444-8444-444444444444';
 const ASSET_ID = '55555555-5555-4555-8555-555555555555';
+const SYSTEM_ID = '66666666-6666-4666-8666-666666666666';
 
 describe('quickCreateWorkOrderSchema', () => {
-  it('accepts a minimal quick fault without location or asset', () => {
+  it('accepts a minimal quick fault without location, system or asset', () => {
     const parsed = quickCreateWorkOrderSchema.parse({
       clientId: CLIENT_ID,
       installationId: INSTALLATION_ID,
       locationId: '',
+      systemId: '',
       assetId: '',
       title: 'Luz averiada en habitación 312',
       description: '',
@@ -21,6 +23,7 @@ describe('quickCreateWorkOrderSchema', () => {
     });
 
     expect(parsed.locationId).toBe('');
+    expect(parsed.systemId).toBe('');
     expect(parsed.assetId).toBe('');
   });
 
@@ -29,6 +32,7 @@ describe('quickCreateWorkOrderSchema', () => {
       clientId: '',
       installationId: '',
       locationId: '',
+      systemId: '',
       assetId: '',
       title: 'x',
       description: '',
@@ -40,11 +44,12 @@ describe('quickCreateWorkOrderSchema', () => {
 });
 
 describe('buildQuickWorkOrderInput', () => {
-  it('creates an unassigned breakdown draft without forcing an asset or schedule', () => {
+  it('creates an unassigned breakdown draft without forcing a system, asset or schedule', () => {
     const values = quickCreateWorkOrderSchema.parse({
       clientId: CLIENT_ID,
       installationId: INSTALLATION_ID,
       locationId: '',
+      systemId: '',
       assetId: '',
       title: '  Fuga de agua en aseo  ',
       description: '  Revisar llave de corte  ',
@@ -55,6 +60,7 @@ describe('buildQuickWorkOrderInput', () => {
       tenantId: TENANT_ID,
       installationId: INSTALLATION_ID,
       locationId: null,
+      systemId: null,
       assetId: null,
       technicianId: null,
       title: 'Fuga de agua en aseo',
@@ -71,11 +77,12 @@ describe('buildQuickWorkOrderInput', () => {
     });
   });
 
-  it('keeps optional structured location and asset when they are already known', () => {
+  it('keeps optional structured location, system and asset when they are already known', () => {
     const values = quickCreateWorkOrderSchema.parse({
       clientId: CLIENT_ID,
       installationId: INSTALLATION_ID,
       locationId: LOCATION_ID,
+      systemId: SYSTEM_ID,
       assetId: ASSET_ID,
       title: 'Equipo sin alimentación',
       description: '',
@@ -84,10 +91,29 @@ describe('buildQuickWorkOrderInput', () => {
 
     expect(buildQuickWorkOrderInput(TENANT_ID, values)).toMatchObject({
       locationId: LOCATION_ID,
+      systemId: SYSTEM_ID,
       assetId: ASSET_ID,
       technicianId: null,
       type: 'averia',
       priority: 'alta',
+    });
+  });
+
+  it('allows identifying the technical system without knowing the asset', () => {
+    const values = quickCreateWorkOrderSchema.parse({
+      clientId: CLIENT_ID,
+      installationId: INSTALLATION_ID,
+      locationId: '',
+      systemId: SYSTEM_ID,
+      assetId: '',
+      title: 'Fallo general de alumbrado',
+      description: '',
+      priority: 'alta',
+    });
+
+    expect(buildQuickWorkOrderInput(TENANT_ID, values)).toMatchObject({
+      systemId: SYSTEM_ID,
+      assetId: null,
     });
   });
 
@@ -111,6 +137,7 @@ describe('buildQuickWorkOrderInput', () => {
       clientId: CLIENT_ID,
       installationId: INSTALLATION_ID,
       locationId: '',
+      systemId: '',
       assetId: '',
       title: 'Avería general',
       description: '',
