@@ -59,7 +59,7 @@ function escapeHtml(value: string | number | null | undefined): string {
 }
 
 function downloadTechnicianCsv(orders: WorkOrderListItem[], technicianName: string): void {
-  const headers = ['codigo', 'titulo', 'estado', 'cliente_instalacion', 'ubicacion', 'equipo', 'referencia_equipo', 'fecha_prevista', 'fecha_limite'];
+  const headers = ['codigo', 'titulo', 'estado', 'cliente_instalacion', 'ubicacion', 'activo', 'referencia_activo', 'fecha_prevista', 'fecha_limite'];
   const rows = orders.map((order) => [
     order.code,
     order.title,
@@ -75,16 +75,16 @@ function downloadTechnicianCsv(orders: WorkOrderListItem[], technicianName: stri
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = `jornada-fv-${technicianName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `jornada-ot-${technicianName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
 
-function printTechnicianReport(orders: WorkOrderListItem[], technicianName: string, title = 'Jornada técnico FV'): void {
+function printTechnicianReport(orders: WorkOrderListItem[], technicianName: string, title = 'Jornada técnico'): void {
   const printable = window.open('', '_blank', 'noopener,noreferrer,width=900,height=720');
   if (!printable) return;
   const rows = orders.map((order) => `<tr><td>${escapeHtml(order.code)}</td><td>${escapeHtml(order.title)}</td><td>${escapeHtml(statusLabels[order.status])}</td><td>${escapeHtml(order.siteName)}</td><td>${escapeHtml(order.locationName ?? '')}</td><td>${escapeHtml(order.assetName ?? '')}</td><td>${escapeHtml(formatDate(order.plannedAt ?? order.dueAt))}</td></tr>`).join('');
-  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${escapeHtml(technicianName)} · ${orders.length} trabajos · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Cliente / instalación</th><th>Ubicación</th><th>Equipo</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  printable.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}h1{margin:0 0 6px}p{color:#64748b;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:11px}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(title)}</h1><p>${escapeHtml(technicianName)} · ${orders.length} trabajos · ${new Date().toLocaleString('es-ES')}</p><table><thead><tr><th>Código</th><th>Trabajo</th><th>Estado</th><th>Cliente / instalación</th><th>Ubicación</th><th>Activo</th><th>Fecha</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   printable.document.close();
   printable.focus();
   printable.print();
@@ -148,7 +148,7 @@ export default function DemoTechnicianScreen({
   });
 
   const metricCards: Array<{ label: string; value: number; filter: TechnicianFilter; icon: typeof Wrench; tone: string; helper: string }> = [
-    { label: 'Hoy', value: metrics.today, filter: 'today', icon: Wrench, tone: 'blue', helper: 'Jornada FV' },
+    { label: 'Hoy', value: metrics.today, filter: 'today', icon: Wrench, tone: 'blue', helper: 'Jornada técnica' },
     { label: 'Activos', value: metrics.active, filter: 'active', icon: Hammer, tone: 'red', helper: 'Por ejecutar' },
     { label: 'Bloqueados', value: metrics.blocked, filter: 'blocked', icon: TimerReset, tone: 'orange', helper: 'Material o parada' },
     { label: 'Finalizados', value: metrics.review, filter: 'review', icon: ClipboardCheck, tone: 'green', helper: 'Validación responsable' },
@@ -158,9 +158,9 @@ export default function DemoTechnicianScreen({
     <>
       <div className="page-heading page-heading-row">
         <div>
-          <span className="section-kicker">Jornada técnico FV</span>
+          <span className="section-kicker">Jornada técnico</span>
           <h1>Mis trabajos</h1>
-          <p>{technicianName}: cola de preventivos, correctivos, evidencias y partes de intervención FV.</p>
+          <p>{technicianName}: cola de preventivos, correctivos, evidencias y partes de intervención.</p>
         </div>
         <span className="source-badge">Operativo en móvil</span>
       </div>
@@ -177,13 +177,13 @@ export default function DemoTechnicianScreen({
 
       <section className="panel technician-workspace-panel">
         <div className="filters-row demo-filters-row technician-toolbar">
-          <label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OT, cliente, equipo FV o referencia" value={search} /></label>
+          <label className="table-search"><Search size={17} /><input onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OT, cliente, activo o referencia" value={search} /></label>
           <select aria-label="Filtro de técnico" onChange={(event) => setFilter(event.target.value as TechnicianFilter)} value={filter}>
             {Object.entries(filterLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <button className="filter-button" onClick={() => { setFilter('all'); setSearch(''); }} type="button"><RotateCcw size={15} /> Limpiar</button>
           <button className="filter-button" onClick={() => downloadTechnicianCsv(filtered, technicianName)} type="button"><Download size={15} /> CSV</button>
-          <button className="filter-button" onClick={() => printTechnicianReport(filtered, technicianName, `Jornada FV · ${filterLabels[filter]}`)} type="button"><Printer size={15} /> Imprimir</button>
+          <button className="filter-button" onClick={() => printTechnicianReport(filtered, technicianName, `Jornada técnico · ${filterLabels[filter]}`)} type="button"><Printer size={15} /> Imprimir</button>
         </div>
 
         <div className="technician-job-list">
@@ -191,7 +191,7 @@ export default function DemoTechnicianScreen({
             <article className={`technician-job-card status-card-${order.status.toLowerCase().replaceAll('_', '-')}`} key={order.id}>
               <button className="technician-job-main" onClick={() => open(order.id)} type="button">
                 <span className="technician-job-code"><b>{order.code}</b><small>{formatDate(order.plannedAt ?? order.dueAt)}</small></span>
-                <span className="technician-job-title"><strong>{order.title}</strong><small>{order.siteName} · {order.locationName ?? 'Sin ubicación'} · {order.assetName ?? 'Sin equipo'}{order.assetReference ? ` · ${order.assetReference}` : ''}</small></span>
+                <span className="technician-job-title"><strong>{order.title}</strong><small>{order.siteName} · {order.locationName ?? 'Sin ubicación'} · {order.assetName ?? 'Sin activo'}{order.assetReference ? ` · ${order.assetReference}` : ''}</small></span>
                 <i className={statusClass(order.status)}>{statusLabels[order.status]}</i>
                 <ChevronRight size={17} />
               </button>
