@@ -217,14 +217,30 @@ Una migración antigua usaba estados legacy, pero las migraciones posteriores ya
 
 ---
 
-## MOV-018 — Próximo movimiento
+## MOV-018 — Verificación previa a PR
 
-Antes de OT-01:
+**Fecha:** 2026-08-10
 
-1. comparar rama documental con `main`;
-2. confirmar que solo hay Markdown/README;
-3. abrir PR documental en modo borrador;
-4. permitir que GitHub Actions valide la rama;
-5. revisar resultado de CI;
-6. no fusionar hasta confirmar que no hay cambios funcionales;
-7. después crear `refactor/ot-identity-domain-cleanup` desde el `main` actualizado.
+**Comparación:** `main...docs/isivoltpro-ot-execution-master`
+
+**Resultado:**
+
+- rama por delante: 13 commits;
+- rama por detrás: 0;
+- archivos cambiados: 11;
+- tipos de archivo: solo `README.md` y Markdown bajo `docs/`;
+- código fuente: sin cambios;
+- migraciones: sin cambios;
+- configuración de despliegue: sin cambios.
+
+**Conclusión:** apta para PR documental en borrador.
+
+---
+
+## MOV-019 — Próximo movimiento
+
+1. abrir PR documental en modo borrador;
+2. permitir que GitHub Actions valide la rama;
+3. revisar resultado de CI;
+4. no fusionar hasta confirmar que no hay cambios funcionales;
+5. después crear `refactor/ot-identity-domain-cleanup` desde el `main` actualizado.
