@@ -76,17 +76,22 @@ select throws_matching(
   '.*row-level security.*',
   '8. técnico no puede crear sistemas'
 );
-select is(
-  (
-    with changed as (
+select lives_ok(
+  $$
+    do $block$
+    declare
+      changed_count integer;
+    begin
       update sistemas_instalacion
       set descripcion='Cambio técnico prohibido'
-      where codigo='ELEC'
-      returning 1
-    )
-    select count(*)::integer from changed
-  ),
-  0,
+      where codigo='ELEC';
+      get diagnostics changed_count = row_count;
+      if changed_count <> 0 then
+        raise exception 'RLS permitió modificar % filas', changed_count;
+      end if;
+    end
+    $block$
+  $$,
   '9. técnico no puede editar sistemas: RLS filtra la fila y actualiza 0 registros'
 );
 
