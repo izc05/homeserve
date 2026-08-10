@@ -33,8 +33,14 @@ export function groupTechnicianOrders(
   orders: WorkOrderListItem[],
   viewerId: string,
   now = new Date(),
+  includeParticipantOrders = false,
 ): Record<TechnicianOrderGroup, WorkOrderListItem[]> {
-  const own = orders.filter((order) => order.assignedTo === viewerId);
+  // En modo participante, RLS/can_access_work_order ya limita la consulta a las
+  // OT en las que el técnico participa activamente. El filtro legacy por
+  // assigned_to se conserva para otros consumidores/tests que no activen este modo.
+  const own = includeParticipantOrders
+    ? orders
+    : orders.filter((order) => order.assignedTo === viewerId);
   const today = localDateKey(now);
   return {
     pendientes: own.filter((order) => order.status === 'ASIGNADA' || order.status === 'ACEPTADA'),
@@ -47,4 +53,8 @@ export function groupTechnicianOrders(
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .slice(0, 12),
   };
+}
+
+export function technicianParticipationLabel(order: WorkOrderListItem, viewerId: string) {
+  return order.assignedTo === viewerId ? 'Responsable' : 'Colaborador';
 }
