@@ -23,6 +23,7 @@ export const createWorkOrderSchema = z
     clientId: z.string().uuid('Selecciona un cliente'),
     installationId: z.string().uuid('Selecciona una instalación'),
     locationId: optionalUuid.default(''),
+    systemId: optionalUuid.default(''),
     assetId: optionalUuid.default(''),
     technicianId: optionalUuid.default(''),
     type: z.enum(WORK_ORDER_TYPES),
