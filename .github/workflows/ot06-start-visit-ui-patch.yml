@@ -1,0 +1,59 @@
+name: OT-06 start visit UI patch
+
+on:
+  push:
+    branches:
+      - feat/ot-multi-technician-visits-v1
+    paths:
+      - .github/workflows/ot06-start-visit-ui-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ot-multi-technician-visits-v1
+          fetch-depth: 0
+      - name: Patch start-my-visit UI exactly
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/features/work-orders/components/WorkOrderCompletionPanel.tsx')
+          text = path.read_text()
+
+          old_import = "import type { WorkOrderListItem } from '../api/workOrdersRepository';\n"
+          new_import = old_import + "import { startWorkOrderVisit } from '../api/workOrderLifecycle';\n"
+          assert text.count(old_import) == 1
+          text = text.replace(old_import, new_import, 1)
+
+          old_flag = "  const canCloseOwnVisit = Boolean(participantRole && ownActiveVisit && ['EN_CURSO', 'BLOQUEADA'].includes(order.status));\n"
+          new_flag = old_flag + "  const canStartOwnVisit = Boolean(participantRole && !ownActiveVisit && ['ACEPTADA', 'EN_CURSO'].includes(order.status));\n"
+          assert text.count(old_flag) == 1
+          text = text.replace(old_flag, new_flag, 1)
+
+          old_mutation = """  const closeVisitMutation = useMutation({\n"""
+          new_mutation = """  const startVisitMutation = useMutation({\n    mutationFn: () => startWorkOrderVisit(supabase, order.id),\n    onSuccess: invalidate,\n  });\n\n  const closeVisitMutation = useMutation({\n"""
+          assert text.count(old_mutation) == 1
+          text = text.replace(old_mutation, new_mutation, 1)
+
+          old_ui = """      {!canCloseOwnVisit && <p className=\"read-only-note\"><LockKeyhole size={16} /> {participantRole ? 'No tienes una visita activa que cerrar en este momento.' : 'Debes ser participante activo de la OT para cerrar una visita.'}</p>}\n      {ownActiveVisit && <p className=\"read-only-note\"><UserRound size={16} /> Visita iniciada {ownActiveVisit.startedAt ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(ownActiveVisit.startedAt)) : 'sin fecha disponible'}.</p>}\n"""
+          new_ui = """      {!canCloseOwnVisit && !canStartOwnVisit && <p className=\"read-only-note\"><LockKeyhole size={16} /> {participantRole ? 'No tienes una visita activa que cerrar en este momento.' : 'Debes ser participante activo de la OT para iniciar o cerrar una visita.'}</p>}\n      {canStartOwnVisit && <div className=\"completion-actions\"><button className=\"primary-button\" disabled={startVisitMutation.isPending} onClick={() => startVisitMutation.mutate()} type=\"button\">{startVisitMutation.isPending ? <LoaderCircle className=\"spin\" size={17} /> : <Clock3 size={17} />} {startVisitMutation.isPending ? 'Iniciando visita…' : 'Iniciar mi visita'}</button></div>}\n      {startVisitMutation.error && <p className=\"execution-inline-error\"><AlertTriangle size={17} /> {workOrderTeamError(startVisitMutation.error)}</p>}\n      {ownActiveVisit && <p className=\"read-only-note\"><UserRound size={16} /> Visita iniciada {ownActiveVisit.startedAt ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(ownActiveVisit.startedAt)) : 'sin fecha disponible'}.</p>}\n"""
+          assert text.count(old_ui) == 1
+          text = text.replace(old_ui, new_ui, 1)
+          path.write_text(text)
+          PY
+          git diff --check
+      - name: Commit start-my-visit UI
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/work-orders/components/WorkOrderCompletionPanel.tsx
+          git diff --cached --exit-code && exit 1 || true
+          git commit -m "feat: permitir iniciar visita desde ficha OT-06"
+          git push origin HEAD:feat/ot-multi-technician-visits-v1
