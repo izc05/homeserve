@@ -16,7 +16,7 @@ const row = {
   codigo: 'SC-01',
   tipo: 'sala_tecnica',
   descripcion: 'Planta baja',
-  estado: 'activo' as const,
+  estado: 'activo' as 'activo' | 'inactivo',
   created_at: '2026-08-10T08:00:00Z',
   updated_at: '2026-08-10T08:00:00Z',
 };
