@@ -47,6 +47,7 @@ values
   ('public.has_tenant_role(uuid,text)', true),
   ('public.is_super_admin()', false),
   ('public.is_work_order_mutable(uuid)', true),
+  ('public.handover_work_order_responsibility(uuid,uuid,text,boolean)', true),
   ('public.log_audit(uuid,text,text,uuid,jsonb)', true),
   ('public.next_work_order_code()', false),
   ('public.normalize_scheduled_maintenance_ot_type(text)', false),
@@ -67,8 +68,8 @@ values
 
 select is(
   (select count(*)::integer from acl_expected),
-  50,
-  '1. la matriz ACL enumera las 50 funciones públicas de aplicación'
+  51,
+  '1. la matriz ACL enumera las 51 funciones públicas de aplicación'
 );
 
 select is(

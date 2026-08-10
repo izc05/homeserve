@@ -97,7 +97,9 @@ select is((select count(*)::integer from ot_participantes where ot_id='56000000-
 select is((select count(*)::integer from ot_participantes where ot_id='56000000-0000-0000-0000-000000000001' and tecnico_id='16000000-0000-0000-0000-000000000002' and rol='responsable' and estado='retirado'),1,'19. responsabilidad saliente queda preservada en histórico');
 select is((select count(*)::integer from ot_participantes where ot_id='56000000-0000-0000-0000-000000000001' and tecnico_id='16000000-0000-0000-0000-000000000002' and rol='colaborador' and estado='activo'),1,'20. saliente queda como colaborador cuando se solicita');
 select is((select count(*)::integer from ot_visitas where ot_id='56000000-0000-0000-0000-000000000001' and tecnico_id='16000000-0000-0000-0000-000000000003' and estado='EN_CURSO'),1,'21. visita activa del entrante se conserva durante el relevo');
+select set_config('request.jwt.claim.sub','16000000-0000-0000-0000-000000000003',true);
 select ok(can_execute_work_order('26000000-0000-0000-0000-000000000001','56000000-0000-0000-0000-000000000001'),'22. nuevo responsable continúa pudiendo ejecutar la OT');
+select set_config('request.jwt.claim.sub','16000000-0000-0000-0000-000000000001',true);
 select throws_matching(
   $$ select handover_work_order_responsibility('56000000-0000-0000-0000-000000000001','16000000-0000-0000-0000-000000000003','Mismo responsable',false) $$,
   '.*ya es el responsable.*',
