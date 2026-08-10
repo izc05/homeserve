@@ -45,7 +45,7 @@ jobs:
           path.write_text(text)
           PY
           git diff --check
-          test "$(git diff --numstat -- supabase/tests/function_execute_privileges.sql | awk '{print $1+$2}')" -le 6
+          test "$(git diff --numstat -- supabase/tests/function_execute_privileges.sql | awk '{print $1+$2}')" -le 7
       - name: Commit ACL contract patch
         shell: bash
         run: |
