@@ -29,6 +29,7 @@ export function buildQuickWorkOrderInput(
     tenantId,
     installationId: values.installationId,
     locationId: values.locationId || null,
+    systemId: values.systemId || null,
     assetId: values.assetId || null,
     technicianId: null,
     title: values.title.trim(),
