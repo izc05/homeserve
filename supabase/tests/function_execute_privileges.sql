@@ -36,7 +36,7 @@ values
   ('public.ensure_work_order_default_checklist(uuid)', true),
   ('public.ensure_work_order_lifecycle_permission(uuid)', false),
   ('public.finalize_active_work_order_visit(uuid,jsonb)', true),
-  ('public.finalize_work_order_visit(uuid,jsonb)', true),
+  ('public.finalize_work_order_visit(uuid,jsonb)', false),
   ('public.generate_due_scheduled_maintenances(uuid,integer)', true),
   ('public.guard_official_work_order_update()', false),
   ('public.guard_work_order_update()', false),
@@ -57,6 +57,7 @@ values
   ('public.review_work_order(uuid,text,text)', true),
   ('public.save_work_order_checklist_response(uuid,text,text)', true),
   ('public.scheduled_maintenance_status_for_date(date,integer)', false),
+  ('public.set_work_order_collaborator(uuid,uuid,boolean,text)', true),
   ('public.set_updated_at()', false),
   ('public.skip_scheduled_maintenance(uuid,text)', true),
   ('public.soft_delete_work_order(uuid,text)', true),
@@ -64,8 +65,8 @@ values
 
 select is(
   (select count(*)::integer from acl_expected),
-  47,
-  '1. la matriz ACL enumera las 47 funciones públicas de aplicación'
+  48,
+  '1. la matriz ACL enumera las 48 funciones públicas de aplicación'
 );
 
 select is(
