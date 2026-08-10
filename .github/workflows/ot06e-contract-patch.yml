@@ -27,7 +27,7 @@ jobs:
           acl = Path('supabase/tests/function_execute_privileges.sql')
           text = acl.read_text()
           row = "  ('public.handover_work_order_responsibility(uuid,uuid,text,boolean)', true),"
-          anchor = "  ('public.log_audit(uuid,text,text,uuid,jsonb)', false),"
+          anchor = "  ('public.log_audit(uuid,text,text,uuid,jsonb)', true),"
           old_count = "  50,\n  '1. la matriz ACL enumera las 50 funciones públicas de aplicación'"
           new_count = "  51,\n  '1. la matriz ACL enumera las 51 funciones públicas de aplicación'"
           assert row not in text, 'handover ACL already present'
