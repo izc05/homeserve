@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { TechnicalSystemStatus } from '../types/technicalSystem';
 import {
   createInstallationTechnicalSystem,
   listInstallationTechnicalSystems,
@@ -17,7 +18,7 @@ const row = {
   especialidad: 'electricidad_bt',
   descripcion: 'Cuadros y distribución de baja tensión',
   criticidad: 'alta' as const,
-  estado: 'activo' as const,
+  estado: 'activo' as TechnicalSystemStatus,
   created_at: '2026-08-10T10:00:00Z',
   updated_at: '2026-08-10T10:00:00Z',
 };
@@ -134,7 +135,7 @@ describe('installationTechnicalSystemRepository', () => {
   });
 
   it('changes status without exposing physical deletion', async () => {
-    const mock = updateClient({ ...row, estado: 'inactivo' as const });
+    const mock = updateClient({ ...row, estado: 'inactivo' as TechnicalSystemStatus });
 
     const result = await setInstallationTechnicalSystemStatus(mock.client, 'tenant-a', 'install-a', 'sys-a', 'inactivo');
 
