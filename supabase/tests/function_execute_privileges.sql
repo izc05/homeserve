@@ -162,9 +162,12 @@ select is(
     select count(*)::integer
     from pg_proc function_row
     where function_row.pronamespace = 'private'::regnamespace
+      and function_row.oid = to_regprocedure(
+        'private.next_work_order_code_internal()'
+      )
   ),
   1,
-  '9. private contiene únicamente la función interna esperada'
+  '9. existe una única función interna de numeración esperada'
 );
 
 select is(
