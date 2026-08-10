@@ -47,7 +47,7 @@ values
     '2026-07-21 06:00:00+00'
   );
 
-\ir ../demo/seed_demo.sql
+\ir fixtures/seed_demo.sql
 
 create temporary table demo_seed_first_counts (
   entity text primary key,
@@ -64,7 +64,7 @@ values
   ('ot_visitas', (select count(*)::integer from public.ot_visitas)),
   ('audit_logs', (select count(*)::integer from public.audit_logs));
 
-\ir ../demo/seed_demo.sql
+\ir fixtures/seed_demo.sql
 
 select plan(40);
 
