@@ -164,30 +164,69 @@ Cada entrada debe indicar:
 
 **Archivo añadido:** `docs/OT_DEVELOPMENT_LOG.md`
 
+**Commit:** `d28a052b9f6edf20ff6d565ad890ed34d33c0645`
+
 **Objetivo:** disponer de una bitácora única y auditable de cada paso futuro.
 
 **Regla futura:** ninguna fase se dará por terminada sin actualizar este registro.
 
 ---
 
+## MOV-006 — Auditoría OT-00 ampliada
+
+**Fecha:** 2026-08-10
+
+**Estado:** EN CURSO
+
+**Rama de documentación:** `docs/isivoltpro-ot-execution-master`
+
+**Nuevas áreas revisadas:**
+
+- estructura completa de `src/features/work-orders`;
+- listado de APIs OT;
+- listado de componentes OT;
+- estructura de `src/features/clients`;
+- estructura de `src/features/assets`;
+- migraciones Supabase relacionadas con OT, mantenimiento programado e histórico de activo.
+
+**Hallazgos añadidos:**
+
+1. `work-orders` ya está razonablemente separado en `api`, `components`, `domain`, `forms`, `types` y `demo`.
+2. existen pruebas junto a gran parte de APIs y componentes OT; se conservará esa filosofía.
+3. se confirma lógica específica de mantenimiento programado dentro de OT: repositorio frontend y varias migraciones.
+4. se confirma histórico de activo generado a partir de OT validadas.
+5. mantenimiento programado se clasifica como MOVE funcional hacia IsiVoltPro Mantenimiento, manteniendo compatibilidad temporal.
+6. histórico maestro de activo se clasifica como BRIDGE hacia Activos/Mantenimiento.
+7. `clients` contiene una feature completa y deberá transformarse en acceso/adaptador a datos compartidos, no seguir creciendo como catálogo maestro dentro de OT.
+8. `AssetsWorkspace` no debe ser un módulo principal de OT; OT conservará solo selección/resumen/referencia de activo.
+
+**Documento creado:** `docs/OT_AUDIT_MATRIX.md`
+
+**Commit:** `73cfc7f36066c92d0100ae8298db98da4b7967f1`
+
+**Matriz:** KEEP / REFACTOR / BRIDGE / MOVE / REMOVE.
+
+**Cambios funcionales:** ninguno.
+
+**Migraciones nuevas:** ninguna.
+
+**RLS/permisos:** sin cambios.
+
+**Pruebas ejecutadas:** no aplican todavía porque no se ha modificado código funcional.
+
+**Producción/mini PC:** sin cambios.
+
+**Riesgo:** bajo.
+
+**Rollback:** abandonar la rama documental.
+
+**Estado de rama antes de esta actualización:** 3 commits por delante de `main`, 0 por detrás; solo tres archivos documentales nuevos.
+
+**Siguiente paso:** terminar la auditoría de máquina de estados, schemas, técnicos, dashboard/planificación, CI y funciones/RPC antes de cerrar OT-00.
+
+---
+
 # Próximos movimientos previstos
-
-## MOV-006 — Completar auditoría OT-00
-
-Pendiente:
-
-1. inventariar todos los ficheros y migraciones Supabase relevantes;
-2. revisar `work-orders` completo;
-3. revisar `clients`;
-4. revisar `assets`;
-5. revisar `technicians`;
-6. revisar `dashboard`;
-7. revisar `checklists`;
-8. revisar autenticación/roles;
-9. localizar HomeServe en código, tests, migraciones y documentación;
-10. localizar FV en código, tests, migraciones y documentación;
-11. localizar lógica de mantenimiento programado que pueda pertenecer a otro módulo;
-12. crear matriz `KEEP / REFACTOR / MOVE / REMOVE`.
 
 ## MOV-007 — Documento de contrato de integración OT
 
@@ -204,6 +243,7 @@ Crear borrador con:
 
 Antes de código funcional:
 
+- completar matriz de auditoría;
 - actualizar especificación;
 - actualizar arquitectura;
 - actualizar roadmap;
