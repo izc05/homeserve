@@ -108,6 +108,7 @@ select is(
   'Trabajo completado por el equipo',
   '23. OT guarda resumen técnico global'
 );
+select set_config('request.jwt.claim.sub','15000000-0000-0000-0000-000000000001',true);
 select is(
   (select count(*)::integer from audit_logs where entity_id='55000000-0000-0000-0000-000000000001' and action='close_work_order_visit'),
   2,

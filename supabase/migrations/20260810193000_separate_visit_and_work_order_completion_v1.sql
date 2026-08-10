@@ -370,6 +370,17 @@ begin
   visit_row := public.close_my_work_order_visit(work_order_uuid, payload_json);
   perform public.finalize_work_order_technical(work_order_uuid, work_summary);
 
+  perform public.log_audit(
+    work_order_row.tenant_id,
+    'finalize_active_work_order_visit',
+    'ordenes_trabajo',
+    work_order_row.id,
+    jsonb_build_object(
+      'visit_id', visit_row.id,
+      'compatibility_wrapper', true
+    )
+  );
+
   return visit_row;
 end;
 $function$;
