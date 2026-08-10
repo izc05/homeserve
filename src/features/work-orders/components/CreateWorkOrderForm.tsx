@@ -81,7 +81,7 @@ const DEFAULT_VALUES: CreateWorkOrderFormValues = {
 const EMPTY_INSTALLATION_DRAFT = {
   name: '',
   code: '',
-  type: 'fotovoltaica',
+  type: 'instalacion_tecnica',
   address: '',
   gps: '',
   mapUrl: '',
@@ -91,7 +91,7 @@ const EMPTY_INSTALLATION_DRAFT = {
 
 const EMPTY_ASSET_DRAFT = {
   name: '',
-  type: 'inversor_fotovoltaico',
+  type: 'equipo_tecnico',
   reference: '',
   criticality: 'media',
 };
@@ -216,7 +216,7 @@ export default function CreateWorkOrderForm({
       type: assetDraft.type,
       reference: assetDraft.reference,
       criticality: assetDraft.criticality,
-      description: 'Equipo creado desde alta rápida del formulario de OT.',
+      description: 'Activo creado desde alta rápida del formulario de OT.',
     }),
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ['work-order-creation-catalog', tenantId] });
@@ -227,7 +227,7 @@ export default function CreateWorkOrderForm({
       form.clearErrors('root');
     },
     onError: (error) => form.setError('root', {
-      message: error instanceof Error ? error.message : 'No se pudo crear el equipo.',
+      message: error instanceof Error ? error.message : 'No se pudo crear el activo.',
     }),
   });
 
@@ -337,7 +337,7 @@ export default function CreateWorkOrderForm({
       <div className="page-heading">
         <span className="section-kicker">Nueva intervención</span>
         <h1>Crear orden de trabajo</h1>
-        <p>Primero selecciona instalación/equipo. Después guarda como borrador o asigna a un técnico.</p>
+        <p>Selecciona la instalación y, si aplica, el activo. Después guarda como borrador o asigna a un técnico.</p>
       </div>
 
       <form className="panel work-order-create-form" onSubmit={(event) => event.preventDefault()}>
@@ -346,7 +346,7 @@ export default function CreateWorkOrderForm({
         )}
 
         <div className="creation-section-heading">
-          <div><span>+</span><strong>Alta rápida de instalación FV</strong></div>
+          <div><span>+</span><strong>Alta rápida de instalación</strong></div>
           <small>Incluye mapa, localización, foto general y detalles de acceso.</small>
         </div>
 
@@ -361,28 +361,28 @@ export default function CreateWorkOrderForm({
           <label>Nombre instalación
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, name: event.target.value }))}
-              placeholder="Ej. Cubierta FV edificio A"
+              placeholder="Ej. Edificio A · sala técnica"
               value={installationDraft.name}
             />
           </label>
           <label>Código
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, code: event.target.value }))}
-              placeholder="FV-CUB-001"
+              placeholder="INST-001"
               value={installationDraft.code}
             />
           </label>
           <label>Tipo
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, type: event.target.value }))}
-              placeholder="fotovoltaica"
+              placeholder="instalacion_tecnica"
               value={installationDraft.type}
             />
           </label>
           <label>Dirección / zona
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, address: event.target.value }))}
-              placeholder="Cubierta, parking, sala técnica..."
+              placeholder="Edificio, cubierta, parking, sala técnica..."
               value={installationDraft.address}
             />
           </label>
@@ -403,14 +403,14 @@ export default function CreateWorkOrderForm({
           <label>Foto instalación completa
             <input
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, photoUrl: event.target.value }))}
-              placeholder="URL de foto general de la planta"
+              placeholder="URL de foto general de la instalación"
               value={installationDraft.photoUrl}
             />
           </label>
           <label className="full-field">Detalles de acceso / instalación
             <textarea
               onChange={(event) => setInstallationDraft((draft) => ({ ...draft, details: event.target.value }))}
-              placeholder="Acceso, cubierta, llaves, sala técnica, contacto, riesgos, referencias visuales..."
+              placeholder="Acceso, llaves, sala técnica, contacto, riesgos, referencias visuales..."
               rows={3}
               value={installationDraft.details}
             />
@@ -426,19 +426,19 @@ export default function CreateWorkOrderForm({
         </div>
 
         <div className="form-grid">
-          <label>Nombre equipo
+          <label>Nombre activo
             <input
               disabled={!canCreateAsset}
               onChange={(event) => setAssetDraft((draft) => ({ ...draft, name: event.target.value }))}
-              placeholder="Ej. Inversor FV 50 kW"
+              placeholder="Ej. Bomba de circulación 1"
               value={assetDraft.name}
             />
           </label>
-          <label>Tipo equipo
+          <label>Tipo activo
             <input
               disabled={!canCreateAsset}
               onChange={(event) => setAssetDraft((draft) => ({ ...draft, type: event.target.value }))}
-              placeholder="inversor_fotovoltaico"
+              placeholder="equipo_tecnico"
               value={assetDraft.type}
             />
           </label>
@@ -446,7 +446,7 @@ export default function CreateWorkOrderForm({
             <input
               disabled={!canCreateAsset}
               onChange={(event) => setAssetDraft((draft) => ({ ...draft, reference: event.target.value }))}
-              placeholder="INV-FV-001"
+              placeholder="ACT-001"
               value={assetDraft.reference}
             />
           </label>
@@ -468,9 +468,9 @@ export default function CreateWorkOrderForm({
             onClick={() => quickAssetMutation.mutate()}
             type="button"
           >
-            {quickAssetMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Boxes size={17} />} Crear equipo
+            {quickAssetMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Boxes size={17} />} Crear activo
           </button>
-          {!canCreateAsset && <p className="read-only-note"><Plus size={16} /> Selecciona o crea una instalación antes de crear el equipo.</p>}
+          {!canCreateAsset && <p className="read-only-note"><Plus size={16} /> Selecciona o crea una instalación antes de crear el activo.</p>}
         </div>
 
         <div className="creation-section-heading">
@@ -480,7 +480,7 @@ export default function CreateWorkOrderForm({
 
         <div className="form-grid">
           <label className="full-field">Título
-            <input {...form.register('title')} placeholder="Ej. Revisar inversor FV de cubierta" />
+            <input {...form.register('title')} placeholder="Ej. Revisar cuadro principal de sala técnica" />
             {errors.title && <small className="field-error">{errors.title.message}</small>}
           </label>
 

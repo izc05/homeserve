@@ -31,7 +31,7 @@ import {
 import { hasCapability } from './auth/capabilities';
 import ProductBrand, { DemoBrandFooter } from './components/ProductBrand';
 import { getSupabaseClient } from './lib/supabase';
-import CreateWorkOrderForm from './features/work-orders/components/CreateWorkOrderForm';
+import CreateWorkOrderForm from './features/work-orders/components/WorkOrderCreateWorkspace';
 import { listAccessibleWorkOrders, type WorkOrderListItem } from './features/work-orders/api/workOrdersRepository';
 import { loadWorkOrderCreationCatalog, type WorkOrderCreationCatalog } from './features/work-orders/api/workOrderCommands';
 import { acceptWorkOrder, blockWorkOrder, resumeWorkOrder, startWorkOrderVisit } from './features/work-orders/api/workOrderLifecycle';
