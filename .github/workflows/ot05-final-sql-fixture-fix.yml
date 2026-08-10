@@ -1,0 +1,95 @@
+name: OT05 Final SQL Fixture Fix
+
+on:
+  push:
+    branches:
+      - feat/ot-technical-system-v1
+    paths:
+      - '.github/workflows/ot05-final-sql-fixture-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/ot-technical-system-v1
+          fetch-depth: 0
+
+      - name: Rename demo fixture without changing its bytes
+        run: |
+          test "$(git hash-object supabase/tests/fixtures/seed_demo.sql)" = "814ae76ec22b110b32f56add4f83ae449996220c"
+          git mv supabase/tests/fixtures/seed_demo.sql supabase/tests/fixtures/seed_demo.inc
+          test "$(git hash-object supabase/tests/fixtures/seed_demo.inc)" = "814ae76ec22b110b32f56add4f83ae449996220c"
+
+      - name: Patch include extension and RLS row-count assertion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          demo = Path('supabase/tests/demo_seed.sql')
+          demo_text = demo.read_text(encoding='utf-8')
+          old_include = r'\ir fixtures/seed_demo.sql'
+          new_include = r'\ir fixtures/seed_demo.inc'
+          if demo_text.count(old_include) != 2:
+              raise SystemExit(f'Se esperaban 2 includes .sql y se encontraron {demo_text.count(old_include)}')
+          demo.write_text(demo_text.replace(old_include, new_include), encoding='utf-8')
+
+          systems = Path('supabase/tests/installation_technical_systems_v1.sql')
+          systems_text = systems.read_text(encoding='utf-8')
+          old = """select is(
+  (
+    with changed as (
+      update sistemas_instalacion
+      set descripcion='Cambio técnico prohibido'
+      where codigo='ELEC'
+      returning 1
+    )
+    select count(*)::integer from changed
+  ),
+  0,
+  '9. técnico no puede editar sistemas: RLS filtra la fila y actualiza 0 registros'
+);"""
+          new = """select lives_ok(
+  $$
+    do $block$
+    declare
+      changed_count integer;
+    begin
+      update sistemas_instalacion
+      set descripcion='Cambio técnico prohibido'
+      where codigo='ELEC';
+      get diagnostics changed_count = row_count;
+      if changed_count <> 0 then
+        raise exception 'RLS permitió modificar % filas', changed_count;
+      end if;
+    end
+    $block$
+  $$,
+  '9. técnico no puede editar sistemas: RLS filtra la fila y actualiza 0 registros'
+);"""
+          count = systems_text.count(old)
+          if count != 1:
+              raise SystemExit(f'Se esperaba 1 bloque RLS legacy y se encontraron {count}')
+          systems.write_text(systems_text.replace(old, new), encoding='utf-8')
+          PY
+
+      - name: Verify exact scope
+        run: |
+          git diff --check
+          test "$(git hash-object supabase/tests/fixtures/seed_demo.inc)" = "814ae76ec22b110b32f56add4f83ae449996220c"
+          test ! -e supabase/tests/fixtures/seed_demo.sql
+          git diff --stat
+          git diff -- supabase/tests/demo_seed.sql supabase/tests/installation_technical_systems_v1.sql
+
+      - name: Commit patch
+        run: |
+          git config user.name 'IsiVoltPro Mantenimiento'
+          git config user.email 'isiciozafracantos@gmail.com'
+          git add supabase/tests/demo_seed.sql supabase/tests/installation_technical_systems_v1.sql supabase/tests/fixtures/seed_demo.inc supabase/tests/fixtures/seed_demo.sql
+          git commit -m 'test: cerrar fixtures SQL reproducibles OT-05'
+          git push origin HEAD:feat/ot-technical-system-v1
