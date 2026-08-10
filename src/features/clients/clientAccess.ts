@@ -1,7 +1,9 @@
+import { hasCapability } from '../../auth/capabilities';
+
 export function canAccessClientNavigation(role: string): boolean {
-  return role === 'admin_cliente' || role === 'coordinador';
+  return hasCapability(role, 'clients.read');
 }
 
 export function canManageClientRecords(role: string): boolean {
-  return role === 'admin_cliente';
+  return hasCapability(role, 'clients.manage');
 }
