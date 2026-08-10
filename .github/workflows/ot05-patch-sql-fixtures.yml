@@ -1,0 +1,69 @@
+name: OT05 Patch SQL Fixtures
+
+on:
+  push:
+    branches:
+      - feat/ot-technical-system-v1
+    paths:
+      - '.github/workflows/ot05-patch-sql-fixtures.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/ot-technical-system-v1
+          fetch-depth: 0
+
+      - name: Copy exact historical demo seed into test fixtures
+        run: |
+          mkdir -p supabase/tests/fixtures
+          cp supabase/demo/seed_demo.sql supabase/tests/fixtures/seed_demo.sql
+          test "$(git hash-object supabase/tests/fixtures/seed_demo.sql)" = "814ae76ec22b110b32f56add4f83ae449996220c"
+
+      - name: Patch only include paths and malformed fixture UUIDs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          demo = Path('supabase/tests/demo_seed.sql')
+          demo_text = demo.read_text(encoding='utf-8')
+          old_include = r'\ir ../demo/seed_demo.sql'
+          new_include = r'\ir fixtures/seed_demo.sql'
+          if demo_text.count(old_include) != 2:
+              raise SystemExit(f'Se esperaban 2 includes legacy; encontrados {demo_text.count(old_include)}')
+          demo.write_text(demo_text.replace(old_include, new_include), encoding='utf-8')
+
+          systems = Path('supabase/tests/installation_technical_systems_v1.sql')
+          systems_text = systems.read_text(encoding='utf-8')
+          replacements = {
+              '21000000-0000-0000-000000000001': ('21000000-0000-0000-0000-000000000001', 2),
+              '21000000-0000-0000-000000000002': ('21000000-0000-0000-0000-000000000002', 1),
+          }
+          for old, (new, expected) in replacements.items():
+              found = systems_text.count(old)
+              if found != expected:
+                  raise SystemExit(f'{old}: se esperaban {expected} coincidencias y hay {found}')
+              systems_text = systems_text.replace(old, new)
+          systems.write_text(systems_text, encoding='utf-8')
+          PY
+
+      - name: Verify narrow diff
+        run: |
+          git diff --check
+          git diff --stat
+          git diff -- supabase/tests/demo_seed.sql supabase/tests/installation_technical_systems_v1.sql
+          test "$(git hash-object supabase/tests/fixtures/seed_demo.sql)" = "814ae76ec22b110b32f56add4f83ae449996220c"
+
+      - name: Commit patch
+        run: |
+          git config user.name 'IsiVoltPro Mantenimiento'
+          git config user.email 'isiciozafracantos@gmail.com'
+          git add supabase/tests/demo_seed.sql supabase/tests/installation_technical_systems_v1.sql supabase/tests/fixtures/seed_demo.sql
+          git commit -m 'test: hacer reproducibles los fixtures SQL'
+          git push origin HEAD:feat/ot-technical-system-v1
