@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseClient } from '../../../lib/supabase';
 import type { WorkOrderListItem } from '../api/workOrdersRepository';
+import { startWorkOrderVisit } from '../api/workOrderLifecycle';
 import { listWorkOrderChecklist } from '../api/workOrderExecutionRepository';
 import { listWorkOrderPhotos } from '../api/workOrderPhotoRepository';
 import {
@@ -101,6 +102,7 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
     ? activeVisits.find((visit) => visit.technicianId === viewerId) ?? null
     : null;
   const canCloseOwnVisit = Boolean(participantRole && ownActiveVisit && ['EN_CURSO', 'BLOQUEADA'].includes(order.status));
+  const canStartOwnVisit = Boolean(participantRole && !ownActiveVisit && ['ACEPTADA', 'EN_CURSO'].includes(order.status));
   const isResponsible = participantRole === 'responsable' || (canComplete && order.assignedTo === viewerId);
 
   const requirementItems = useMemo(() => evaluateCompletionRequirements(
@@ -123,6 +125,11 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
       queryClient.invalidateQueries({ queryKey: ['work-order-participants', order.id] }),
     ]);
   };
+
+  const startVisitMutation = useMutation({
+    mutationFn: () => startWorkOrderVisit(supabase, order.id),
+    onSuccess: invalidate,
+  });
 
   const closeVisitMutation = useMutation({
     mutationFn: () => closeMyWorkOrderVisit(supabase, {
@@ -152,7 +159,9 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
         <span className="private-evidence-badge"><UsersRound size={14} aria-hidden="true" /> {participantRole === 'responsable' ? 'Responsable' : participantRole === 'colaborador' ? 'Colaborador' : 'Consulta'}</span>
       </div>
 
-      {!canCloseOwnVisit && <p className="read-only-note"><LockKeyhole size={16} /> {participantRole ? 'No tienes una visita activa que cerrar en este momento.' : 'Debes ser participante activo de la OT para cerrar una visita.'}</p>}
+      {!canCloseOwnVisit && !canStartOwnVisit && <p className="read-only-note"><LockKeyhole size={16} /> {participantRole ? 'No tienes una visita activa que cerrar en este momento.' : 'Debes ser participante activo de la OT para iniciar o cerrar una visita.'}</p>}
+      {canStartOwnVisit && <div className="completion-actions"><button className="primary-button" disabled={startVisitMutation.isPending} onClick={() => startVisitMutation.mutate()} type="button">{startVisitMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <Clock3 size={17} />} {startVisitMutation.isPending ? 'Iniciando visita…' : 'Iniciar mi visita'}</button></div>}
+      {startVisitMutation.error && <p className="execution-inline-error"><AlertTriangle size={17} /> {workOrderTeamError(startVisitMutation.error)}</p>}
       {ownActiveVisit && <p className="read-only-note"><UserRound size={16} /> Visita iniciada {ownActiveVisit.startedAt ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(ownActiveVisit.startedAt)) : 'sin fecha disponible'}.</p>}
 
       <label className="completion-summary-field" htmlFor={`visit-summary-${order.id}`}>
