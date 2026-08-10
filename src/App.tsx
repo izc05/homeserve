@@ -507,7 +507,8 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
 
   const runLifecycleAction: RunLifecycle = (action, order, input) => {
     if (lifecycleMutation.isPending) return;
-    if (!isAssignedTechnician(order, viewerId)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo el técnico asignado puede iniciar o ejecutar esta OT desde su cuenta.' }); return; }
+    if (action !== 'start' && !isAssignedTechnician(order, viewerId)) { setNotice({ kind: 'error', orderId: order.id, text: 'Esta acción global corresponde al técnico responsable de la OT.' }); return; }
+    if (action === 'start' && !isTechnicianRole(viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo un técnico participante puede iniciar una visita.' }); return; }
     if (action === 'pause' || action === 'material' || action === 'client') {
       const reason = input?.reason?.trim();
       if (!reason) { setNotice({ kind: 'error', orderId: order.id, text: 'Indica el motivo antes de cambiar el estado.' }); return; }
