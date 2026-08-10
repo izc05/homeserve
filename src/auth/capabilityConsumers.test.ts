@@ -31,7 +31,7 @@ describe('capability consumers', () => {
   });
 
   it('keeps auth/session flows untouched by capability decisions', () => {
-    expect(authAppSource).toContain("supabase.auth.signInWithPassword");
+    expect(authAppSource).toContain("getSupabaseClient().auth.signInWithPassword");
     expect(authAppSource).toContain("supabase.auth.onAuthStateChange");
     expect(authAppSource).toContain("rpc('accept_tenant_invitation'");
     expect(authAppSource).toContain("rpc('create_tenant_invitation'");
