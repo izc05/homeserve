@@ -425,6 +425,7 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   const canCancelWorkOrders = hasCapability(viewerRole, 'work_orders.cancel');
   const canReadAudit = hasCapability(viewerRole, 'work_orders.audit.read');
   const canManageTemplates = hasCapability(viewerRole, 'work_order_templates.manage');
+  const canManageLocations = hasCapability(viewerRole, 'installations.locations.manage');
   const canAccessClients = canAccessClientNavigation(viewerRole);
   const canManageClients = canManageClientRecords(viewerRole);
   const canAccessTechnicians = canAccessTechnicianAdministration(viewerRole);
@@ -545,7 +546,7 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
   else if (view === 'detail') content = <Detail order={selectedOrder} catalog={catalogQuery.data} auditEvents={auditQuery.data ?? []} back={() => setView(isTechnicianRole(viewerRole) ? 'technician' : 'orders')} create={openCreate} canCreate={canCreateWorkOrders} viewerId={viewerId} viewerRole={viewerRole} busyOrderId={busyOrderId} notice={notice} runAction={runLifecycleAction} runAssignment={runAssignment} runReview={runReviewAction} runCancel={runCancelAction} />;
   else if (view === 'create') content = <CreateWorkOrderForm tenantId={tenantId} canManage={canCreateWorkOrders} initialValues={createPreset} onCancel={() => { setCreatePreset(undefined); setView('orders'); }} onCreated={(workOrderId, code, technicianName) => { void finishCreate(workOrderId, code, technicianName); }} />;
   else if (view === 'clients') content = canAccessClients
-    ? <ClientsWorkspace tenantId={tenantId} canManage={canManageClients} onCreateWorkOrder={(client) => openCreate({ clientId: client.id })} />
+    ? <ClientsWorkspace tenantId={tenantId} canManage={canManageClients} canManageLocations={canManageLocations} onCreateWorkOrder={(client) => openCreate({ clientId: client.id })} />
     : <section className="panel data-state error-state"><LockKeyhole size={28} /><strong>Acceso no disponible</strong><p>Tu rol no tiene acceso a la gestión administrativa de clientes.</p></section>;
   else if (view === 'planning') content = <Planning orders={orders} open={openDetail} />;
   else if (view === 'technicians') content = canAccessTechnicians ? <TechniciansWorkspace tenantId={tenantId} canManageInvitations={canManageTechnicians} onCreateWorkOrder={(technician) => openCreate({ technicianId: technician.userId, title: `Nueva intervención para ${technician.name}` })} /> : <section className="panel data-state error-state"><LockKeyhole size={28} /><strong>Acceso no disponible</strong><p>Tu rol no tiene acceso a la administración técnica.</p></section>;
