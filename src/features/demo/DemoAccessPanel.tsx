@@ -15,7 +15,7 @@ const roles: Array<{
   {
     id: 'admin_cliente',
     title: 'Administrador',
-    description: 'Ve dashboard, planificación, técnicos, clientes, activos y todas las órdenes.',
+    description: 'Ve dashboard, planificación, técnicos, clientes, activos vinculados y todas las órdenes.',
     icon: ShieldCheck,
   },
   {
@@ -33,7 +33,7 @@ const roles: Array<{
   {
     id: 'cliente_lectura',
     title: 'Solo lectura',
-    description: 'Consulta instalaciones, activos, informes y estado de trabajos sin editar.',
+    description: 'Consulta instalaciones, activos vinculados, informes y estado de trabajos sin editar.',
     icon: Eye,
   },
 ];
@@ -45,14 +45,14 @@ export default function DemoAccessPanel({ onStart }: DemoAccessPanelProps) {
         <div className="demo-access-intro">
           <div className="auth-logo demo-logo">
             <span><Zap size={27} strokeWidth={2.8} /></span>
-            <div><strong>IsiVoltPro <b>OT</b></strong><small>Fotovoltaica y mantenimiento</small></div>
+            <div><strong>IsiVoltPro <b>OT</b></strong><small>Órdenes de trabajo multisector</small></div>
           </div>
           <span className="section-kicker">Modo presentación</span>
-          <h1>Explora la aplicación para una empresa de fotovoltaica y mantenimiento</h1>
-          <p>Los datos son ficticios y están orientados a instalaciones FV, preventivos, correctivos, técnicos, equipos, checklist, fotos, informes y trazabilidad de OT.</p>
+          <h1>Explora IsiVoltPro OT para mantenimiento técnico de cualquier instalación</h1>
+          <p>Los datos son ficticios y permiten recorrer preventivos, correctivos, técnicos, instalaciones, activos vinculados, checklist, fotos, informes y trazabilidad de OT.</p>
           <div className="demo-access-safety">
             <span><ShieldCheck size={18} /> Sin tocar datos reales</span>
-            <span><Building2 size={18} /> Clientes e instalaciones FV</span>
+            <span><Building2 size={18} /> Clientes e instalaciones multisector</span>
             <span><Zap size={18} /> Lista para presentar</span>
           </div>
         </div>
