@@ -28,6 +28,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react';
+import { hasCapability } from './auth/capabilities';
 import ProductBrand, { DemoBrandFooter } from './components/ProductBrand';
 import { getSupabaseClient } from './lib/supabase';
 import CreateWorkOrderForm from './features/work-orders/components/CreateWorkOrderForm';
@@ -127,7 +128,7 @@ const typeLabels: Record<WorkOrderType, string> = {
 };
 
 function isManagerRole(role: string) {
-  return ['admin_cliente', 'coordinador'].includes(role);
+  return hasCapability(role, 'work_orders.create');
 }
 
 function isOpenOrder(order: WorkOrderListItem) {
