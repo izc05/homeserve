@@ -23,6 +23,7 @@ const expectedCapabilities: Record<LegacyOtRole, readonly OtCapability[]> = {
     'technicians.invite',
     'clients.read',
     'clients.manage',
+    'installations.evidence.manage',
     'reports.read',
     'work_order_templates.read',
     'work_order_templates.manage',
@@ -41,6 +42,7 @@ const expectedCapabilities: Record<LegacyOtRole, readonly OtCapability[]> = {
     'planning.manage',
     'technicians.read',
     'clients.read',
+    'installations.evidence.manage',
     'reports.read',
     'work_order_templates.read',
     'work_order_templates.manage',
@@ -79,6 +81,13 @@ describe('legacy OT role capability parity', () => {
     expect(hasCapability('coordinador', 'users.manage')).toBe(false);
     expect(hasCapability('coordinador', 'clients.manage')).toBe(false);
     expect(hasCapability('coordinador', 'technicians.invite')).toBe(false);
+  });
+
+  it('keeps installation evidence management available to admin and coordinator', () => {
+    expect(hasCapability('admin_cliente', 'installations.evidence.manage')).toBe(true);
+    expect(hasCapability('coordinador', 'installations.evidence.manage')).toBe(true);
+    expect(hasCapability('tecnico', 'installations.evidence.manage')).toBe(false);
+    expect(hasCapability('cliente_lectura', 'installations.evidence.manage')).toBe(false);
   });
 
   it('keeps operational management available to admin and coordinator', () => {
