@@ -27,6 +27,7 @@ export type AssetOption = {
   id: string;
   installationId: string;
   locationId: string | null;
+  systemId?: string | null;
   name: string;
 };
 
@@ -99,6 +100,7 @@ export type CreateAssetInput = {
   tenantId: string;
   installationId: string;
   locationId?: string | null;
+  systemId?: string | null;
   name: string;
   type?: string | null;
   brand?: string | null;
@@ -117,6 +119,7 @@ type AssetRow = {
   id: string;
   instalacion_id: string;
   ubicacion_id: string | null;
+  sistema_id: string | null;
   nombre: string;
 };
 type MemberRow = {
@@ -130,6 +133,7 @@ type CreatedAssetRow = {
   id: string;
   instalacion_id: string;
   ubicacion_id: string | null;
+  sistema_id: string | null;
   nombre: string;
 };
 
@@ -221,7 +225,7 @@ export async function loadWorkOrderCreationCatalog(
       .order('nombre'),
     supabase
       .from('activos')
-      .select('id,instalacion_id,ubicacion_id,nombre')
+      .select('id,instalacion_id,ubicacion_id,sistema_id,nombre')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
       .order('nombre'),
@@ -276,6 +280,7 @@ export async function loadWorkOrderCreationCatalog(
       id: String(row.id),
       installationId: String(row.instalacion_id),
       locationId: row.ubicacion_id ? String(row.ubicacion_id) : null,
+      systemId: row.sistema_id ? String(row.sistema_id) : null,
       name: String(row.nombre),
     })),
     technicians: members.map((member) => ({
@@ -342,6 +347,7 @@ export async function createAsset(
       tenant_id: input.tenantId,
       instalacion_id: input.installationId,
       ubicacion_id: input.locationId || null,
+      sistema_id: input.systemId || null,
       nombre: input.name.trim(),
       tipo: nullableText(input.type) ?? 'general',
       marca: nullableText(input.brand),
@@ -354,7 +360,7 @@ export async function createAsset(
       observaciones: nullableText(input.notes),
       created_by: createdBy,
     })
-    .select('id,instalacion_id,ubicacion_id,nombre')
+    .select('id,instalacion_id,ubicacion_id,sistema_id,nombre')
     .single();
 
   if (error) throw error;
@@ -366,6 +372,7 @@ export async function createAsset(
     id: String(row.id),
     installationId: String(row.instalacion_id),
     locationId: row.ubicacion_id ? String(row.ubicacion_id) : null,
+    systemId: row.sistema_id ? String(row.sistema_id) : null,
     name: String(row.nombre),
   };
 }
