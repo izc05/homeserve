@@ -244,19 +244,99 @@ Hasta cerrar OT-00:
 - `isivoltpro-platform`;
 - integración real con Activos/Mantenimiento/Almacén.
 
-## 13. Próxima auditoría
+## 13. Auditoría adicional de dominio, formularios y CI
 
-Pendiente para cerrar esta matriz:
+### Máquina de estados
 
-1. listar todos los ficheros de `work-orders/api` y clasificarlos;
-2. listar componentes OT y su cobertura de tests;
-3. revisar schemas de creación;
-4. revisar máquina de estados;
-5. revisar funciones Supabase/RPC una por una;
-6. revisar `clients` y `assets` a nivel de operaciones CRUD;
-7. revisar `technicians` y disponibilidad;
-8. revisar dashboard/planificación;
-9. búsqueda global de `HomeServe`, `FV`, `fotovoltaica` y nombres legacy;
-10. revisar CI y estado actual de pruebas.
+`src/features/work-orders/domain/lifecycle.ts` define actualmente:
+
+```text
+BORRADOR → ASIGNADA / CANCELADA
+ASIGNADA → ACEPTADA / CANCELADA
+ACEPTADA → EN_CURSO / BLOQUEADA
+EN_CURSO → BLOQUEADA / FINALIZADA_TECNICO
+BLOQUEADA → EN_CURSO / CANCELADA
+FINALIZADA_TECNICO → VALIDADA / EN_CURSO
+VALIDADA → terminal
+CANCELADA → terminal
+```
+
+**Decisión: KEEP.**
+
+No se crearán estados distintos por cada causa de espera. Los motivos de bloqueo seguirán separados del estado. Antes de modificar la máquina se revisarán RPC/triggers para garantizar coincidencia frontend/backend.
+
+### Compatibilidad de estados
+
+Existen `statusCompatibility.ts` y pruebas. **KEEP temporal.** Cualquier eliminación se hará solo cuando los datos históricos estén normalizados y las pruebas demuestren que ya no es necesaria.
+
+### Schema de creación
+
+`createWorkOrderSchema.ts` confirma:
+
+- `clientId` obligatorio;
+- `installationId` obligatorio;
+- `locationId` opcional;
+- `assetId` opcional;
+- `technicianId` opcional;
+- título obligatorio;
+- tipo/prioridad obligatorios;
+- requisitos configurables.
+
+**Decisión: KEEP + REFACTOR.**
+
+La base ya permite crear sin activo y sin técnico. El futuro modo rápido reutilizará esta ventaja y aplicará valores por defecto controlados para reducir campos visibles, sin debilitar validación.
+
+### Técnicos
+
+La feature `technicians` ya está separada en API, componentes, hooks, páginas, schemas y tipos.
+
+**Decisión: KEEP operativo + BRIDGE de identidad.**
+
+La planificación/asignación OT seguirá necesitando técnicos, pero el maestro de empleados/miembros será Platform. No se eliminará la administración actual hasta existir reemplazo real.
+
+### Reglas de acceso de técnico
+
+`technicianAccess.ts` contiene decisiones directas por rol (`tecnico`, `tecnico_externo`, `admin_cliente`, `coordinador`).
+
+**Decisión: REFACTOR P0/P1.**
+
+Crear primero un mapa role → capability para mantener compatibilidad y después hacer que los componentes consulten capabilities.
+
+### Dashboard
+
+La feature `dashboard` existe como dominio separado al menos a nivel de componentes.
+
+**Decisión: KEEP + REFACTOR.**
+
+El dashboard OT mostrará operación de trabajos: abiertas, urgentes, vencidas, bloqueadas, pendientes de revisión y carga técnica. No mostrará gestión global de mantenimiento de instalaciones.
+
+### CI/Quality
+
+Existen tres workflows: `ci.yml`, `quality.yml` y `deploy-pages.yml`.
+
+`quality.yml` ya ejecuta en PR a `main`:
+
+- `npm ci`;
+- rechazo de branding visible `HomeServe`;
+- typecheck;
+- lint;
+- tests;
+- build.
+
+**Decisión: KEEP + CONSOLIDATE posterior.**
+
+Hallazgo: `ci.yml` usa Node 20 y `npm install`, mientras `quality.yml` usa Node 22 y `npm ci`. Se normalizará más adelante para evitar dos estándares de calidad distintos. No se cambia durante OT-00.
+
+## 14. Pendiente para cerrar OT-00
+
+1. revisar APIs OT restantes y clasificarlas individualmente;
+2. revisar RPC principales y su relación con la máquina de estados;
+3. revisar componentes de técnicos y planificación con mayor detalle;
+4. revisar CRUD actual de clientes/instalaciones para diseñar adapter;
+5. revisar tests SQL/RLS existentes;
+6. revisar branding legacy mediante inspección directa además de búsqueda indexada;
+7. redactar contrato de integración OT ↔ Platform/Activos/Mantenimiento/Almacén;
+8. actualizar documentos oficiales (`PRODUCT_SPEC`, `ARCHITECTURE`, `ROADMAP`, `UI_FLOWS`);
+9. abrir PR exclusivamente documental para cerrar OT-00.
 
 Esta matriz se actualizará antes de cualquier cambio funcional.
