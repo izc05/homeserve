@@ -9,6 +9,7 @@ import {
   LoaderCircle,
   MapPin,
   ShieldCheck,
+  Wrench,
 } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -42,6 +43,7 @@ function quickDefaultValues(initialValues?: Partial<CreateWorkOrderFormValues>):
     clientId: initialValues?.clientId ?? '',
     installationId: initialValues?.installationId ?? '',
     locationId: initialValues?.locationId ?? '',
+    systemId: initialValues?.systemId ?? '',
     assetId: initialValues?.assetId ?? '',
     title: initialValues?.title ?? '',
     description: initialValues?.description ?? '',
@@ -76,6 +78,7 @@ export default function QuickCreateWorkOrderForm({
   const clientId = form.watch('clientId');
   const installationId = form.watch('installationId');
   const locationId = form.watch('locationId');
+  const systemId = form.watch('systemId');
   const assetId = form.watch('assetId');
   const catalog = catalogQuery.data;
 
@@ -89,12 +92,18 @@ export default function QuickCreateWorkOrderForm({
     [catalog, installationId],
   );
 
+  const systems = useMemo(
+    () => catalog?.systems.filter((system) => system.installationId === installationId) ?? [],
+    [catalog, installationId],
+  );
+
   const assets = useMemo(
     () => catalog?.assets.filter((asset) => (
       asset.installationId === installationId
       && (!locationId || !asset.locationId || asset.locationId === locationId)
+      && (!systemId || !asset.systemId || asset.systemId === systemId)
     )) ?? [],
-    [catalog, installationId, locationId],
+    [catalog, installationId, locationId, systemId],
   );
 
   useEffect(() => {
@@ -106,6 +115,7 @@ export default function QuickCreateWorkOrderForm({
     if (selectedInstallation && selectedInstallation.clientId !== clientId) {
       form.setValue('installationId', '', { shouldDirty: true, shouldValidate: true });
       form.setValue('locationId', '', { shouldDirty: true });
+      form.setValue('systemId', '', { shouldDirty: true });
       form.setValue('assetId', '', { shouldDirty: true });
     }
   }, [catalog, clientId, form, installationId]);
@@ -114,10 +124,21 @@ export default function QuickCreateWorkOrderForm({
     if (locationId && !locations.some((location) => location.id === locationId)) {
       form.setValue('locationId', '', { shouldDirty: true });
     }
+    if (systemId && !systems.some((system) => system.id === systemId)) {
+      form.setValue('systemId', '', { shouldDirty: true });
+    }
     if (assetId && !assets.some((asset) => asset.id === assetId)) {
       form.setValue('assetId', '', { shouldDirty: true });
     }
-  }, [assetId, assets, form, locationId, locations]);
+  }, [assetId, assets, form, locationId, locations, systemId, systems]);
+
+  useEffect(() => {
+    if (!assetId || systemId) return;
+    const selectedAsset = catalog?.assets.find((asset) => asset.id === assetId);
+    if (selectedAsset?.systemId) {
+      form.setValue('systemId', selectedAsset.systemId, { shouldDirty: true });
+    }
+  }, [assetId, catalog, form, systemId]);
 
   const mutation = useMutation({
     mutationFn: (values: QuickCreateWorkOrderFormValues) => createWorkOrder(
@@ -189,7 +210,7 @@ export default function QuickCreateWorkOrderForm({
 
         <div className="creation-section-heading">
           <div><span>1</span><strong>Dónde ocurre</strong></div>
-          <small>Solo instalación obligatoria; ubicación y activo son opcionales.</small>
+          <small>Solo instalación obligatoria; ubicación, sistema y activo son opcionales.</small>
         </div>
 
         <div className="form-grid">
@@ -220,6 +241,18 @@ export default function QuickCreateWorkOrderForm({
             </select>
           </label>
 
+          <label>Sistema técnico <small>Opcional</small>
+            <select {...form.register('systemId')} disabled={!installationId}>
+              <option value="">Sin sistema identificado</option>
+              {systems.map((system) => (
+                <option key={system.id} value={system.id}>
+                  {system.code ? `${system.code} · ` : ''}{system.name}{system.status === 'fuera_servicio' ? ' · fuera de servicio' : ''}
+                </option>
+              ))}
+            </select>
+            <small>Electricidad, climatización, PCI, fontanería u otro sistema de la instalación.</small>
+          </label>
+
           <label>Activo relacionado <small>Opcional</small>
             <select {...form.register('assetId')} disabled={!installationId}>
               <option value="">Sin activo identificado</option>
@@ -227,6 +260,10 @@ export default function QuickCreateWorkOrderForm({
             </select>
             <small>Se puede vincular más tarde desde el flujo técnico.</small>
           </label>
+        </div>
+
+        <div className="read-only-note">
+          <Wrench size={16} /> Puedes indicar solo el sistema afectado aunque todavía no conozcas el equipo exacto.
         </div>
 
         <div className="creation-section-heading">
