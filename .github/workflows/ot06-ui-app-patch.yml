@@ -1,0 +1,43 @@
+name: OT-06 UI App patch
+
+on:
+  push:
+    branches:
+      - feat/ot-multi-technician-visits-v1
+    paths:
+      - .github/workflows/ot06-ui-app-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ot-multi-technician-visits-v1
+          fetch-depth: 0
+      - name: Patch lifecycle guard exactly
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/App.tsx')
+          text = path.read_text()
+          old = """  const runLifecycleAction: RunLifecycle = (action, order, input) => {\n    if (lifecycleMutation.isPending) return;\n    if (!isAssignedTechnician(order, viewerId)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo el técnico asignado puede iniciar o ejecutar esta OT desde su cuenta.' }); return; }\n    if (action === 'pause' || action === 'material' || action === 'client') {\n"""
+          new = """  const runLifecycleAction: RunLifecycle = (action, order, input) => {\n    if (lifecycleMutation.isPending) return;\n    if (action !== 'start' && !isAssignedTechnician(order, viewerId)) { setNotice({ kind: 'error', orderId: order.id, text: 'Esta acción global corresponde al técnico responsable de la OT.' }); return; }\n    if (action === 'start' && !isTechnicianRole(viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo un técnico participante puede iniciar una visita.' }); return; }\n    if (action === 'pause' || action === 'material' || action === 'client') {\n"""
+          assert text.count(old) == 1, 'lifecycle guard block not found exactly once'
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+          test "$(git diff --numstat -- src/App.tsx | awk '{print $1+$2}')" -le 4
+      - name: Commit lifecycle guard patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx
+          git diff --cached --exit-code && exit 1 || true
+          git commit -m "feat: permitir inicio de visita a colaboradores OT-06"
+          git push origin HEAD:feat/ot-multi-technician-visits-v1
