@@ -35,6 +35,6 @@ jobs:
         run: |
           git config user.name 'IsiVoltPro Mantenimiento'
           git config user.email 'isiciozafracantos@gmail.com'
-          git add supabase/tests/demo_seed.sql supabase/tests/fixtures/seed_demo.inc supabase/tests/fixtures/seed_demo.sql
+          git add -A -- supabase/tests/demo_seed.sql supabase/tests/fixtures
           git commit -m 'test: ocultar fixture demo al descubrimiento pgTAP'
           git push origin HEAD:feat/ot-technical-system-v1
