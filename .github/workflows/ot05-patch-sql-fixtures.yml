@@ -42,7 +42,7 @@ jobs:
           systems = Path('supabase/tests/installation_technical_systems_v1.sql')
           systems_text = systems.read_text(encoding='utf-8')
           replacements = {
-              '21000000-0000-0000-000000000001': ('21000000-0000-0000-0000-000000000001', 2),
+              '21000000-0000-0000-000000000001': ('21000000-0000-0000-0000-000000000001', 1),
               '21000000-0000-0000-000000000002': ('21000000-0000-0000-0000-000000000002', 1),
           }
           for old, (new, expected) in replacements.items():
