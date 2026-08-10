@@ -1,0 +1,50 @@
+name: OT-06D audit patch
+
+on:
+  push:
+    branches:
+      - feat/ot-multi-technician-visits-v1
+    paths:
+      - .github/workflows/ot06d-audit-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ot-multi-technician-visits-v1
+          fetch-depth: 0
+      - name: Patch audit compatibility exactly
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          migration = Path('supabase/migrations/20260810193000_separate_visit_and_work_order_completion_v1.sql')
+          text = migration.read_text()
+          old = """  visit_row := public.close_my_work_order_visit(work_order_uuid, payload_json);\n  perform public.finalize_work_order_technical(work_order_uuid, work_summary);\n\n  return visit_row;\n"""
+          new = """  visit_row := public.close_my_work_order_visit(work_order_uuid, payload_json);\n  perform public.finalize_work_order_technical(work_order_uuid, work_summary);\n\n  perform public.log_audit(\n    work_order_row.tenant_id,\n    'finalize_active_work_order_visit',\n    'ordenes_trabajo',\n    work_order_row.id,\n    jsonb_build_object(\n      'visit_id', visit_row.id,\n      'compatibility_wrapper', true\n    )\n  );\n\n  return visit_row;\n"""
+          assert text.count(old) == 1, 'wrapper block not found exactly once'
+          migration.write_text(text.replace(old, new, 1))
+
+          test = Path('supabase/tests/work_order_separate_completion_v1.sql')
+          text = test.read_text()
+          anchor = """select is(\n  (select count(*)::integer from audit_logs where entity_id='55000000-0000-0000-0000-000000000001' and action='close_work_order_visit'),\n"""
+          replacement = """select set_config('request.jwt.claim.sub','15000000-0000-0000-0000-000000000001',true);\nselect is(\n  (select count(*)::integer from audit_logs where entity_id='55000000-0000-0000-0000-000000000001' and action='close_work_order_visit'),\n"""
+          assert text.count(anchor) == 1, 'audit assertion anchor not found exactly once'
+          test.write_text(text.replace(anchor, replacement, 1))
+          PY
+          git diff --check
+      - name: Commit audit compatibility patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/migrations/20260810193000_separate_visit_and_work_order_completion_v1.sql supabase/tests/work_order_separate_completion_v1.sql
+          git diff --cached --exit-code && exit 1 || true
+          git commit -m "fix: preservar auditoría de cierre OT-06D"
+          git push origin HEAD:feat/ot-multi-technician-visits-v1
