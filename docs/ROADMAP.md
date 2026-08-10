@@ -1,200 +1,444 @@
-# Roadmap
+# Roadmap de ejecución — IsiVoltPro OT
 
-## Fase 0 — Fundación documental
+Este roadmap sustituye el enfoque histórico de construcción inicial y refleja la evolución del repositorio actual hacia un módulo OT maduro y preparado para integrarse con IsiVoltPro Platform.
 
-- README.
-- instrucciones para agentes.
-- especificación funcional.
-- arquitectura.
-- modelo de datos.
-- seguridad.
-- flujos UI.
-- criterios de aceptación.
+## Regla general
 
-**Salida:** todos los agentes comparten las mismas decisiones.
+Cada fase sigue el mismo ciclo:
 
-## Fase 1 — Esqueleto y calidad
+```text
+alcance
+  ↓
+rama
+  ↓
+cambios pequeños
+  ↓
+pruebas
+  ↓
+registro de movimientos
+  ↓
+PR
+  ↓
+revisión
+  ↓
+merge
+```
 
-- React + TypeScript + Vite.
-- estructura por dominios.
-- estilos base responsive.
-- ESLint, Prettier y Vitest.
-- GitHub Actions.
-- `.env.example`.
-- páginas de acceso y estados básicos.
+No se modifica producción/mini PC hasta validar la fase correspondiente.
 
-**Salida:** `npm install`, `npm run build`, `npm run test` funcionan.
+## OT-00 — Auditoría y definición definitiva
 
-## Fase 2 — Supabase y autenticación
+### Objetivo
 
-- proyecto Supabase de desarrollo.
-- cliente único.
-- perfiles.
-- organizaciones.
-- miembros y roles.
-- login, recuperación y cierre de sesión.
-- selector de organización si procede.
-- guardas de interfaz.
+Separar correctamente responsabilidades de OT, Mantenimiento, Activos y Platform antes de seguir ampliando código.
 
-**Salida:** administrador, coordinador y técnico pueden iniciar sesión y ven su interfaz.
+### Trabajo
 
-## Fase 3 — Seguridad y RLS
+- auditar documentación;
+- auditar frontend;
+- auditar dominio OT;
+- auditar migraciones/RPC/RLS;
+- clasificar KEEP / REFACTOR / BRIDGE / MOVE / REMOVE;
+- fijar contrato de integración;
+- actualizar especificación, arquitectura y UI;
+- registrar todos los movimientos.
 
-- migración inicial.
-- políticas por organización.
-- aislamiento técnico.
-- funciones de rol.
-- auditoría base.
-- pruebas SQL de accesos permitidos y denegados.
+### Salida
 
-**Salida:** cero acceso cruzado en pruebas directas.
+PR exclusivamente documental con alcance definitivo de IsiVoltPro OT.
 
-## Fase 4 — Datos auxiliares mínimos
+---
 
-- centros.
-- ubicaciones.
-- activos opcionales.
-- técnicos activos.
-- plantillas de checklist.
+## OT-01 — Identidad IsiVoltPro y limpieza de dominio
 
-**Salida:** el coordinador dispone de datos para crear una OT sin módulos complejos.
+### Objetivo
 
-## Fase 5 — Creación y asignación de OT
+Eliminar del producto OT cualquier identidad o módulo visible que no corresponda al objetivo definitivo.
 
-- listado y filtros.
-- formulario por pasos.
-- código automático.
-- borrador.
-- requisitos.
-- preparación de checklist.
-- asignación.
-- envío.
-- detalle administrativo.
+### Trabajo
 
-**Salida:** una OT puede crearse, prepararse y enviarse a un técnico.
+- retirar navegación `Equipos FV`;
+- sustituir enfoque FV por referencia genérica a activo;
+- revisar textos/branding legacy;
+- aislar demos;
+- conservar compatibilidad histórica de datos;
+- no eliminar tablas/migraciones aplicadas.
 
-## Fase 6 — Zona técnico
+### Salida
 
-- Mis trabajos.
-- aceptar.
-- iniciar.
-- detalle móvil.
-- siguiente acción visible.
-- historial propio.
-- bloqueo y reanudación.
+IsiVoltPro OT genérico y multisector sin romper el flujo actual.
 
-**Salida:** técnico ejecuta solo sus OT desde móvil.
+---
 
-## Fase 7 — Evidencias
+## OT-02 — Modularización del frontend
 
-- checklist.
-- fotos.
-- mediciones.
-- observaciones.
-- materiales.
-- validaciones de requisitos.
-- guardado fiable y mensajes claros.
+### Objetivo
 
-**Salida:** la ejecución queda completamente documentada.
+Reducir el acoplamiento del `App.tsx` actual sin reescritura total.
 
-## Fase 8 — Firmas y finalización
+### Trabajo
 
-- firma de técnico.
-- firma de responsable opcional.
-- comprobación de cierre.
-- envío para revisión.
-- bloqueo de edición técnica tras envío.
+- extraer layout/navegación;
+- extraer páginas;
+- separar dashboard;
+- separar órdenes;
+- separar planificación;
+- separar módulos administrativos;
+- mantener tests de regresión.
 
-**Salida:** OT en `FINALIZADA_TECNICO` lista para revisar.
+### Salida
 
-## Fase 9 — Revisión central
+Frontend más mantenible y preparado para adapters.
 
-- resumen de evidencias.
-- comprobaciones automáticas.
-- solicitud de correcciones.
-- devolución a `EN_CURSO`.
-- validación.
-- inmutabilidad.
+---
 
-**Salida:** ciclo completo responsable-técnico-responsable.
+## OT-03 — Contexto y adapters Platform-ready
 
-## Fase 10 — PDF
+### Objetivo
 
-- plantilla corporativa configurable.
-- informe provisional.
-- informe final.
-- versionado.
-- almacenamiento privado.
-- histórico y descarga.
-- pruebas con informes largos y muchas fotos.
+Separar componentes OT de los datos maestros actuales.
 
-**Salida:** PDF profesional sin cortes ni pérdida de calidad.
+### Trabajo
 
-## Fase 11 — Panel central y Realtime
+- `PlatformSessionContext`;
+- mapa role → capability;
+- `ClientDirectory`;
+- `InstallationDirectory`;
+- `AssetDirectory`;
+- `TechnicianDirectory`;
+- implementación Supabase actual;
+- contratos para futura implementación Platform.
 
-- métricas.
-- tablero por estado.
-- técnicos en trabajo.
-- OT vencidas y urgentes.
-- agenda.
-- Realtime.
-- notificaciones internas.
-- refresco de respaldo.
+### Salida
 
-**Salida:** seguimiento operativo desde un único panel.
+OT sigue funcionando igual pero la fuente de datos puede sustituirse progresivamente.
 
-## Fase 12 — PWA y conectividad
+---
 
-- manifest.
-- service worker.
-- instalación.
-- caché segura de interfaz.
-- borradores locales temporales.
-- recuperación al volver la conexión.
-- pruebas Android reales.
+## OT-04 — Creación rápida
 
-**Salida:** PWA estable en móvil.
+### Objetivo
 
-## Fase 13 — Producción
+Registrar una avería/solicitud con el mínimo esfuerzo.
 
-- staging.
-- datos demo ficticios.
-- pruebas de carga razonables.
-- revisión RLS.
-- backups.
-- política de retención.
-- monitorización de errores.
-- despliegue Vercel.
-- manual de puesta en servicio.
+### Datos visibles mínimos
 
-**Salida:** primera versión productiva.
+- instalación/contexto;
+- ubicación opcional;
+- descripción/título;
+- prioridad.
 
-## Fase 14 — APK opcional
+### Reglas
 
-Solo después de la aceptación de la PWA:
+- activo opcional;
+- técnico opcional;
+- checklist opcional al primer guardado;
+- valores por defecto controlados;
+- posterior enriquecimiento.
 
-- Capacitor.
-- cámara y archivos.
-- safe areas.
-- icono y splash.
-- firma Android.
-- APK interna.
-- AAB si se publica.
+### Salida
+
+Una incidencia básica se crea en segundos.
+
+---
+
+## OT-05 — Creación avanzada
+
+### Objetivo
+
+Cubrir trabajos planificados o complejos sin saturar el modo rápido.
+
+### Trabajo
+
+- tipo;
+- sistema/activo opcional;
+- instrucciones;
+- riesgos;
+- resultado esperado;
+- fecha/hora;
+- vencimiento;
+- duración estimada;
+- checklist;
+- requisitos de cierre;
+- documentación de apoyo.
+
+### Salida
+
+OT avanzada completamente configurable.
+
+---
+
+## OT-06 — Equipo de trabajo, visitas y relevo
+
+### Objetivo
+
+Superar el modelo de un solo técnico.
+
+### Trabajo
+
+- responsable principal;
+- colaboradores;
+- externos;
+- empresa externa opcional;
+- múltiples visitas;
+- tiempo por visita;
+- relevo;
+- trabajo pendiente;
+- compatibilidad con `assigned_to` histórico.
+
+### Salida
+
+Una OT admite trabajos reales de varias personas y varios días.
+
+---
+
+## OT-07 — Ejecución móvil del técnico
+
+### Objetivo
+
+Que el técnico identifique inmediatamente qué debe hacer.
+
+### Inicio
+
+- Hoy;
+- Urgentes;
+- Pendientes;
+- En curso;
+- Bloqueadas;
+- Historial reciente.
+
+### Acción principal
+
+- Aceptar;
+- Iniciar;
+- Continuar;
+- Reanudar;
+- Enviar para revisión.
+
+### Salida
+
+Flujo móvil simple, rápido y probado en Android.
+
+---
+
+## OT-08 — Evidencias profesionales
+
+### Objetivo
+
+Documentar el trabajo con calidad suficiente para histórico técnico y PDF.
+
+### Trabajo
+
+- checklist dinámico;
+- fotos Antes/Durante/Después;
+- fotos por punto;
+- compresión;
+- mediciones estructuradas;
+- diagnóstico;
+- pruebas;
+- recomendaciones;
+- materiales;
+- archivos adjuntos.
+
+### Salida
+
+Evidencia completa y consistente.
+
+---
+
+## OT-09 — Bloqueos, tiempos y SLA
+
+### Objetivo
+
+Diferenciar trabajo efectivo de espera y controlar vencimientos.
+
+### Trabajo
+
+- motivo estructurado;
+- explicación;
+- responsable de resolución;
+- fecha prevista;
+- inicio/fin de bloqueo;
+- tiempo bloqueado;
+- tiempo efectivo;
+- SLA/vencimiento;
+- alertas.
+
+### Salida
+
+Tiempos y bloqueos auditables sin multiplicar estados.
+
+---
+
+## OT-10 — Planificación y carga
+
+### Objetivo
+
+Gestionar personas y trabajos desde un planificador operativo.
+
+### Trabajo
+
+- técnico por fila;
+- calendario/día/hora;
+- duración estimada;
+- conflictos;
+- disponibilidad;
+- carga;
+- reasignación controlada;
+- drag & drop solo después de cerrar reglas y tests.
+
+### Salida
+
+Coordinación visual de la carga OT.
+
+---
+
+## OT-11 — Cierre, revisión y PDF premium
+
+### Objetivo
+
+Cerrar una OT con garantías técnicas, administrativas y documentales.
+
+### Trabajo
+
+- requisitos obligatorios;
+- firma;
+- prueba funcional;
+- cierre técnico;
+- revisión;
+- corrección;
+- validación;
+- inmutabilidad;
+- PDF provisional/final/versionado;
+- pruebas de volumen.
+
+### Salida
+
+Parte de trabajo profesional y trazable.
+
+---
+
+## OT-12 — Eventos del ecosistema
+
+### Objetivo
+
+Conectar OT con otros módulos sin acoplar bases de datos.
+
+### Entradas
+
+- Activos;
+- Mantenimiento;
+- Inspecciones;
+- Legionella;
+- Refrigeración y otras apps.
+
+### Salidas
+
+- creada;
+- asignada;
+- iniciada;
+- bloqueada;
+- finalizada técnicamente;
+- validada;
+- cancelada;
+- material registrado.
+
+### Reglas
+
+- `event_version`;
+- IDs comunes;
+- idempotencia;
+- seguridad;
+- auditabilidad.
+
+### Salida
+
+Contrato estable v1 preparado para Platform.
+
+---
+
+## OT-13 — Integración y despliegue listo para piloto
+
+### Objetivo
+
+Declarar OT preparada para formar parte del ecosistema unificado.
+
+### Validaciones
+
+- typecheck;
+- lint;
+- unit tests;
+- SQL/RLS;
+- E2E;
+- móvil;
+- PDF;
+- build;
+- Docker;
+- healthcheck;
+- variables de entorno;
+- backup;
+- rollback;
+- staging;
+- documentación de migración;
+- integración mínima con Activos y Mantenimiento.
+
+### Salida
+
+IsiVoltPro OT lista para piloto e integración progresiva con Platform.
+
+---
 
 ## Priorización
 
 ### P0
 
-Autenticación, RLS, creación, asignación, zona técnico, checklist, revisión y PDF.
+- seguridad/RLS;
+- ciclo OT;
+- creación rápida/avanzada;
+- asignación;
+- visitas;
+- zona técnico;
+- checklist/evidencias;
+- cierre/revisión;
+- PDF.
 
 ### P1
 
-Realtime, agenda, presencia, plantillas, notificaciones internas y PWA.
+- múltiples técnicos;
+- relevo;
+- bloqueos avanzados;
+- SLA;
+- planificación;
+- adapters/capabilities;
+- eventos de ecosistema.
 
 ### P2
 
-Push, correo, escaneo QR, cola offline completa, analítica avanzada y APK.
+- push/correo;
+- offline completo;
+- analítica avanzada;
+- automatizaciones no esenciales;
+- APK si aporta valor sobre PWA estable.
+
+## Dependencias con otros repositorios
+
+OT no debe esperar a que Platform esté terminada para mejorar su dominio.
+
+Sin embargo:
+
+- no duplicará el nuevo núcleo de Platform;
+- no ampliará Activos como módulo maestro;
+- no ampliará planes globales de Mantenimiento;
+- no gestionará stock de Almacén;
+- documentará cualquier contrato que necesite de otros módulos.
 
 ## Regla de avance
 
-No iniciar una fase posterior si la anterior tiene fallos de permisos, pérdida de datos o flujo incompleto.
+No iniciar una fase posterior si la anterior tiene:
+
+- fallos de permisos;
+- pérdida de datos;
+- transición inconsistente;
+- tests críticos fallidos;
+- deuda de migración no documentada;
+- alcance ambiguo con otro módulo.

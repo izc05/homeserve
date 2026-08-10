@@ -1,14 +1,47 @@
-# Arquitectura técnica
+# Arquitectura técnica — IsiVoltPro OT
 
 ## 1. Enfoque
 
-Aplicación única multiusuario con interfaz adaptada al rol. El frontend nunca decide por sí solo qué datos puede consultar o modificar un usuario; Supabase aplica permisos mediante RLS, funciones y triggers.
+IsiVoltPro OT es un módulo multiusuario centrado en órdenes de trabajo.
 
-## 2. Stack
+El frontend nunca decide por sí solo qué datos puede consultar o modificar un usuario. El backend actual aplica permisos mediante Supabase, PostgreSQL, RLS, funciones y triggers.
+
+La arquitectura debe permitir sustituir progresivamente autenticación y directorios maestros por **IsiVoltPro Platform** sin reescribir el dominio OT.
+
+## 2. Principio de propiedad
+
+### OT posee
+
+- órdenes de trabajo;
+- ciclo de vida;
+- equipo operativo de una OT;
+- visitas;
+- checklist de ejecución;
+- evidencias;
+- bloqueos y tiempos;
+- revisión;
+- informes;
+- eventos y auditoría OT.
+
+### OT consume mediante adaptadores
+
+- organización;
+- usuario;
+- capabilities;
+- clientes;
+- instalaciones;
+- ubicaciones;
+- sistemas;
+- activos;
+- técnicos/empleados.
+
+Estos datos pueden seguir procediendo temporalmente del Supabase existente, pero los componentes no deben asumir que esa será siempre la fuente maestra.
+
+## 3. Stack actual
 
 ### Frontend
 
-- React 19.
+- React 18.
 - TypeScript estricto.
 - Vite.
 - React Router.
@@ -18,25 +51,28 @@ Aplicación única multiusuario con interfaz adaptada al rol. El frontend nunca 
 - Lucide React.
 - CSS propio con variables de diseño.
 
-### Backend
+### Backend actual
 
 - Supabase Auth.
 - PostgreSQL.
 - Row Level Security.
 - Supabase Storage privado.
 - Supabase Realtime.
-- Edge Functions solo cuando una operación necesite secreto o ejecución de servidor.
+- funciones/RPC PostgreSQL para transiciones críticas.
+- Edge Functions solo cuando una operación necesite secreto o ejecución controlada de servidor.
 
 ### Calidad
 
 - ESLint.
-- Prettier.
 - Vitest.
 - Testing Library.
-- Playwright.
+- Playwright cuando aplique.
+- pruebas SQL/RLS.
 - GitHub Actions.
 
-## 3. Estructura prevista
+## 4. Estructura objetivo incremental
+
+No se realizará una reescritura total. La estructura actual se migrará gradualmente hacia:
 
 ```text
 src/
@@ -44,23 +80,38 @@ src/
     App.tsx
     providers.tsx
     router.tsx
+    capabilities.ts
   components/
     feedback/
     forms/
     layout/
     ui/
+  integrations/
+    platform/
+      session.ts
+      capabilities.ts
+      clients.ts
+      installations.ts
+      assets.ts
+      technicians.ts
+    events/
+      contracts.ts
+      publisher.ts
+      consumer.ts
   features/
-    auth/
     dashboard/
     work-orders/
+      api/
       components/
+      domain/
+      forms/
       hooks/
       pages/
-      schemas/
       services/
       tests/
       types/
     technicians/
+    checklists/
     reports/
     settings/
   lib/
@@ -72,33 +123,148 @@ src/
   utils/
 supabase/
   migrations/
-  seed.sql
   tests/
 public/
 tests/
 ```
 
-## 4. Capas
+`src/App.tsx` se reducirá gradualmente. Cada extracción debe conservar comportamiento y pruebas.
+
+## 5. Capas
 
 ### Presentación
 
-Páginas y componentes. No contiene reglas de seguridad ni consultas SQL directas.
+Páginas y componentes.
 
-### Dominio
+No debe contener:
 
-Tipos, schemas, máquina de estados, validaciones y reglas de cierre.
+- SQL;
+- reglas críticas de seguridad;
+- decisiones nuevas basadas directamente en strings de rol;
+- conocimiento de tablas de otros módulos.
 
-### Servicios
+### Dominio OT
 
-Acceso a Supabase, Storage, Realtime y generación de informes.
+Contiene:
+
+- tipos;
+- schemas;
+- estados;
+- transiciones;
+- requisitos;
+- reglas de cierre;
+- contratos de visitas/equipo;
+- validaciones de negocio.
+
+Debe ser independiente de la interfaz y, en lo posible, de Supabase.
+
+### Aplicación/servicios
+
+Orquesta:
+
+- creación;
+- asignación;
+- ejecución;
+- cierre;
+- revisión;
+- consultas;
+- directorios externos;
+- publicación/consumo de eventos.
+
+### Adaptadores
+
+Traducen contratos estables a la infraestructura actual o futura.
+
+Ejemplo:
+
+```text
+UI OT
+  ↓
+InstallationDirectory
+  ↓
+Supabase actual
+```
+
+Futuro:
+
+```text
+UI OT
+  ↓
+InstallationDirectory
+  ↓
+IsiVoltPro Platform
+```
 
 ### Base de datos
 
-Fuente oficial de permisos, integridad, transiciones y trazabilidad.
+Fuente oficial actual de:
 
-## 5. Navegación
+- permisos;
+- integridad;
+- transiciones;
+- persistencia;
+- trazabilidad.
 
-### Administrador y coordinador
+Las migraciones aplicadas son inmutables. Los cambios se añaden mediante migraciones nuevas.
+
+## 6. Contexto de sesión
+
+Context se limita a datos globales pequeños.
+
+Contrato conceptual objetivo:
+
+```ts
+type PlatformSessionContext = {
+  userId: string;
+  organizationId: string;
+  organizationName: string;
+  locale: string;
+  timezone: string;
+  capabilities: string[];
+};
+```
+
+Durante transición un adapter construirá este contexto desde perfiles/tenant/roles actuales.
+
+## 7. Capabilities
+
+Los componentes nuevos deben tender a consultar capacidades como:
+
+```text
+work_orders.read
+work_orders.create
+work_orders.assign
+work_orders.execute
+work_orders.block
+work_orders.finish_technical
+work_orders.review
+work_orders.validate
+work_orders.cancel
+work_orders.planning.manage
+```
+
+Los roles legacy se traducirán a capabilities mediante una capa compatible hasta la integración con Platform.
+
+La seguridad real sigue verificándose en servidor/RLS/RPC.
+
+## 8. Datos maestros y directorios
+
+Interfaces estables previstas:
+
+- `ClientDirectory`;
+- `InstallationDirectory`;
+- `AssetDirectory`;
+- `TechnicianDirectory`.
+
+El código de pantallas OT debe dejar de consultar directamente múltiples tablas maestras cuando exista su adapter equivalente.
+
+### Regla de snapshots
+
+Las OT validadas conservan datos históricos suficientes para que el documento no cambie retroactivamente si se modifica el maestro externo.
+
+## 9. Navegación objetivo
+
+### Panel operativo
 
 - `/dashboard`
 - `/work-orders`
@@ -108,20 +274,25 @@ Fuente oficial de permisos, integridad, transiciones y trazabilidad.
 - `/technicians`
 - `/reports`
 - `/settings`
-- `/audit` solo administrador
+- `/audit` cuando exista capability.
 
 ### Técnico
 
 - `/my-work-orders`
 - `/my-work-orders/:id`
 - `/my-work-orders/:id/execute`
-- `/scan`
 - `/history`
 - `/account`
 
-Las rutas mejoran experiencia, pero la seguridad real permanece en RLS.
+### Entrada desde QR/NFC
 
-## 6. Estado del servidor
+El QR/NFC global será resuelto por Activos/Platform y enviará a OT mediante deep link con contexto autorizado.
+
+OT no será propietario del registro global de etiquetas.
+
+Las rutas solo mejoran experiencia; RLS/RPC continúan siendo la frontera real de seguridad.
+
+## 10. Estado del servidor
 
 TanStack Query gestiona:
 
@@ -129,81 +300,198 @@ TanStack Query gestiona:
 - detalle;
 - invalidaciones;
 - reintentos;
-- estados de carga y error;
+- estados de carga/error;
 - sincronización tras Realtime.
 
-No duplicar toda la base de datos en Context. Context se limita a sesión, organización activa, tema y datos globales pequeños.
+No duplicar la base de datos completa en Context.
 
-## 7. Realtime
+## 11. Realtime
 
-Canales por organización y OT. Al recibir un evento:
+Canales por organización y OT.
 
-1. validar que corresponde a la organización activa;
-2. invalidar la consulta afectada;
-3. mostrar notificación interna cuando proceda;
-4. evitar usar el payload Realtime como única fuente de verdad.
+Al recibir un evento:
 
-## 8. Archivos
+1. comprobar contexto autorizado;
+2. invalidar consulta afectada;
+3. mostrar notificación cuando proceda;
+4. volver a consultar la fuente oficial;
+5. no usar el payload Realtime como única fuente de verdad.
 
-Buckets privados previstos:
+Realtime interno no sustituye a los contratos de integración entre módulos.
 
-- `work-order-photos`
-- `work-order-signatures`
-- `work-order-reports`
+## 12. Eventos del ecosistema
 
-Ruta estándar:
+OT debe preparar contratos versionados.
+
+### Entradas
+
+- `CREATE_WORK_ORDER`;
+- creación desde Activos;
+- creación desde Mantenimiento;
+- creación desde Inspecciones;
+- creación desde Legionella;
+- creación desde apps técnicas.
+
+### Salidas
+
+- `WORK_ORDER_CREATED`;
+- `WORK_ORDER_ASSIGNED`;
+- `WORK_ORDER_STARTED`;
+- `WORK_ORDER_BLOCKED`;
+- `WORK_ORDER_TECHNICALLY_FINISHED`;
+- `WORK_ORDER_VALIDATED`;
+- `WORK_ORDER_CANCELLED`.
+
+Reglas:
+
+- incluir `event_version`;
+- validar organización y permisos;
+- idempotencia para comandos reintentables;
+- no compartir secretos;
+- no escribir directamente en tablas de otros módulos.
+
+## 13. Archivos
+
+Buckets privados de OT:
+
+- fotografías/evidencias;
+- firmas;
+- informes.
+
+Rutas tenant-scoped.
+
+La descarga se realiza mediante URL firmada temporal.
+
+Los archivos de cliente/instalación/activo que pertenezcan al maestro externo deberán consultarse mediante el adapter correspondiente cuando Platform/Activos estén disponibles.
+
+## 14. PDF
+
+Principios:
+
+- provisional y final diferenciados;
+- versión inmutable;
+- almacenamiento privado;
+- autor y fecha;
+- hash cuando proceda;
+- snapshots históricos;
+- diseño A4 estable;
+- prueba móvil y con alto volumen de fotos/checklist.
+
+La generación podrá ser cliente o servidor según las pruebas, pero el contrato documental no cambia.
+
+## 15. Estados y transiciones
+
+Estado canónico del dominio:
 
 ```text
-{tenant_id}/{work_order_id}/{entity}/{uuid}-{safe_filename}
+BORRADOR
+ASIGNADA
+ACEPTADA
+EN_CURSO
+BLOQUEADA
+FINALIZADA_TECNICO
+VALIDADA
+CANCELADA
 ```
 
-La descarga se realiza mediante URL firmada de duración corta.
+Las migraciones históricas con estados legacy no se editan. La compatibilidad se conserva hasta demostrar que puede retirarse.
 
-## 9. PDF
+Las transiciones críticas se ejecutan mediante RPC y se verifican también en servidor.
 
-Primera implementación: generación en cliente solo si las pruebas demuestran calidad y estabilidad móvil.
+## 16. Bloqueos
 
-Alternativa preferida para producción si el informe crece: Edge Function que renderice HTML a PDF o servicio controlado. En ambos casos:
+`BLOQUEADA` es un único estado.
 
-- versión inmutable;
-- hash opcional;
-- almacenamiento privado;
-- registro de autor y fecha;
-- informe provisional y final diferenciados.
+El motivo es dato estructurado separado.
 
-## 10. Conectividad limitada
+Modelo objetivo futuro:
 
-Primera versión:
+```text
+reason
+notes
+blocked_at
+resolved_at
+expected_resolution_at
+resolution_owner
+```
 
-- caché de la interfaz PWA;
-- lectura de la última lista cargada;
-- borrador local temporal de formularios;
+No crear estados diferentes por cada motivo.
+
+## 17. Equipo y visitas
+
+`assigned_to` se mantiene por compatibilidad como responsable principal mientras se diseña una relación aditiva de participantes.
+
+Modelo objetivo:
+
+- responsable principal;
+- colaboradores;
+- externos;
+- múltiples visitas;
+- tiempos por visita;
+- relevo/próxima actuación.
+
+Nunca romper OT históricas durante la migración.
+
+## 18. Conectividad limitada
+
+Primera etapa:
+
+- caché PWA de interfaz;
+- última lista cargada;
+- borrador local temporal;
 - reintento explícito;
-- nunca asumir que un cambio local está guardado hasta confirmación de Supabase.
+- nunca asumir sincronización hasta confirmación del servidor.
 
-Una cola offline completa se desarrollará después de estabilizar el flujo online.
+Una cola offline completa se hará solo tras estabilizar el flujo online e idempotencia.
 
-## 11. Observabilidad
+## 19. Seguridad
 
-- errores técnicos en consola solo en desarrollo;
-- mensajes comprensibles al usuario;
-- tabla de auditoría de negocio;
-- integración futura con un servicio de errores;
-- nunca registrar secretos, firmas completas ni datos sensibles en logs.
+Principios obligatorios:
 
-## 12. Entornos
+- RLS activa;
+- no confiar en tenant/IDs enviados por cliente;
+- técnico no accede a OT ajena por conocer UUID;
+- funciones públicas con ACL explícita;
+- `SECURITY DEFINER` solo cuando esté justificado y con validación explícita;
+- Storage privado;
+- auditoría crítica;
+- no secretos en frontend;
+- no permisos basados únicamente en React.
+
+## 20. Calidad y CI
+
+Antes de fusionar cambios funcionales:
+
+- typecheck;
+- lint;
+- unit tests;
+- build;
+- pruebas SQL/RLS cuando afecte backend;
+- E2E cuando afecte flujos críticos;
+- revisión móvil cuando afecte técnico;
+- PDF cuando afecte documentación.
+
+Los workflows actuales se consolidarán posteriormente en una configuración Node/npm única.
+
+## 21. Entornos
 
 - local;
 - staging;
 - producción.
 
-Cada entorno usa un proyecto Supabase y variables distintas. No compartir datos entre entornos.
+No compartir datos ni secretos entre entornos.
 
-## 13. Decisiones técnicas cerradas
+El mini PC no se actualiza hasta validar la rama/PR correspondiente.
 
-- Supabase es backend inicial.
-- PostgreSQL es fuente oficial.
-- No usar localStorage como base de datos.
-- No crear backend Node separado en la primera fase.
-- No generar APK antes de cerrar PWA y pruebas móviles.
-- No copiar el proyecto grande completo; extraer y adaptar solo conceptos y código necesario.
+## 22. Decisiones técnicas cerradas
+
+- Supabase permanece como backend operativo inicial de OT.
+- PostgreSQL/RLS siguen siendo autoridad hasta integración real.
+- no usar localStorage como base principal;
+- no crear un segundo backend central paralelo a Platform;
+- no duplicar el núcleo de organizaciones/permisos que está construyendo Codex;
+- no ampliar dentro de OT el motor maestro de mantenimiento programado;
+- no ampliar dentro de OT el inventario maestro de activos;
+- no reescribir todo el frontend de una vez;
+- introducir adapters antes de sustituir fuentes maestras;
+- integrar módulos mediante contratos versionados y no mediante acceso directo a sus tablas.
