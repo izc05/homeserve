@@ -76,28 +76,39 @@ La comprobación se hace sobre la última visita de cada técnico, no sobre todo
 - la nueva visita resuelta conserva ambas visitas históricas;
 - el responsable puede finalizar únicamente después de quedar resueltas las últimas visitas.
 
-## Estado de validación
+## Validación confirmada
 
-HEAD anterior `ca07ccfba0694760e2972934c514d2a20cd514e6`:
+HEAD funcional auditado `e1ca99ab59a35ab07a96b2bc05abfbe76232a4ad`:
 
-- Quality: verde.
-- Supabase Quality: verde.
+- Quality: ✅ verde.
+- Supabase Quality: ✅ verde.
+- `main` permanece exactamente en `4605843d4b605cf4fa14b7e133ec79740fe1e140`.
+- La rama está 53 commits por delante y 0 por detrás de `main` en el momento de la auditoría.
+- El diff funcional contiene 29 archivos: documentación, frontend OT-06, migraciones y tests.
+- No existen cambios de workflows, Docker, mini PC, Cloudflare ni despliegue dentro del diff OT-06.
+- La descripción del PR #49 ya refleja el alcance completo actual y elimina el texto antiguo de “solo 4 archivos / sin frontend”.
 
-Tras el hardening de visitas pendientes se han lanzado de nuevo ambos pipelines. Este documento no debe declarar el HEAD definitivo Ready hasta que Quality y Supabase Quality estén verdes sobre el mismo commit final.
+Este documento añade únicamente el cierre escrito de la auditoría. Al modificarlo se debe exigir de nuevo Quality y Supabase Quality sobre el nuevo HEAD documental antes de marcar la PR Ready for review, manteniendo el mismo criterio de dos pipelines verdes sobre un único commit.
+
+## Riesgo de repositorio fuera de OT-06
+
+La rama `main` del repositorio continúa sin protección de rama en GitHub. OT-06 no modifica esa configuración, pero antes de un piloto/producción debe exigirse protección de `main`, checks obligatorios y bloqueo del push directo para impedir que un cambio pueda saltarse Quality/Supabase Quality.
 
 ## Antes de Ready for review
 
-- [ ] Quality verde sobre HEAD definitivo.
-- [ ] Supabase Quality verde sobre HEAD definitivo.
-- [ ] Revisar diff completo contra `main`.
-- [ ] Confirmar que no existen workflows temporales en el diff.
-- [ ] Actualizar la descripción del PR #49 para eliminar el texto antiguo de “solo 4 archivos / sin frontend”.
-- [ ] Mantener el PR como Draft hasta completar los puntos anteriores.
+- [x] Quality verde sobre el HEAD funcional auditado.
+- [x] Supabase Quality verde sobre el HEAD funcional auditado.
+- [x] Revisar diff completo contra `main`.
+- [x] Confirmar que no existen workflows temporales en el diff.
+- [x] Actualizar la descripción del PR #49 para eliminar el texto antiguo de “solo 4 archivos / sin frontend”.
+- [ ] Reconfirmar Quality + Supabase Quality tras este commit documental final.
 
 ## Merge y siguiente fase
 
 No realizar merge automáticamente.
 
 **Squash & Merge requiere autorización explícita.**
+
+Cuando el HEAD documental final vuelva a quedar verde, la PR puede pasar de Draft a Ready for review sin fusionarse.
 
 Después de un merge autorizado, OT-07 debe nacer exclusivamente del nuevo `main` y abordar bloqueos operativos, motivos estructurados y SLA sin mezclar código histórico de ramas anteriores.
