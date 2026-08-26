@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mainNavigation, secondaryNavigation } from './App';
+import { mainNavigation, secondaryNavigation } from './navigation/appNavigation';
 
 describe('IsiVoltPro OT navigation domain', () => {
   it('does not expose the legacy photovoltaic assets module in navigation', () => {

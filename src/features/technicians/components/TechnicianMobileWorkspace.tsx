@@ -19,7 +19,7 @@ import { useMemo, useState } from 'react';
 import type { WorkOrderListItem } from '../../work-orders/api/workOrdersRepository';
 import type { WorkOrderPriority, WorkOrderStatus } from '../../work-orders/types/workOrder';
 import ProductBrand, { DemoBrandFooter } from '../../../components/ProductBrand';
-import { groupTechnicianOrders, type TechnicianMobileAction, type TechnicianOrderGroup } from '../technicianMobile';
+import { groupTechnicianOrders, technicianParticipationLabel, type TechnicianMobileAction, type TechnicianOrderGroup } from '../technicianMobile';
 import { workOrderDirectionsUrl } from '../../work-orders/domain/workOrderDirections';
 
 const groupLabels: Record<TechnicianOrderGroup, string> = {
@@ -82,22 +82,27 @@ type Props = {
 
 export default function TechnicianMobileWorkspace({ orders, viewerId, viewerName, busyOrderId, notice, open, runAction }: Props) {
   const [group, setGroup] = useState<TechnicianOrderGroup>('pendientes');
-  const groups = useMemo(() => groupTechnicianOrders(orders, viewerId), [orders, viewerId]);
-  // listAccessibleWorkOrders keeps the repository ordering (planned_at, then created_at).
-  // We deliberately call this “En foco”, not “Siguiente”, because no scheduling priority is invented here.
-  const ownOrders = useMemo(() => orders.filter((order) => order.assignedTo === viewerId), [orders, viewerId]);
+  // Para un usuario técnico, RLS ya devuelve solo las OT donde participa activamente.
+  const groups = useMemo(() => groupTechnicianOrders(orders, viewerId, new Date(), true), [orders, viewerId]);
+  const ownOrders = orders;
   const focusOrder = ownOrders[0] ?? null;
   const visible = groups[group];
 
   const renderAction = (order: WorkOrderListItem) => {
     const busy = busyOrderId === order.id;
-    if (order.status === 'ASIGNADA') return <button className="primary-button technician-order-action" disabled={busy} onClick={() => runAction('accept', order)} type="button">{busy ? <LoaderCircle className="spin" size={16} /> : <CheckCircle2 size={16} />} Aceptar</button>;
-    if (order.status === 'ACEPTADA') return <button className="primary-button technician-order-action" disabled={busy} onClick={() => runAction('start', order)} type="button">{busy ? <LoaderCircle className="spin" size={16} /> : <CirclePlay size={16} />} Iniciar intervención</button>;
-    if (order.status === 'EN_CURSO') return <button className="primary-button technician-order-action" disabled={busy} onClick={() => open(order.id)} type="button"><Wrench size={16} /> Abrir ejecución</button>;
+    const responsible = order.assignedTo === viewerId;
+    if (order.status === 'ASIGNADA') {
+      return responsible
+        ? <button className="primary-button technician-order-action" disabled={busy} onClick={() => runAction('accept', order)} type="button">{busy ? <LoaderCircle className="spin" size={16} /> : <CheckCircle2 size={16} />} Aceptar</button>
+        : <span className="source-badge">Pendiente del responsable</span>;
+    }
+    if (order.status === 'ACEPTADA') return <button className="primary-button technician-order-action" disabled={busy} onClick={() => runAction('start', order)} type="button">{busy ? <LoaderCircle className="spin" size={16} /> : <CirclePlay size={16} />} Iniciar mi visita</button>;
+    if (order.status === 'EN_CURSO' || order.status === 'BLOQUEADA') return <button className="primary-button technician-order-action" disabled={busy} onClick={() => open(order.id)} type="button"><Wrench size={16} /> Abrir ejecución</button>;
     return null;
   };
 
   const renderOrderMeta = (order: WorkOrderListItem) => <>
+    <span className="source-badge">{technicianParticipationLabel(order, viewerId)}</span>
     <span className="technician-order-meta-item"><MapPin size={14} aria-hidden="true" />{order.siteName || 'Instalación sin nombre'}{order.locationName ? ` · ${order.locationName}` : ''}</span>
     {order.siteAddress ? <span className="technician-order-meta-item"><MapPin size={14} aria-hidden="true" />{order.siteAddress}</span> : !order.locationName && <span className="technician-order-meta-item technician-order-meta-empty"><MapPin size={14} aria-hidden="true" />Ubicación pendiente</span>}
     {workOrderDirectionsUrl({ address: order.siteAddress }) && <a className="technician-directions-link" href={workOrderDirectionsUrl({ address: order.siteAddress })!} rel="noopener noreferrer" target="_blank"><MapPin size={14} aria-hidden="true" /> Cómo llegar</a>}
@@ -112,7 +117,7 @@ export default function TechnicianMobileWorkspace({ orders, viewerId, viewerName
           <ProductBrand className="technician-premium-product-brand" variant="inverse" />
           <span className="technician-premium-kicker">Zona técnica</span>
           <h1>Mis OT</h1>
-          <p>Tu cola operativa, con las órdenes que el servidor ha asignado a esta cuenta.</p>
+          <p>Tu cola operativa como responsable o colaborador del equipo técnico.</p>
         </div>
         {viewerName?.trim() && <div className="technician-premium-identity"><span className="technician-premium-avatar"><UserRound size={18} aria-hidden="true" /></span><span><small>Sesión activa</small><strong>{viewerName}</strong></span></div>}
       </div>
@@ -131,28 +136,28 @@ export default function TechnicianMobileWorkspace({ orders, viewerId, viewerName
       </section>
 
       <section className="technician-premium-filters" aria-labelledby="technician-filters-title">
-        <div className="technician-premium-section-heading"><div><span className="technician-premium-kicker">Filtros</span><h2 id="technician-filters-title">Todas tus OT</h2><p>Selecciona una vista sin cambiar el orden recibido del servidor.</p></div></div>
-        <nav className="technician-premium-filter-nav" aria-label="Filtros de órdenes asignadas">{groupKeys.map((key) => <button className={group === key ? 'is-active' : ''} aria-pressed={group === key} key={key} onClick={() => setGroup(key)} type="button">{groupLabels[key]} <b>{groups[key].length}</b></button>)}</nav>
+        <div className="technician-premium-section-heading"><div><span className="technician-premium-kicker">Filtros</span><h2 id="technician-filters-title">Todas tus OT</h2><p>Incluye las órdenes donde eres responsable o colaborador activo.</p></div></div>
+        <nav className="technician-premium-filter-nav" aria-label="Filtros de órdenes participadas">{groupKeys.map((key) => <button className={group === key ? 'is-active' : ''} aria-pressed={group === key} key={key} onClick={() => setGroup(key)} type="button">{groupLabels[key]} <b>{groups[key].length}</b></button>)}</nav>
       </section>
 
       <section className="technician-premium-focus" aria-labelledby="technician-focus-title">
         <span className="technician-premium-focus-icon"><Flag size={24} aria-hidden="true" /></span>
         <div className="technician-premium-focus-copy">
           <span className="technician-premium-kicker">Siguiente actuación · En foco</span>
-          {focusOrder ? <><h2 id="technician-focus-title">{focusOrder.title}</h2><p><strong>{focusOrder.code}</strong> · {focusOrder.siteName || 'Instalación sin nombre'}{focusOrder.clientName ? ` · ${focusOrder.clientName}` : ''}</p></> : <><h2 id="technician-focus-title">Sin OT en foco</h2><p>Las órdenes asignadas a esta cuenta aparecerán aquí cuando estén disponibles.</p></>}
+          {focusOrder ? <><h2 id="technician-focus-title">{focusOrder.title}</h2><p><strong>{focusOrder.code}</strong> · {technicianParticipationLabel(focusOrder, viewerId)} · {focusOrder.siteName || 'Instalación sin nombre'}{focusOrder.clientName ? ` · ${focusOrder.clientName}` : ''}</p></> : <><h2 id="technician-focus-title">Sin OT en foco</h2><p>Las órdenes donde participes aparecerán aquí cuando estén disponibles.</p></>}
         </div>
-        {focusOrder?.status === 'EN_CURSO' ? <button className="primary-button technician-focus-action" onClick={() => open(focusOrder.id)} type="button"><ArrowUpRight size={17} /> Abrir ejecución</button> : <span className="technician-focus-note"><ShieldCheck size={17} aria-hidden="true" /> Vista informativa</span>}
+        {focusOrder && ['EN_CURSO', 'BLOQUEADA'].includes(focusOrder.status) ? <button className="primary-button technician-focus-action" onClick={() => open(focusOrder.id)} type="button"><ArrowUpRight size={17} /> Abrir ejecución</button> : <span className="technician-focus-note"><ShieldCheck size={17} aria-hidden="true" /> Vista informativa</span>}
       </section>
 
       <section className="technician-premium-queue" aria-labelledby="technician-queue-title">
-        <div className="technician-premium-section-heading"><div><span className="technician-premium-kicker">Bloque independiente del filtro</span><h2 id="technician-queue-title">Cola en curso</h2><p>Órdenes que ya están dentro de una intervención.</p></div><span className="technician-premium-count">{groups.en_curso.length}</span></div>
+        <div className="technician-premium-section-heading"><div><span className="technician-premium-kicker">Bloque independiente del filtro</span><h2 id="technician-queue-title">Cola en curso</h2><p>Órdenes en las que tu equipo ya está interviniendo.</p></div><span className="technician-premium-count">{groups.en_curso.length}</span></div>
         {groups.en_curso.length === 0 ? <div className="technician-premium-empty"><Inbox size={22} aria-hidden="true" /><strong>No hay OT en curso</strong><p>La cola activa está vacía.</p></div> : <div className="technician-premium-order-table" role="table" aria-label="Órdenes en curso">
           <div className="technician-premium-order-table-head" role="row"><span role="columnheader">OT</span><span role="columnheader">Instalación</span><span role="columnheader">Estado</span><span role="columnheader">Prioridad</span><span role="columnheader"><span className="visually-hidden">Acción</span></span></div>
           {groups.en_curso.map((order) => <div className="technician-premium-order-row" key={order.id} role="row"><div className="technician-premium-order-primary" role="cell"><button className="technician-premium-order-link" onClick={() => open(order.id)} type="button">{order.code}</button><strong>{order.title}</strong></div><div className="technician-premium-order-installation" role="cell">{renderOrderMeta(order)}</div><div role="cell"><span className="technician-premium-status status-en-curso">{statusIcon(order.status)}{statusLabels[order.status]}</span></div><div role="cell"><span className={`technician-premium-priority priority-${priorityClass(order.priority)}`}><Flag size={14} aria-hidden="true" />{priorityLabels[order.priority]}</span></div><div className="technician-premium-order-row-action" role="cell">{renderAction(order)}</div></div>)}
         </div>}
       </section>
 
-      {group !== 'en_curso' && <section className="technician-premium-filtered-list" aria-labelledby="technician-filtered-title"><div className="technician-premium-list-heading"><div><span className="technician-premium-kicker">Vista seleccionada</span><h2 id="technician-filtered-title">{groupLabels[group]}</h2></div><span className="technician-premium-count">{visible.length}</span></div>{visible.length === 0 ? <div className="technician-premium-empty"><Inbox size={22} aria-hidden="true" /><strong>No hay OT en esta vista</strong><p>Los estados y fechas visibles se actualizan desde Supabase.</p></div> : <div className="technician-premium-filtered-cards">{visible.map((order) => <article className="technician-premium-filtered-card" key={order.id}><div className="technician-premium-filtered-card-main"><div className="technician-premium-filtered-card-top"><button className="technician-premium-order-link" onClick={() => open(order.id)} type="button">{order.code}</button><span className={`technician-premium-status status-${order.status.toLowerCase().replaceAll('_', '-')}`}>{statusIcon(order.status)}{statusLabels[order.status]}</span></div><h3>{order.title}</h3><p>{renderOrderMeta(order)}</p></div>{renderAction(order)}</article>)}</div>}</section>}
+      {group !== 'en_curso' && <section className="technician-premium-filtered-list" aria-labelledby="technician-filtered-title"><div className="technician-premium-list-heading"><div><span className="technician-premium-kicker">Vista seleccionada</span><h2 id="technician-filtered-title">{groupLabels[group]}</h2></div><span className="technician-premium-count">{visible.length}</span></div>{visible.length === 0 ? <div className="technician-premium-empty"><Inbox size={22} aria-hidden="true" /><strong>No hay OT en esta vista</strong><p>Los estados y fechas visibles se actualizan desde el servidor.</p></div> : <div className="technician-premium-filtered-cards">{visible.map((order) => <article className="technician-premium-filtered-card" key={order.id}><div className="technician-premium-filtered-card-main"><div className="technician-premium-filtered-card-top"><button className="technician-premium-order-link" onClick={() => open(order.id)} type="button">{order.code}</button><span className={`technician-premium-status status-${order.status.toLowerCase().replaceAll('_', '-')}`}>{statusIcon(order.status)}{statusLabels[order.status]}</span></div><h3>{order.title}</h3><p>{renderOrderMeta(order)}</p></div>{renderAction(order)}</article>)}</div>}</section>}
     </div>
     <DemoBrandFooter className="technician-premium-footer" />
   </section>;

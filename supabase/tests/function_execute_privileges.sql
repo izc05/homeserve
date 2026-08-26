@@ -25,6 +25,7 @@ values
   ('public.can_execute_work_order(uuid,uuid)', true),
   ('public.can_manage_work_orders(uuid)', true),
   ('public.cancel_scheduled_maintenance(uuid,text)', true),
+  ('public.close_my_work_order_visit(uuid,jsonb)', true),
   ('public.complete_scheduled_maintenance_from_work_order(uuid)', false),
   ('public.create_tenant_invitation_with_details(uuid,text,text,boolean,text,text,text)', true),
   ('public.create_tenant_invitation(uuid,text,text,boolean,text)', true),
@@ -36,7 +37,8 @@ values
   ('public.ensure_work_order_default_checklist(uuid)', true),
   ('public.ensure_work_order_lifecycle_permission(uuid)', false),
   ('public.finalize_active_work_order_visit(uuid,jsonb)', true),
-  ('public.finalize_work_order_visit(uuid,jsonb)', true),
+  ('public.finalize_work_order_technical(uuid,text)', true),
+  ('public.finalize_work_order_visit(uuid,jsonb)', false),
   ('public.generate_due_scheduled_maintenances(uuid,integer)', true),
   ('public.guard_official_work_order_update()', false),
   ('public.guard_work_order_update()', false),
@@ -45,6 +47,7 @@ values
   ('public.has_tenant_role(uuid,text)', true),
   ('public.is_super_admin()', false),
   ('public.is_work_order_mutable(uuid)', true),
+  ('public.handover_work_order_responsibility(uuid,uuid,text,boolean)', true),
   ('public.log_audit(uuid,text,text,uuid,jsonb)', true),
   ('public.next_work_order_code()', false),
   ('public.normalize_scheduled_maintenance_ot_type(text)', false),
@@ -57,6 +60,7 @@ values
   ('public.review_work_order(uuid,text,text)', true),
   ('public.save_work_order_checklist_response(uuid,text,text)', true),
   ('public.scheduled_maintenance_status_for_date(date,integer)', false),
+  ('public.set_work_order_collaborator(uuid,uuid,boolean,text)', true),
   ('public.set_updated_at()', false),
   ('public.skip_scheduled_maintenance(uuid,text)', true),
   ('public.soft_delete_work_order(uuid,text)', true),
@@ -64,8 +68,8 @@ values
 
 select is(
   (select count(*)::integer from acl_expected),
-  47,
-  '1. la matriz ACL enumera las 47 funciones públicas de aplicación'
+  51,
+  '1. la matriz ACL enumera las 51 funciones públicas de aplicación'
 );
 
 select is(

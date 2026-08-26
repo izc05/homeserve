@@ -1,19 +1,15 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   ArrowLeft,
-  BarChart3,
   Boxes,
   Building2,
-  CalendarDays,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
   Clock3,
   FileCheck2,
-  Home,
   ListChecks,
   LoaderCircle,
   LockKeyhole,
@@ -22,13 +18,12 @@ import {
   MapPin,
   Plus,
   RefreshCw,
-  Settings2,
   ShieldCheck,
-  UsersRound,
   Wrench,
   X,
 } from 'lucide-react';
 import { hasCapability } from './auth/capabilities';
+import { mainNavigation, secondaryNavigation, type NavItem, type View } from './navigation/appNavigation';
 import ProductBrand, { DemoBrandFooter } from './components/ProductBrand';
 import { getSupabaseClient } from './lib/supabase';
 import CreateWorkOrderForm from './features/work-orders/components/WorkOrderCreateWorkspace';
@@ -60,8 +55,6 @@ import { canAccessTechnicianAdministration, canManageTechnicianInvitations, isTe
 import { friendlyTechnicianError } from './features/technicians/api/technicianRepository';
 import { assignWorkOrder } from './features/work-orders/api/workOrderAssignment';
 
-type View = 'dashboard' | 'orders' | 'planning' | 'detail' | 'create' | 'technician' | 'technicians' | 'clients' | 'assets' | 'reports' | 'audit' | 'configuration';
-type NavItem = { id: View; label: string; icon: LucideIcon };
 type CreatePreset = Partial<CreateWorkOrderFormValues>;
 type LifecycleAction = 'accept' | 'start' | 'pause' | 'material' | 'client' | 'resume';
 type ReviewAction = 'validate' | 'correction';
@@ -79,21 +72,6 @@ type AppProps = {
   viewerRole: string;
   onLogout: () => void;
 };
-
-export const mainNavigation: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home },
-  { id: 'orders', label: 'Órdenes', icon: ClipboardList },
-  { id: 'planning', label: 'Planificación', icon: CalendarDays },
-  { id: 'technician', label: 'Técnico', icon: Wrench },
-];
-
-export const secondaryNavigation: NavItem[] = [
-  { id: 'technicians', label: 'Técnicos', icon: UsersRound },
-  { id: 'clients', label: 'Clientes / instalaciones', icon: Building2 },
-  { id: 'reports', label: 'Informes', icon: BarChart3 },
-  { id: 'audit', label: 'Auditoría', icon: ShieldCheck },
-  { id: 'configuration', label: 'Configuración', icon: Settings2 },
-];
 
 const statusLabels: Record<WorkOrderStatus, string> = {
   BORRADOR: 'Borrador',
@@ -507,7 +485,8 @@ export default function App({ tenantId, tenantName, viewerId, viewerName, viewer
 
   const runLifecycleAction: RunLifecycle = (action, order, input) => {
     if (lifecycleMutation.isPending) return;
-    if (!isAssignedTechnician(order, viewerId)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo el técnico asignado puede iniciar o ejecutar esta OT desde su cuenta.' }); return; }
+    if (action !== 'start' && !isAssignedTechnician(order, viewerId)) { setNotice({ kind: 'error', orderId: order.id, text: 'Esta acción global corresponde al técnico responsable de la OT.' }); return; }
+    if (action === 'start' && !isTechnicianRole(viewerRole)) { setNotice({ kind: 'error', orderId: order.id, text: 'Solo un técnico participante puede iniciar una visita.' }); return; }
     if (action === 'pause' || action === 'material' || action === 'client') {
       const reason = input?.reason?.trim();
       if (!reason) { setNotice({ kind: 'error', orderId: order.id, text: 'Indica el motivo antes de cambiar el estado.' }); return; }

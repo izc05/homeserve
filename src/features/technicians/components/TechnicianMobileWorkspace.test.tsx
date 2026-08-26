@@ -64,18 +64,19 @@ function renderWorkspace(orders: WorkOrderListItem[], open = vi.fn()) {
 describe('TechnicianMobileWorkspace premium', () => {
   afterEach(() => cleanup());
 
-  it('renderiza los cuatro contadores con datos aislados del técnico', () => {
+  it('renderiza los cuatro contadores con todas las OT participadas entregadas por RLS', () => {
     renderWorkspace([
       order({ id: 'pending', code: 'OT-PEND', status: 'ASIGNADA', plannedAt: new Date().toISOString() }),
       order({ id: 'urgent', code: 'OT-URG', priority: 'urgente' }),
-      order({ id: 'other', code: 'OT-OTHER', assignedTo: 'another-technician' }),
+      order({ id: 'collaborator', code: 'OT-COLLAB', assignedTo: 'another-technician' }),
     ]);
 
     expect(screen.getByRole('button', { name: /1\s*Pendientes/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /1\s*Hoy/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /1\s*Urgentes/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /1\s*En curso/ })).toBeTruthy();
-    expect(screen.queryByText('OT-OTHER')).toBeNull();
+    expect(screen.getByRole('button', { name: /2\s*En curso/ })).toBeTruthy();
+    expect(screen.getAllByText('Colaborador').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('OT-COLLAB').length).toBeGreaterThan(0);
   });
 
   it('cambia el filtro sin modificar el orden recibido', () => {
@@ -112,8 +113,8 @@ describe('TechnicianMobileWorkspace premium', () => {
     expect(screen.getAllByRole('button', { name: 'Abrir ejecución' })).toHaveLength(3);
   });
 
-  it('expone estados vacíos cuando no hay OT asignadas', () => {
-    renderWorkspace([order({ assignedTo: 'another-technician', code: 'OT-OTHER' })]);
+  it('expone estados vacíos cuando RLS no devuelve OT participadas', () => {
+    renderWorkspace([]);
 
     expect(screen.getByText('Sin OT en foco')).toBeTruthy();
     expect(screen.getByText('No hay OT en curso')).toBeTruthy();
