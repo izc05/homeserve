@@ -1,0 +1,270 @@
+/*
+ * IsiVoltPro OT — V3 premium visual bridge
+ *
+ * Loaded after the legacy product styles so the OT application can converge on
+ * the canonical IsiVoltPro Web V3 language without rewriting functional
+ * components or changing HomeServe OT Demo.
+ */
+
+:root {
+  --v3-canvas: #f3f6fa;
+  --v3-panel: rgba(255, 255, 255, 0.92);
+  --v3-panel-solid: #ffffff;
+  --v3-panel-muted: #f7f9fc;
+  --v3-border: rgba(24, 50, 82, 0.12);
+  --v3-border-strong: rgba(23, 105, 255, 0.22);
+  --v3-text: #10243e;
+  --v3-text-soft: #66778e;
+  --v3-blue-glow: rgba(23, 105, 255, 0.16);
+  --v3-blue-glow-strong: rgba(23, 105, 255, 0.24);
+  --v3-shadow-sm: 0 10px 28px rgba(8, 24, 45, 0.06);
+  --v3-shadow-md: 0 20px 56px rgba(8, 24, 45, 0.10);
+}
+
+/* Application canvas */
+.app-shell {
+  background:
+    radial-gradient(circle at 100% 0, rgba(23, 105, 255, 0.055), transparent 420px),
+    radial-gradient(circle at 45% 100%, rgba(110, 160, 255, 0.045), transparent 520px),
+    var(--v3-canvas);
+}
+
+.main-content {
+  min-width: 0;
+}
+
+/* Navigation */
+.sidebar {
+  border-right-color: var(--v3-border);
+  background:
+    radial-gradient(circle at 18% 0, rgba(23, 105, 255, 0.075), transparent 250px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 255, 0.98) 100%);
+  box-shadow: 14px 0 44px rgba(8, 24, 45, 0.045);
+}
+
+.sidebar::before {
+  background: linear-gradient(180deg, #82adff 0%, var(--color-blue) 48%, #0d4fd1 100%);
+  box-shadow: 4px 0 18px rgba(23, 105, 255, 0.18);
+}
+
+.sidebar-brand-row:has(.product-brand) {
+  border-bottom-color: var(--v3-border);
+}
+
+.sidebar .product-brand--navigation .product-brand-symbol,
+.topbar-product-brand .product-brand-symbol {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(110, 160, 255, 0.36), transparent 36%),
+    linear-gradient(145deg, #07111d, #102b4a);
+}
+
+.nav-item {
+  transition:
+    color 180ms var(--ease-premium),
+    background 180ms var(--ease-premium),
+    border-color 180ms var(--ease-premium),
+    box-shadow 180ms var(--ease-premium),
+    transform 180ms var(--ease-premium);
+}
+
+.nav-item:hover {
+  border-color: rgba(23, 105, 255, 0.12);
+  background: rgba(237, 244, 255, 0.72);
+  color: #173858;
+}
+
+.nav-item:hover > svg {
+  border-color: rgba(23, 105, 255, 0.14);
+  color: var(--color-blue);
+  background: #fff;
+}
+
+.nav-item.active {
+  border-color: rgba(23, 105, 255, 0.44);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(110, 160, 255, 0.24), transparent 40%),
+    linear-gradient(120deg, #07111d 0%, #102b4a 100%);
+  box-shadow: 0 14px 34px rgba(7, 17, 29, 0.24);
+}
+
+.nav-item.active::before {
+  background: var(--color-blue-soft);
+  box-shadow: 0 0 16px rgba(110, 160, 255, 0.5);
+}
+
+.topbar {
+  border-bottom-color: var(--v3-border);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 34px rgba(8, 24, 45, 0.05);
+  backdrop-filter: blur(22px) saturate(155%);
+}
+
+.topbar .top-create {
+  border-color: var(--color-blue);
+  background: var(--color-blue);
+  box-shadow: 0 10px 24px var(--v3-blue-glow);
+  transition:
+    transform 180ms var(--ease-premium),
+    box-shadow 180ms var(--ease-premium),
+    background 180ms var(--ease-premium);
+}
+
+.topbar .top-create:hover {
+  background: var(--brand-dark);
+  box-shadow: 0 14px 30px var(--v3-blue-glow-strong);
+  transform: translateY(-1px);
+}
+
+.mobile-nav button.active {
+  background: var(--brand-soft);
+  color: var(--color-blue);
+}
+
+.mobile-nav button.active::before {
+  background: var(--color-blue);
+}
+
+/* Dashboard shell */
+.premium-dashboard-page {
+  --dashboard-card-border: var(--v3-border);
+  --dashboard-card-shadow: var(--v3-shadow-sm);
+  --dashboard-card-shadow-hover: var(--v3-shadow-md);
+  background:
+    radial-gradient(circle at 82% 6%, rgba(23, 105, 255, 0.045), transparent 320px),
+    var(--v3-canvas);
+}
+
+.premium-dashboard-header {
+  border-bottom-color: var(--color-blue);
+  background:
+    radial-gradient(circle at 82% 10%, rgba(110, 160, 255, 0.26), transparent 34%),
+    radial-gradient(circle at 12% 100%, rgba(23, 105, 255, 0.10), transparent 36%),
+    linear-gradient(135deg, #07111d 0%, #0d2139 56%, #102b4a 100%);
+}
+
+.premium-dashboard-header::before {
+  border-color: rgba(110, 160, 255, 0.14);
+  box-shadow:
+    0 0 0 48px rgba(110, 160, 255, 0.035),
+    0 0 0 96px rgba(110, 160, 255, 0.022);
+}
+
+.premium-dashboard-kicker,
+.premium-dashboard-section-kicker {
+  color: var(--color-blue);
+}
+
+.premium-dashboard-kpis,
+.premium-dashboard-card,
+.premium-dashboard-focus {
+  border-color: var(--v3-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--dashboard-card-shadow);
+}
+
+.premium-dashboard-kpi,
+.premium-dashboard-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 253, 255, 0.98));
+}
+
+.premium-dashboard-kpi::before {
+  background: var(--color-blue);
+}
+
+.premium-dashboard-kpi:nth-child(2)::before { background: #3b82f6; }
+.premium-dashboard-kpi:nth-child(3)::before { background: #f5a524; }
+.premium-dashboard-kpi:nth-child(4)::before { background: #8b5cf6; }
+
+.premium-dashboard-kpi-icon.tone-red {
+  color: #0d4fd1;
+  background: #edf4ff;
+}
+
+.premium-dashboard-focus {
+  border-top-color: var(--color-blue);
+  background: linear-gradient(102deg, #ffffff 0%, #ffffff 62%, #f1f6ff 100%);
+}
+
+.premium-dashboard-focus::after {
+  background: radial-gradient(circle, rgba(23, 105, 255, 0.12), transparent 68%);
+}
+
+.premium-dashboard-focus-icon {
+  color: var(--color-blue);
+  background: var(--brand-soft);
+  box-shadow:
+    inset 0 0 0 1px rgba(23, 105, 255, 0.09),
+    0 8px 20px rgba(23, 105, 255, 0.10);
+}
+
+.premium-dashboard-primary-action {
+  border-color: var(--color-blue);
+  background: var(--color-blue);
+  box-shadow: 0 10px 24px rgba(23, 105, 255, 0.20);
+}
+
+.premium-dashboard-primary-action:hover {
+  background: var(--brand-dark);
+  box-shadow: 0 14px 30px rgba(23, 105, 255, 0.26);
+}
+
+.premium-dashboard-secondary-action:hover,
+.premium-dashboard-wide-action:hover,
+.premium-dashboard-order > button:hover,
+.premium-dashboard-planned-list button:hover {
+  border-color: rgba(23, 105, 255, 0.24);
+  background: #f2f7ff;
+  color: var(--color-blue);
+}
+
+.premium-dashboard-order:hover,
+.premium-dashboard-status-list li:hover,
+.premium-dashboard-technician:hover {
+  background: rgba(242, 247, 255, 0.64);
+}
+
+.premium-dashboard-order > button:hover {
+  box-shadow: 0 8px 18px rgba(23, 105, 255, 0.10);
+}
+
+.premium-dashboard-technician b {
+  color: var(--color-blue);
+  background: var(--brand-soft);
+}
+
+.premium-dashboard-planned-list button::before {
+  background: var(--color-blue);
+}
+
+/* Generic premium surfaces used across OT screens */
+.card,
+.panel,
+.surface-card {
+  border-color: var(--v3-border);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition-timing-function: var(--ease-premium);
+}
+
+@media (max-width: 760px) {
+  .premium-dashboard-page {
+    background: var(--v3-canvas);
+  }
+
+  .topbar .top-create:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item,
+  .topbar .top-create,
+  .premium-dashboard-page * {
+    transition-duration: 0.01ms !important;
+  }
+}
