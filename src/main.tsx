@@ -31,6 +31,7 @@ import './styles/planning-polish.css';
 import './styles/technicians-polish.css';
 import './styles/navigation-polish.css';
 import './styles/admin-modules-polish.css';
+import './styles/v3-premium-overrides.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
