@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -55,6 +55,7 @@ function workOrderTeamError(error: unknown) {
 export default function WorkOrderCompletionPanel({ order, canComplete, onCompleted, client }: WorkOrderCompletionPanelProps) {
   const supabase = client ?? getSupabaseClient();
   const queryClient = useQueryClient();
+  const finalizeSubmissionRef = useRef(false);
   const [visitSummary, setVisitSummary] = useState('');
   const [visitResult, setVisitResult] = useState<'trabajo_completado' | 'pendiente_material' | 'pendiente_cliente' | 'necesita_otra_visita'>('trabajo_completado');
   const [finalSummary, setFinalSummary] = useState('');
@@ -152,6 +153,16 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
     },
   });
 
+  const submitFinalization = () => {
+    if (finalizeSubmissionRef.current) return;
+    finalizeSubmissionRef.current = true;
+    finalizeMutation.mutate(undefined, {
+      onSettled: () => {
+        finalizeSubmissionRef.current = false;
+      },
+    });
+  };
+
   return <div className="administrative-evidence-stack">
     <section className="execution-card completion-panel" aria-labelledby={`visit-close-title-${order.id}`}>
       <div className="execution-card-heading">
@@ -188,7 +199,7 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
         <span className="private-evidence-badge"><ShieldCheck size={14} aria-hidden="true" /> Responsable</span>
       </div>
 
-      {activeVisits.length > 0 && <p className="completion-pending-note"><AlertTriangle size={17} /> Quedan {activeVisits.length} visita{activeVisits.length === 1 ? '' : 's'} en curso. Deben cerrarse antes de finalizar la OT.</p>}
+      {activeVisits.length > 0 && <p className="completion-pending-note"><AlertTriangle size={17} /> {activeVisits.length === 1 ? 'Queda' : 'Quedan'} {activeVisits.length} visita{activeVisits.length === 1 ? '' : 's'} en curso. Deben cerrarse antes de finalizar la OT.</p>}
 
       <div className="completion-requirements" aria-label="Requisitos de finalización">
         {requirementItems.map((item) => {
@@ -213,7 +224,7 @@ export default function WorkOrderCompletionPanel({ order, canComplete, onComplet
 
       {finalizeMutation.error && <p className="execution-inline-error"><AlertTriangle size={17} /> {workOrderTeamError(finalizeMutation.error)}</p>}
       {finalizeMutation.isSuccess && <p className="completion-success"><CheckCircle2 size={17} /> OT finalizada técnicamente y enviada a revisión administrativa.</p>}
-      <div className="completion-actions"><button className="primary-button" disabled={!canFinalizeOrder || requirementsLoading || requirementsError || pendingRequirements.length > 0 || !finalSummary.trim() || !confirmed || finalizeMutation.isPending} onClick={() => finalizeMutation.mutate()} type="button">{finalizeMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <CheckCircle2 size={17} />} {finalizeMutation.isPending ? 'Finalizando OT…' : 'Finalizar OT'}</button></div>
+      <div className="completion-actions"><button className="primary-button" disabled={!canFinalizeOrder || requirementsLoading || requirementsError || pendingRequirements.length > 0 || !finalSummary.trim() || !confirmed || finalizeMutation.isPending} onClick={submitFinalization} type="button">{finalizeMutation.isPending ? <LoaderCircle className="spin" size={17} /> : <CheckCircle2 size={17} />} {finalizeMutation.isPending ? 'Finalizando OT…' : 'Finalizar OT'}</button></div>
     </section>}
   </div>;
 }
